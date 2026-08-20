@@ -30,7 +30,7 @@ export class AgentState {
 		type: SourceType<TData>,
 		priority: number,
 		data?: TData
-	): Source<TData> | undefined {
+	): Source<TData | undefined> | undefined {
 		switch (type.definition.duplicatePolicy) {
 			case "allow":
 				return this.createSource(type, priority, data);
@@ -70,7 +70,7 @@ export class AgentState {
 
 		source.onUpdate(() => {
 			this.clearModifierHandles(handles);
-			handles = this.applyModifiers(type, priority, source.data);
+			handles = this.applyModifiers(type, priority, source.get());
 			this.sourceModifiersMap.set(source, handles);
 			for (const handle of handles) this.dirtyProperties.add(handle.property);
 			this.resolveProperties();
