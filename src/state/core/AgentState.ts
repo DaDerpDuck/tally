@@ -149,6 +149,6 @@ export class AgentState {
 
 	getSource<TData>(type: SourceType<TData>): ReadonlySet<Source<TData>> {
 		if (!this.duplicateLookup.has(type)) this.duplicateLookup.set(type, new Set());
-		return this.duplicateLookup.get(type)!;
+		return this.duplicateLookup.get(type)! as ReadonlySet<Source<TData>>;
 	}
 }
