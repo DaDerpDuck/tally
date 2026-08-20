@@ -1,0 +1,23 @@
+import type { Source } from "./Source.js";
+import type { SourceContribution } from "./SourceContribution.js";
+
+type DuplicatePolicy = "allow" | "ignore" | "replace" | "reconcile";
+
+export interface SourceTypeDefinition<TData> {
+	readonly name: string;
+	readonly duplicatePolicy: DuplicatePolicy;
+
+	create(data: TData): SourceContribution;
+
+	reconcile?(existing: Source<TData>, incoming: TData): void;
+}
+
+export class SourceType<TData> {
+	constructor(public readonly definition: SourceTypeDefinition<TData>) {}
+}
+
+export function defineSourceType<TData>(definition: SourceTypeDefinition<TData>) {
+	if (definition.duplicatePolicy === "reconcile" && definition.reconcile === undefined)
+		throw "reconcile policy was specified but no reconcile callback was given";
+	return new SourceType(definition);
+}
