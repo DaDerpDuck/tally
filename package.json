@@ -1,9 +1,9 @@
 {
-  "name": "effects",
+  "name": "tally",
   "version": "0.0.0",
   "description": "",
-  "license": "ISC",
-  "author": "",
+  "license": "MIT",
+  "author": "DaDerpDuck",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
