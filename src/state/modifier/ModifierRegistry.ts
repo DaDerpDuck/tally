@@ -48,4 +48,8 @@ export class ModifierRegistry implements ModifierCollection {
 		if (buckets.size() === 0) this.map.delete(property);
 		return deleted;
 	}
+
+	clear() {
+		this.map.clear();
+	}
 }

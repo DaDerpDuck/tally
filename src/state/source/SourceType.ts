@@ -1,3 +1,4 @@
+import type { Registrable, Tally } from "../core/Tally.js";
 import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
 
@@ -12,8 +13,12 @@ export interface SourceTypeDefinition<TData> {
 	reconcile?(existing: Source<TData>, incoming: TData): void;
 }
 
-export class SourceType<TData> {
+export class SourceType<TData> implements Registrable {
 	constructor(public readonly definition: SourceTypeDefinition<TData>) {}
+
+	register(tally: Tally<unknown>): void {
+		tally.sources.set(this.definition.name, this);
+	}
 }
 
 export function defineSourceType<TData>(definition: SourceTypeDefinition<TData>) {

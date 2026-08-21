@@ -3,7 +3,6 @@ import { AgentState, defineNumberProperty, defineSourceType } from "../src/index
 
 describe("agent state", () => {
 	const Poison = defineNumberProperty({
-		id: 0,
 		name: "Poison",
 		defaultValue: 0,
 	});
@@ -22,13 +21,13 @@ describe("agent state", () => {
 	});
 
 	it("adds source", () => {
-		const agent = new AgentState();
+		const agent = new AgentState(undefined);
 		agent.addSource(PoisonSource, 100, { intensity: 5 });
 		expect(agent.get(Poison)).toBe(5);
 	});
 
 	it("has property observation on source add", () => {
-		const agent = new AgentState();
+		const agent = new AgentState(undefined);
 		const callback = vi.fn();
 
 		agent.observe(Poison, callback);
@@ -38,7 +37,7 @@ describe("agent state", () => {
 	});
 
 	it("has property observation on source set", () => {
-		const agent = new AgentState();
+		const agent = new AgentState(undefined);
 		const callback = vi.fn();
 
 		agent.observe(Poison, callback);
@@ -53,7 +52,7 @@ describe("agent state", () => {
 	});
 
 	it("has property observation on source destroy", () => {
-		const agent = new AgentState();
+		const agent = new AgentState(undefined);
 		const callback = vi.fn();
 
 		agent.observe(Poison, callback);
@@ -68,7 +67,7 @@ describe("agent state", () => {
 	});
 
 	it("disconnects source observation", () => {
-		const agent = new AgentState();
+		const agent = new AgentState(undefined);
 		const callback = vi.fn();
 
 		const disconnect = agent.observe(Poison, callback);
@@ -79,7 +78,7 @@ describe("agent state", () => {
 	});
 
 	it("checks has source", () => {
-		const agent = new AgentState();
+		const agent = new AgentState(undefined);
 
 		expect(agent.hasSource(PoisonSource)).toBe(false);
 
@@ -89,9 +88,11 @@ describe("agent state", () => {
 		source.destroy();
 		expect(agent.hasSource(PoisonSource)).toBe(false);
 	});
+});
 
+describe("agent state duplication policies", () => {
 	it("handles duplicate policy 'allow'", () => {
-		const agent = new AgentState();
+		const agent = new AgentState(undefined);
 
 		const DupAllowSource = defineSourceType<void>({
 			name: "Dummy",
@@ -117,7 +118,7 @@ describe("agent state", () => {
 	});
 
 	it("handles duplicate policy 'ignore'", () => {
-		const agent = new AgentState();
+		const agent = new AgentState(undefined);
 
 		const DupIgnoreSource = defineSourceType<void>({
 			name: "Dummy",
@@ -143,7 +144,7 @@ describe("agent state", () => {
 	});
 
 	it("handles duplicate policy 'replace'", () => {
-		const agent = new AgentState();
+		const agent = new AgentState(undefined);
 
 		const DupReplaceSource = defineSourceType<void>({
 			name: "Dummy",
@@ -169,7 +170,7 @@ describe("agent state", () => {
 	});
 
 	it("handles duplicate policy 'reconcile'", () => {
-		const agent = new AgentState();
+		const agent = new AgentState(undefined);
 
 		const reconcile = vi.fn();
 

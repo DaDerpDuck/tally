@@ -1,13 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { defineBooleanProperty, ModifierRegistry } from "../src";
 
-describe("number property", () => {
-	enum PropertyId {
-		Invisibility,
-	}
-
+describe("boolean property", () => {
 	const Invisibility = defineBooleanProperty({
-		id: PropertyId.Invisibility,
 		name: "Invisibility",
 		defaultValue: false,
 	});

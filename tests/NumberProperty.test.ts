@@ -2,12 +2,7 @@ import { describe, it, expect } from "vitest";
 import { defineNumberProperty, ModifierRegistry } from "../src";
 
 describe("number property", () => {
-	enum PropertyId {
-		MovementSpeed,
-	}
-
 	const MovementSpeed = defineNumberProperty({
-		id: PropertyId.MovementSpeed,
 		name: "MovementSpeed",
 		defaultValue: 16,
 	});

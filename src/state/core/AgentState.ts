@@ -6,8 +6,9 @@ import { StaticSource } from "../source/StaticSource.js";
 
 type Disconnect = () => void;
 type PropertyCallback<T> = (newValue: T, oldValue: T) => void;
+type SourceCallback<T> = (source: Source<T>) => void;
 
-export class AgentState {
+export class AgentState<TEntity> {
 	private readonly modifierRegistry = new ModifierRegistry();
 	private readonly sourceModifiersMap = new Map<Source<unknown>, ModifierHandle[]>();
 	private readonly duplicateLookup = new Map<SourceType<unknown>, Set<Source<unknown>>>();
@@ -16,9 +17,14 @@ export class AgentState {
 		Property<unknown>,
 		Set<PropertyCallback<unknown>>
 	>();
+	private readonly sourceAddedCallbacks = new Set<SourceCallback<unknown>>();
+	private readonly sourceRemovedCallbacks = new Set<SourceCallback<unknown>>();
+	private readonly sourceUpdatedCallbacks = new Set<SourceCallback<unknown>>();
 
 	private readonly resolvedProperties = new Map<Property<unknown>, unknown>();
 	private readonly dirtyProperties = new Set<Property<unknown>>();
+
+	constructor(public readonly entity: TEntity) {}
 
 	addSource(type: SourceType<undefined>, priority: number): Source<undefined> | undefined;
 	addSource<TData extends object>(
@@ -74,6 +80,7 @@ export class AgentState {
 			this.sourceModifiersMap.set(source, handles);
 			for (const handle of handles) this.dirtyProperties.add(handle.property);
 			this.resolveProperties();
+			this.sourceUpdatedCallbacks.forEach((callback) => callback(source));
 		});
 
 		source.onDestroy(() => {
@@ -82,7 +89,10 @@ export class AgentState {
 			this.sourceModifiersMap.delete(source);
 			this.duplicateLookup.get(source.type)?.delete(source);
 			this.resolveProperties();
+			this.sourceRemovedCallbacks.forEach((callback) => callback(source));
 		});
+
+		this.sourceAddedCallbacks.forEach((callback) => callback(source));
 
 		return source;
 	}
@@ -150,5 +160,32 @@ export class AgentState {
 	getSource<TData>(type: SourceType<TData>): ReadonlySet<Source<TData>> {
 		if (!this.duplicateLookup.has(type)) this.duplicateLookup.set(type, new Set());
 		return this.duplicateLookup.get(type)! as ReadonlySet<Source<TData>>;
+	}
+
+	onSourceAdded(callback: SourceCallback<unknown>): Disconnect {
+		this.sourceAddedCallbacks.add(callback);
+		return () => this.sourceAddedCallbacks.delete(callback);
+	}
+
+	onSourceRemoved(callback: SourceCallback<unknown>): Disconnect {
+		this.sourceRemovedCallbacks.add(callback);
+		return () => this.sourceRemovedCallbacks.delete(callback);
+	}
+
+	onSourceUpdated(callback: SourceCallback<unknown>): Disconnect {
+		this.sourceUpdatedCallbacks.add(callback);
+		return () => this.sourceUpdatedCallbacks.delete(callback);
+	}
+
+	destroy() {
+		this.sourceModifiersMap.forEach((_, source) => source.destroy());
+		this.sourceModifiersMap.clear();
+		this.modifierRegistry.clear();
+		this.propertyCallbacks.clear();
+		this.resolvedProperties.clear();
+		this.dirtyProperties.clear();
+		this.sourceAddedCallbacks.clear();
+		this.sourceRemovedCallbacks.clear();
+		this.sourceUpdatedCallbacks.clear();
 	}
 }
