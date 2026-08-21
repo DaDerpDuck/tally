@@ -75,6 +75,7 @@ export class AgentState<TEntity> {
 		else this.duplicateLookup.set(type, new Set([source]));
 
 		source.onUpdate(() => {
+			for (const handle of handles) this.dirtyProperties.add(handle.property);
 			this.clearModifierHandles(handles);
 			handles = this.applyModifiers(type, priority, source.get());
 			this.sourceModifiersMap.set(source, handles);
