@@ -7,10 +7,10 @@ type SourceCallback<TEntity> = (agent: AgentState<TEntity>, source: Source<unkno
 type Disconnect = () => void;
 
 export interface Registrable {
-	register(tally: Tally<unknown>): void;
+	register(tally: TallyContext<unknown>): void;
 }
 
-export class Tally<TEntity> {
+export class TallyContext<TEntity> {
 	public readonly sources = new Map<string, SourceType<unknown>>();
 	public readonly properties = new Map<string, Property<unknown>>();
 
@@ -33,7 +33,7 @@ export class Tally<TEntity> {
 	}
 
     register<T extends Registrable>(definition: T): T {
-        definition.register(this as Tally<unknown>);
+        definition.register(this as TallyContext<unknown>);
         return definition;
     }
 

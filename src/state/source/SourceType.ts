@@ -1,4 +1,4 @@
-import type { Registrable, Tally } from "../core/Tally.js";
+import type { Registrable, TallyContext } from "../core/TallyContext.js";
 import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
 
@@ -16,7 +16,7 @@ export interface SourceTypeDefinition<TData> {
 export class SourceType<TData> implements Registrable {
 	constructor(public readonly definition: SourceTypeDefinition<TData>) {}
 
-	register(tally: Tally<unknown>): void {
+	register(tally: TallyContext<unknown>): void {
 		if (
 			tally.sources.has(this.definition.name) &&
 			tally.sources.get(this.definition.name) !== this

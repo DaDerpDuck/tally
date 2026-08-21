@@ -1,4 +1,4 @@
-import type { Registrable, Tally } from "../core/Tally.js";
+import type { Registrable, TallyContext } from "../core/TallyContext.js";
 import type { Modifier } from "../modifier/Modifier.js";
 
 export class Property<T> implements Registrable {
@@ -7,7 +7,7 @@ export class Property<T> implements Registrable {
 		public readonly resolve: (base: T, modifiers: readonly Modifier<T>[]) => T
 	) {}
 
-	register(tally: Tally<unknown>): void {
+	register(tally: TallyContext<unknown>): void {
 		if (
 			tally.properties.has(this.options.name) &&
 			tally.properties.get(this.options.name) !== this
