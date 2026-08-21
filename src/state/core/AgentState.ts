@@ -125,6 +125,7 @@ export class AgentState<TEntity> {
 				callbacks?.forEach((callback) => callback(newResolution, oldResolution));
 			}
 		}
+		this.dirtyProperties.clear();
 	}
 
 	get<T>(property: Property<T>): T {
