@@ -128,15 +128,13 @@ export class AgentState<TEntity> {
 	}
 
 	get<T>(property: Property<T>): T {
-		let resolved = this.resolvedProperties.get(property as Property<unknown>);
-		if (!resolved) {
+		if (!this.resolvedProperties.has(property as Property<unknown>)) {
 			this.resolvedProperties.set(
 				property as Property<unknown>,
 				property.options.defaultValue
 			);
-			resolved = property.options.defaultValue;
 		}
-		return resolved as T;
+		return this.resolvedProperties.get(property as Property<unknown>) as T;
 	}
 
 	observe<T>(property: Property<T>, callback: (value: T) => void): Disconnect {
