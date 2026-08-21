@@ -139,7 +139,7 @@ export class AgentState<TEntity> {
 		return this.resolvedProperties.get(property as Property<unknown>) as T;
 	}
 
-	observe<T>(property: Property<T>, callback: (value: T) => void): Disconnect {
+	observe<T>(property: Property<T>, callback: PropertyCallback<T>): Disconnect {
 		let callbacks = this.propertyCallbacks.get(property as Property<unknown>);
 		if (callbacks) {
 			callbacks.add(callback as PropertyCallback<unknown>);
