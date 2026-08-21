@@ -177,13 +177,17 @@ export class AgentState<TEntity> {
 		return () => this.sourceUpdatedCallbacks.delete(callback);
 	}
 
-	destroy() {
+	destroyAllSources() {
 		this.sourceModifiersMap.forEach((_, source) => source.destroy());
 		this.sourceModifiersMap.clear();
 		this.modifierRegistry.clear();
-		this.propertyCallbacks.clear();
 		this.resolvedProperties.clear();
 		this.dirtyProperties.clear();
+	}
+
+	destroy() {
+		this.destroyAllSources();
+		this.propertyCallbacks.clear();
 		this.sourceAddedCallbacks.clear();
 		this.sourceRemovedCallbacks.clear();
 		this.sourceUpdatedCallbacks.clear();
