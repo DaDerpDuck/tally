@@ -162,6 +162,10 @@ export class AgentState<TEntity> {
 		return this.duplicateLookup.get(type)! as ReadonlySet<Source<TData>>;
 	}
 
+	getAllSources(): Set<Source<unknown>> {
+		return new Set(this.sourceModifiersMap.keys().toArray());
+	}
+
 	onSourceAdded(callback: SourceCallback<unknown>): Disconnect {
 		this.sourceAddedCallbacks.add(callback);
 		return () => this.sourceAddedCallbacks.delete(callback);
