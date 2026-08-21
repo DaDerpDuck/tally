@@ -8,6 +8,11 @@ export class Property<T> implements Registrable {
 	) {}
 
 	register(tally: Tally<unknown>): void {
+		if (
+			tally.properties.has(this.options.name) &&
+			tally.properties.get(this.options.name) !== this
+		)
+			throw "Duplicate property name";
 		tally.properties.set(this.options.name, this as Property<unknown>);
 	}
 }

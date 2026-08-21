@@ -17,6 +17,11 @@ export class SourceType<TData> implements Registrable {
 	constructor(public readonly definition: SourceTypeDefinition<TData>) {}
 
 	register(tally: Tally<unknown>): void {
+		if (
+			tally.sources.has(this.definition.name) &&
+			tally.sources.get(this.definition.name) !== this
+		)
+			throw "Duplicate property name";
 		tally.sources.set(this.definition.name, this);
 	}
 }

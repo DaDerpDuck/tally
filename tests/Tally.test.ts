@@ -135,13 +135,11 @@ describe("tally", () => {
 		expect(tally.sources.get("Nonexistent")).toBeUndefined();
 	});
 
-	it("registers idempotently", () => {
+	it("registers properties idempotently", () => {
 		const tally = new Tally();
 		expect(tally.properties.size).toBe(0);
 
-		const property = tally.register(
-			defineBooleanProperty({ name: "Boolean", defaultValue: false })
-		);
+		const property = defineBooleanProperty({ name: "Boolean", defaultValue: false });
 		tally.register(property);
 		expect(tally.properties.size).toBe(1);
 		expect(tally.properties.get("Boolean")).toBe(property);
@@ -149,5 +147,41 @@ describe("tally", () => {
 		tally.register(property);
 		expect(tally.properties.size).toBe(1);
 		expect(tally.properties.get("Boolean")).toBe(property);
+
+		const anotherProperty = defineBooleanProperty({ name: "Boolean", defaultValue: false });
+		expect(() => tally.register(anotherProperty)).toThrow();
+	});
+
+	it("registers sources idempotently", () => {
+		const tally = new Tally();
+		expect(tally.sources.size).toBe(0);
+
+		const source = defineSourceType({
+			name: "Source1",
+			duplicatePolicy: "allow",
+			create() {
+				return {
+					modifiers: [],
+				};
+			},
+		});
+		tally.register(source);
+		expect(tally.sources.size).toBe(1);
+		expect(tally.sources.get("Source1")).toBe(source);
+
+		tally.register(source);
+		expect(tally.sources.size).toBe(1);
+		expect(tally.sources.get("Source1")).toBe(source);
+
+		const anotherSource = defineSourceType({
+			name: "Source1",
+			duplicatePolicy: "allow",
+			create() {
+				return {
+					modifiers: [],
+				};
+			},
+		});
+		expect(() => tally.register(anotherSource)).toThrow();
 	});
 });
