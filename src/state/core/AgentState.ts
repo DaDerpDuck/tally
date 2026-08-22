@@ -170,7 +170,7 @@ export class AgentState<TEntity> {
 	}
 
 	getAllSources(): Set<Source<unknown>> {
-		return new Set(this.sourceModifiersMap.keys().toArray());
+		return new Set(this.sourceModifiersMap.keys());
 	}
 
 	onSourceAdded(callback: SourceCallback<unknown>): Disconnect {
