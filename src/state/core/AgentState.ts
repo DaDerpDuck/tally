@@ -9,6 +9,8 @@ type PropertyCallback<T> = (newValue: T, oldValue: T) => void;
 type SourceCallback<T> = (source: Source<T>) => void;
 
 export class AgentState<TEntity> {
+	private static readonly EmptySet: ReadonlySet<unknown> = new Set();
+
 	private readonly modifierRegistry = new ModifierRegistry();
 	private readonly sourceModifiersMap = new Map<Source<unknown>, ModifierHandle[]>();
 	private readonly duplicateLookup = new Map<SourceType<unknown>, Set<Source<unknown>>>();
@@ -162,8 +164,9 @@ export class AgentState<TEntity> {
 	}
 
 	getSource<TData>(type: SourceType<TData>): ReadonlySet<Source<TData>> {
-		if (!this.duplicateLookup.has(type)) this.duplicateLookup.set(type, new Set());
-		return this.duplicateLookup.get(type)! as ReadonlySet<Source<TData>>;
+		return (this.duplicateLookup.get(type) ?? AgentState.EmptySet) as ReadonlySet<
+			Source<TData>
+		>;
 	}
 
 	getAllSources(): Set<Source<unknown>> {
