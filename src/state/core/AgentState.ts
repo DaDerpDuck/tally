@@ -29,7 +29,7 @@ export class AgentState<TEntity> {
 	constructor(public readonly entity: TEntity) {}
 
 	addSource(type: SourceType<undefined>, priority: number): Source<undefined> | undefined;
-	addSource<TData extends object>(
+	addSource<TData extends NonNullable<unknown>>(
 		type: SourceType<TData>,
 		priority: number,
 		data: TData
