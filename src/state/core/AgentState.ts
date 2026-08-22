@@ -24,6 +24,8 @@ export class AgentState<TEntity> {
 	private readonly resolvedProperties = new Map<Property<unknown>, unknown>();
 	private readonly dirtyProperties = new Set<Property<unknown>>();
 
+	private mutationDepth = 0;
+
 	constructor(public readonly entity: TEntity) {}
 
 	addSource(type: SourceType<undefined>, priority: number): Source<undefined> | undefined;
@@ -46,9 +48,11 @@ export class AgentState<TEntity> {
 				return this.createSource(type, priority, data);
 			}
 			case "replace": {
-				const existingSource = this.duplicateLookup.get(type)?.values().next().value;
-				existingSource?.destroy();
-				return this.createSource(type, priority, data);
+				return this.transact(() => {
+					const existingSource = this.duplicateLookup.get(type)?.values().next().value;
+					existingSource?.destroy();
+					return this.createSource(type, priority, data);
+				});
 			}
 			case "reconcile": {
 				const existingSource = this.duplicateLookup.get(type)?.values().next().value;
@@ -69,7 +73,7 @@ export class AgentState<TEntity> {
 		const source = new StaticSource(type, priority, data);
 		this.sourceModifiersMap.set(source, handles);
 		for (const handle of handles) this.dirtyProperties.add(handle.property);
-		this.resolveProperties();
+		this.requestResolve();
 
 		if (this.duplicateLookup.has(type)) this.duplicateLookup.get(type)!.add(source);
 		else this.duplicateLookup.set(type, new Set([source]));
@@ -80,7 +84,7 @@ export class AgentState<TEntity> {
 			handles = this.applyModifiers(type, priority, source.get());
 			this.sourceModifiersMap.set(source, handles);
 			for (const handle of handles) this.dirtyProperties.add(handle.property);
-			this.resolveProperties();
+			this.requestResolve();
 			this.sourceUpdatedCallbacks.forEach((callback) => callback(source));
 		});
 
@@ -89,7 +93,7 @@ export class AgentState<TEntity> {
 			this.clearModifierHandles(handles);
 			this.sourceModifiersMap.delete(source);
 			this.duplicateLookup.get(source.type)?.delete(source);
-			this.resolveProperties();
+			this.requestResolve();
 			this.sourceRemovedCallbacks.forEach((callback) => callback(source));
 		});
 
@@ -195,5 +199,20 @@ export class AgentState<TEntity> {
 		this.sourceAddedCallbacks.clear();
 		this.sourceRemovedCallbacks.clear();
 		this.sourceUpdatedCallbacks.clear();
+	}
+
+	private requestResolve() {
+		if (this.mutationDepth === 0) this.resolveProperties();
+	}
+
+	private transact<T>(callback: () => T): T {
+		this.mutationDepth++;
+
+		try {
+			return callback();
+		} finally {
+			this.mutationDepth--;
+			if (this.mutationDepth === 0) this.resolveProperties();
+		}
 	}
 }

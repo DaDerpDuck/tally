@@ -79,7 +79,6 @@ describe("agent state", () => {
 
 	it("checks has source", () => {
 		const agent = new AgentState(undefined);
-
 		expect(agent.hasSource(PoisonSource)).toBe(false);
 
 		const source = agent.addSource(PoisonSource, 100, { intensity: 100 })!;
@@ -167,6 +166,35 @@ describe("agent state duplication policies", () => {
 		const source3 = agent.addSource(DupReplaceSource, 0);
 		expect(source3).toBeDefined();
 		expect(agent.getSource(DupReplaceSource)).toEqual(new Set([source3]));
+	});
+
+	it("handles duplicate policy 'replace' without producing intermediate fake state", () => {
+		const agent = new AgentState(undefined);
+		const callback = vi.fn();
+
+		const DummyProperty = defineNumberProperty({ name: "DummyProperty", defaultValue: 0 });
+
+		interface DummyData {
+			value: number;
+		}
+
+		const DupReplaceSource = defineSourceType<DummyData>({
+			name: "Dummy",
+			duplicatePolicy: "replace",
+			create(data) {
+				return { modifiers: [DummyProperty.add(data.value)] };
+			},
+		});
+
+		agent.observe(DummyProperty, callback);
+
+		agent.addSource(DupReplaceSource, 0, { value: 5 });
+		expect(callback).toHaveBeenCalledTimes(1);
+		expect(callback).toHaveBeenCalledWith(5, 0);
+
+		agent.addSource(DupReplaceSource, 0, { value: 10 });
+		expect(callback).toHaveBeenCalledTimes(2);
+		expect(callback).toHaveBeenCalledWith(10, 5);
 	});
 
 	it("handles duplicate policy 'reconcile'", () => {
