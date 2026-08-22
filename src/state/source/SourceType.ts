@@ -21,13 +21,13 @@ export class SourceType<TData> implements Registrable {
 			tally.sources.has(this.definition.name) &&
 			tally.sources.get(this.definition.name) !== this
 		)
-			throw "Duplicate property name";
+			throw new Error("Duplicate source name");
 		tally.sources.set(this.definition.name, this);
 	}
 }
 
 export function defineSourceType<TData>(definition: SourceTypeDefinition<TData>) {
 	if (definition.duplicatePolicy === "reconcile" && definition.reconcile === undefined)
-		throw "reconcile policy was specified but no reconcile callback was given";
+		throw new Error("Reconcile policy was specified but no reconcile callback was given");
 	return new SourceType(definition);
 }

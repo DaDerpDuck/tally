@@ -12,7 +12,7 @@ export class ModifierRegistry implements ModifierCollection {
 	private readonly map = new Map<unknown, OrderedBuckets<unknown>>();
 
 	add<T>(property: Property<T>, modifier: Modifier<T>, priority: number): ModifierHandle {
-		if (modifier.property !== property) throw "Modifier does not belong to Property";
+		if (modifier.property !== property) throw new Error("Modifier does not belong to Property");
 		const buckets = this.map.get(property);
 		if (buckets) {
 			return {
