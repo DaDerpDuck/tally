@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { AgentState, defineNumberProperty, defineSourceType } from "../src/index.js";
+import {
+	AgentState,
+	defineBooleanProperty,
+	defineNumberProperty,
+	defineSourceType,
+} from "../src/index.js";
 
 describe("agent state", () => {
 	const Poison = defineNumberProperty({
@@ -22,8 +27,123 @@ describe("agent state", () => {
 
 	it("adds source", () => {
 		const agent = new AgentState(undefined);
-		agent.addSource(PoisonSource, 100, { intensity: 5 });
+		expect(agent.get(Poison)).toBe(0);
+
+		const source = agent.addSource(PoisonSource, 100, { intensity: 5 });
+		expect(source).toBeDefined();
 		expect(agent.get(Poison)).toBe(5);
+	});
+
+	it("resolves source with falsy cache (number)", () => {
+		const agent = new AgentState(undefined);
+		expect(agent.get(Poison)).toBe(0);
+
+		const source = agent.addSource(PoisonSource, 100, { intensity: 5 });
+		expect(agent.get(Poison)).toBe(5);
+
+		source!.set({ intensity: 0 });
+		expect(agent.get(Poison)).toBe(0);
+
+		source!.set({ intensity: 5 });
+		expect(agent.get(Poison)).toBe(5);
+
+		source!.destroy();
+		expect(agent.get(Poison)).toBe(0);
+	});
+
+	it("resolves source with falsy cache (boolean)", () => {
+		const BooleanProp = defineBooleanProperty({ name: "Boolean", defaultValue: false });
+
+		const BooleanSource = defineSourceType<boolean>({
+			name: "BooleanSource",
+			duplicatePolicy: "ignore",
+			create(value) {
+				return {
+					modifiers: [BooleanProp.toggle(value)],
+				};
+			},
+		});
+
+		const agent = new AgentState(undefined);
+		expect(agent.get(BooleanProp)).toBe(false);
+
+		const source = agent.addSource(BooleanSource, 100, true);
+		expect(agent.get(BooleanProp)).toBe(true);
+
+		source!.set(false);
+		expect(agent.get(BooleanProp)).toBe(false);
+
+		source!.set(true);
+		expect(agent.get(BooleanProp)).toBe(true);
+
+		source!.destroy();
+		expect(agent.get(BooleanProp)).toBe(false);
+	});
+
+	it("handles dynamic source contribution shape", () => {
+		const Prop1 = defineNumberProperty({ name: "Prop1", defaultValue: 10 });
+		const Prop2 = defineNumberProperty({ name: "Prop2", defaultValue: 20 });
+
+		const PropSource = defineSourceType<boolean>({
+			name: "PropSource",
+			duplicatePolicy: "ignore",
+			create(data) {
+				if (data) return { modifiers: [Prop1.add(1), Prop2.add(1)] };
+				else return { modifiers: [Prop1.add(1)] };
+			},
+		});
+
+		const agent = new AgentState(undefined);
+		expect(agent.get(Prop1)).toBe(10);
+		expect(agent.get(Prop2)).toBe(20);
+
+		const source = agent.addSource(PropSource, 100, true);
+		expect(agent.get(Prop1)).toBe(11);
+		expect(agent.get(Prop2)).toBe(21);
+
+		source!.set(false);
+		expect(agent.get(Prop1)).toBe(11);
+		expect(agent.get(Prop2)).toBe(20);
+
+		source!.destroy();
+		expect(agent.get(Prop1)).toBe(10);
+		expect(agent.get(Prop2)).toBe(20);
+	});
+
+	it("handles duplicate source identities", () => {
+		const NumProp = defineNumberProperty({ name: "NumProp", defaultValue: 0 });
+
+		const PropSource = defineSourceType<number>({
+			name: "PropSource",
+			duplicatePolicy: "allow",
+			create(data) {
+				return { modifiers: [NumProp.add(data)] };
+			},
+		});
+
+		const agent = new AgentState(undefined);
+		expect(agent.get(NumProp)).toBe(0);
+
+		const source1 = agent.addSource(PropSource, 0, 1);
+		expect(source1).toBeDefined();
+		expect(agent.get(NumProp)).toBe(1);
+
+		const source2 = agent.addSource(PropSource, 0, 10);
+		expect(source2).toBeDefined();
+		expect(agent.get(NumProp)).toBe(11);
+
+		const source3 = agent.addSource(PropSource, 0, 100);
+		expect(source3).toBeDefined();
+		expect(agent.get(NumProp)).toBe(111);
+
+		source2!.set(20);
+		expect(agent.get(NumProp)).toBe(121);
+
+		source1!.set(2);
+		expect(agent.get(NumProp)).toBe(122);
+
+		source3!.set(200);
+		expect(agent.get(NumProp)).toBe(222);
 	});
 
 	it("has property observation on source add", () => {
@@ -49,6 +169,20 @@ describe("agent state", () => {
 		poisonSource.set({ intensity: 2 });
 		expect(callback).toHaveBeenCalledTimes(2);
 		expect(callback).toHaveBeenCalledWith(2, 5);
+	});
+
+	it("has no-op property observation on source set", () => {
+		const agent = new AgentState(undefined);
+		const callback = vi.fn();
+
+		agent.observe(Poison, callback);
+
+		const poisonSource = agent.addSource(PoisonSource, 100, { intensity: 5 })!;
+		expect(callback).toHaveBeenCalledTimes(1);
+		expect(callback).toHaveBeenCalledWith(5, 0);
+
+		poisonSource.set({ intensity: 5 });
+		expect(callback).toHaveBeenCalledTimes(1);
 	});
 
 	it("has property observation on source destroy", () => {
@@ -168,7 +302,7 @@ describe("agent state duplication policies", () => {
 		expect(agent.getSource(DupReplaceSource)).toEqual(new Set([source3]));
 	});
 
-	it("handles duplicate policy 'replace' without producing intermediate fake state", () => {
+	it("handles duplicate policy 'replace' atomically", () => {
 		const agent = new AgentState(undefined);
 		const callback = vi.fn();
 
