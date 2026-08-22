@@ -61,6 +61,20 @@ export class OrderedBuckets<T> {
 		}
 		this.length--;
 		(entry as MutableEntry<T>).bucketIndex = -1;
+		if (bucket.length === 0) {
+			this.bucketMap.delete(priority);
+			let i = 0;
+			let j = this.sortedPriorities.length - 1;
+			while (i <= j) {
+				const mid = i + (((j - i) * 0.5) | 0);
+				if (priority > this.sortedPriorities[mid]!) {
+					i = mid + 1;
+				} else {
+					j = mid - 1;
+				}
+			}
+			this.sortedPriorities.splice(i, 1);
+		}
 		return true;
 	}
 
