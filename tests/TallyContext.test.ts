@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { defineBooleanProperty, defineNumberProperty, defineSourceType, Tally } from "../src";
+import { defineBooleanProperty, defineNumberProperty, defineSourceType, TallyContext } from "../src";
 
 describe("tally", () => {
 	interface PoisonData {
@@ -16,7 +16,7 @@ describe("tally", () => {
 	});
 
 	it("has observation on source add", () => {
-		const tally = new Tally();
+		const tally = new TallyContext();
 		const agent = tally.createAgentState(undefined);
 		const callback = vi.fn();
 		tally.onSourceAdded(callback);
@@ -37,7 +37,7 @@ describe("tally", () => {
 	});
 
 	it("has observation on source remove", () => {
-		const tally = new Tally();
+		const tally = new TallyContext();
 		const agent = tally.createAgentState(undefined);
 		const callback = vi.fn();
 		tally.onSourceRemoved(callback);
@@ -57,7 +57,7 @@ describe("tally", () => {
 	});
 
 	it("has observation on source set", () => {
-		const tally = new Tally();
+		const tally = new TallyContext();
 		const agent = tally.createAgentState(undefined);
 		const callback = vi.fn();
 		tally.onSourceUpdated(callback);
@@ -84,7 +84,7 @@ describe("tally", () => {
 	});
 
 	it("registers properties", () => {
-		const tally = new Tally();
+		const tally = new TallyContext();
 		expect(tally.properties.size).toBe(0);
 
 		const property1 = tally.register(
@@ -101,7 +101,7 @@ describe("tally", () => {
 	});
 
 	it("registers sources", () => {
-		const tally = new Tally();
+		const tally = new TallyContext();
 		expect(tally.sources.size).toBe(0);
 
 		const source1 = tally.register(
@@ -136,7 +136,7 @@ describe("tally", () => {
 	});
 
 	it("registers properties idempotently", () => {
-		const tally = new Tally();
+		const tally = new TallyContext();
 		expect(tally.properties.size).toBe(0);
 
 		const property = defineBooleanProperty({ name: "Boolean", defaultValue: false });
@@ -153,7 +153,7 @@ describe("tally", () => {
 	});
 
 	it("registers sources idempotently", () => {
-		const tally = new Tally();
+		const tally = new TallyContext();
 		expect(tally.sources.size).toBe(0);
 
 		const source = defineSourceType({
