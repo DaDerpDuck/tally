@@ -17,25 +17,32 @@ export class TallyContext<TEntity> {
 	private readonly sourceAddedCallbacks = new Set<SourceCallback<TEntity>>();
 	private readonly sourceRemovedCallbacks = new Set<SourceCallback<TEntity>>();
 	private readonly sourceUpdatedCallbacks = new Set<SourceCallback<TEntity>>();
+	private readonly agentConnections = new Set<Disconnect>();
 
 	createAgentState(entity: TEntity) {
 		const agent = new AgentState(entity);
-		agent.onSourceAdded((source) =>
-			this.sourceAddedCallbacks.forEach((callback) => callback(agent, source))
+		this.agentConnections.add(
+			agent.onSourceAdded((source) =>
+				this.sourceAddedCallbacks.forEach((callback) => callback(agent, source))
+			)
 		);
-		agent.onSourceRemoved((source) =>
-			this.sourceRemovedCallbacks.forEach((callback) => callback(agent, source))
+		this.agentConnections.add(
+			agent.onSourceRemoved((source) =>
+				this.sourceRemovedCallbacks.forEach((callback) => callback(agent, source))
+			)
 		);
-		agent.onSourceUpdated((source) =>
-			this.sourceUpdatedCallbacks.forEach((callback) => callback(agent, source))
+		this.agentConnections.add(
+			agent.onSourceUpdated((source) =>
+				this.sourceUpdatedCallbacks.forEach((callback) => callback(agent, source))
+			)
 		);
 		return agent;
 	}
 
-    register<T extends Registrable>(definition: T): T {
-        definition.register(this as TallyContext<unknown>);
-        return definition;
-    }
+	register<T extends Registrable>(definition: T): T {
+		definition.register(this as TallyContext<unknown>);
+		return definition;
+	}
 
 	onSourceAdded(callback: SourceCallback<TEntity>): Disconnect {
 		this.sourceAddedCallbacks.add(callback);
@@ -53,6 +60,7 @@ export class TallyContext<TEntity> {
 	}
 
 	destroy() {
+		this.agentConnections.forEach((disconnect) => disconnect());
 		this.sourceAddedCallbacks.clear();
 		this.sourceRemovedCallbacks.clear();
 		this.sourceUpdatedCallbacks.clear();
