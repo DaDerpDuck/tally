@@ -125,7 +125,7 @@ export class AgentState<TEntity> {
 			);
 			const oldResolution = this.get(property);
 			this.resolvedProperties.set(property, newResolution);
-			if (oldResolution !== newResolution) {
+			if (!property.equals(oldResolution, newResolution)) {
 				const callbacks = this.propertyCallbacks.get(property);
 				callbacks?.forEach((callback) => callback(newResolution, oldResolution));
 			}

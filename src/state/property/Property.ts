@@ -4,7 +4,8 @@ import type { Modifier } from "../modifier/Modifier.js";
 export class Property<T> implements Registrable {
 	constructor(
 		public readonly options: PropertyOptions<T>,
-		public readonly resolve: (base: T, modifiers: readonly Modifier<T>[]) => T
+		public readonly resolve: (base: T, modifiers: readonly Modifier<T>[]) => T,
+		public readonly equals: (a: T, b: T) => boolean
 	) {}
 
 	register(tally: TallyContext<unknown>): void {
@@ -17,15 +18,17 @@ export class Property<T> implements Registrable {
 	}
 }
 
-export function defineProperty<T>(
-	options: PropertyOptions<T>,
-	resolve?: (base: T, modifiers: readonly Modifier<T>[]) => T
-) {
-	resolve ??= (base: T) => base;
-	return new Property(options, resolve);
+export function defineProperty<T>(options: PropertyOptions<T>) {
+	return new Property(
+		options,
+		options.resolve ?? ((base) => base),
+		options.equals ?? ((a, b) => a === b)
+	);
 }
 
 export interface PropertyOptions<T> {
 	readonly name: string;
 	readonly defaultValue: T;
+	equals?(a: T, b: T): boolean;
+	resolve?: (base: T, modifiers: readonly Modifier<T>[]) => T;
 }
