@@ -66,6 +66,10 @@ export class AgentState<TEntity> {
 		}
 	}
 
+	transaction(fn: () => void) {
+		this.transact(fn);
+	}
+
 	private createSource<TData>(
 		type: SourceType<TData>,
 		priority: number,
