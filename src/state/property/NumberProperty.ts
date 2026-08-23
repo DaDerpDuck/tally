@@ -1,5 +1,5 @@
 import { contributeModifier } from "../modifier/ModifierContribution.js";
-import { Property, type PropertyOptions } from "./Property.js";
+import { Property, type PropertyDefinition } from "./Property.js";
 
 export class NumberProperty extends Property<number> {
 	add(n: number) {
@@ -27,9 +27,9 @@ export class NumberProperty extends Property<number> {
 	}
 }
 
-export function defineNumberProperty(options: PropertyOptions<number>) {
+export function defineNumberProperty(definition: PropertyDefinition<number>) {
 	const resolve =
-		options.resolve ??
+		definition.resolve ??
 		((base, modifiers) => {
 			let final = base;
 
@@ -50,7 +50,7 @@ export function defineNumberProperty(options: PropertyOptions<number>) {
 			return final;
 		});
 
-	const equals = options.equals ?? ((a, b) => a === b);
+	const equals = definition.equals ?? ((a, b) => a === b);
 
-	return new NumberProperty(options, resolve, equals);
+	return new NumberProperty(definition, resolve, equals);
 }

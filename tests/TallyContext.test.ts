@@ -3,9 +3,6 @@ import {
 	defineBooleanProperty,
 	defineNumberProperty,
 	defineSourceType,
-	ReplicationDefinition,
-	Source,
-	SourceType,
 	TallyContext,
 } from "../src";
 
@@ -18,9 +15,7 @@ describe("tally", () => {
 		name: "Poison",
 		duplicatePolicy: "ignore",
 
-		create() {
-			return { modifiers: [] };
-		},
+		contribute: () => [],
 	});
 
 	it("has observation on source add", () => {
@@ -116,11 +111,7 @@ describe("tally", () => {
 			defineSourceType({
 				name: "Source1",
 				duplicatePolicy: "allow",
-				create() {
-					return {
-						modifiers: [],
-					};
-				},
+				contribute: () => [],
 			})
 		);
 		expect(tally.sources.size).toBe(1);
@@ -130,11 +121,7 @@ describe("tally", () => {
 			defineSourceType({
 				name: "Source2",
 				duplicatePolicy: "allow",
-				create() {
-					return {
-						modifiers: [],
-					};
-				},
+				contribute: () => [],
 			})
 		);
 		expect(tally.sources.size).toBe(2);
@@ -167,11 +154,7 @@ describe("tally", () => {
 		const source = defineSourceType({
 			name: "Source1",
 			duplicatePolicy: "allow",
-			create() {
-				return {
-					modifiers: [],
-				};
-			},
+			contribute: () => [],
 		});
 		tally.register(source);
 		expect(tally.sources.size).toBe(1);
@@ -184,11 +167,7 @@ describe("tally", () => {
 		const anotherSource = defineSourceType({
 			name: "Source1",
 			duplicatePolicy: "allow",
-			create() {
-				return {
-					modifiers: [],
-				};
-			},
+			contribute: () => [],
 		});
 		expect(() => tally.register(anotherSource)).toThrow();
 	});
@@ -205,9 +184,7 @@ describe("tally static replication", () => {
 		name: "PropertySource",
 		duplicatePolicy: "allow",
 
-		create(data) {
-			return { modifiers: [Prop.add(data.value)] };
-		},
+		contribute: (data) => [Prop.add(data.value)],
 
 		replication: {
 			serialize(data) {

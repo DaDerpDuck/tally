@@ -1,8 +1,8 @@
 import { ModifierRegistry, type ModifierHandle } from "../modifier/ModifierRegistry.js";
 import { Property } from "../property/Property.js";
 import type { Source } from "../source/Source.js";
-import { SourceType } from "../source/SourceType.js";
-import { StaticSource } from "../source/StaticSource.js";
+import { SourceType, type SourceTypeBase } from "../source/SourceType.js";
+import { SourceInstance } from "../source/SourceInstance.js";
 
 type Disconnect = () => void;
 type PropertyCallback<T> = (newValue: T, oldValue: T) => void;
@@ -13,7 +13,7 @@ export class AgentState<TEntity> {
 
 	private readonly modifierRegistry = new ModifierRegistry();
 	private readonly sourceModifiersMap = new Map<Source<unknown>, ModifierHandle[]>();
-	private readonly duplicateLookup = new Map<SourceType<unknown>, Set<Source<unknown>>>();
+	private readonly duplicateLookup = new Map<SourceTypeBase, Set<Source<unknown>>>();
 
 	private readonly propertyCallbacks = new Map<
 		Property<unknown>,
@@ -31,7 +31,10 @@ export class AgentState<TEntity> {
 
 	constructor(public readonly entity: TEntity) {}
 
-	addSource(type: SourceType<undefined>, priority: number): Source<undefined> | undefined;
+	addSource<TData extends undefined>(
+		type: SourceType<TData>,
+		priority: number
+	): Source<TData> | undefined;
 	addSource<TData extends NonNullable<unknown>>(
 		type: SourceType<TData>,
 		priority: number,
@@ -70,10 +73,10 @@ export class AgentState<TEntity> {
 		type: SourceType<TData>,
 		priority: number,
 		data: TData
-	): StaticSource<TData> {
+	): SourceInstance<TData> {
 		let handles = this.applyModifiers(type, priority, data);
 
-		const source = new StaticSource(this.sourceCounter, type, priority, data);
+		const source = new SourceInstance(this.sourceCounter, type, priority, data);
 		this.sourceModifiersMap.set(source, handles);
 		for (const handle of handles) this.dirtyProperties.add(handle.property);
 		this.requestResolve();
@@ -111,8 +114,8 @@ export class AgentState<TEntity> {
 		data: TData
 	): ModifierHandle[] {
 		return type.definition
-			.create(data)
-			.modifiers.map((modifier) => modifier.applyTo(this.modifierRegistry, priority));
+			.contribute(data)
+			.map((modifier) => modifier.applyTo(this.modifierRegistry, priority));
 	}
 
 	private clearModifierHandles(handles: ModifierHandle[]) {
@@ -123,7 +126,7 @@ export class AgentState<TEntity> {
 	private resolveProperties() {
 		for (const property of this.dirtyProperties) {
 			const newResolution = property.resolve(
-				property.options.defaultValue,
+				property.defaultValue,
 				this.modifierRegistry.get(property)
 			);
 			const oldResolution = this.get(property);
@@ -138,15 +141,12 @@ export class AgentState<TEntity> {
 
 	get<T>(property: Property<T>): T {
 		if (!this.resolvedProperties.has(property as Property<unknown>)) {
-			this.resolvedProperties.set(
-				property as Property<unknown>,
-				property.options.defaultValue
-			);
+			this.resolvedProperties.set(property as Property<unknown>, property.defaultValue);
 		}
 		return this.resolvedProperties.get(property as Property<unknown>) as T;
 	}
 
-	observe<T>(property: Property<T>, callback: PropertyCallback<T>): Disconnect {
+	onPropertyChanged<T>(property: Property<T>, callback: PropertyCallback<T>): Disconnect {
 		let callbacks = this.propertyCallbacks.get(property as Property<unknown>);
 		if (callbacks) {
 			callbacks.add(callback as PropertyCallback<unknown>);

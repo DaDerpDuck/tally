@@ -1,5 +1,5 @@
 import { contributeModifier } from "../modifier/ModifierContribution.js";
-import { Property, type PropertyOptions } from "./Property.js";
+import { Property, type PropertyDefinition } from "./Property.js";
 
 export class BooleanProperty extends Property<boolean> {
 	enable() {
@@ -27,9 +27,9 @@ export class BooleanProperty extends Property<boolean> {
 	}
 }
 
-export function defineBooleanProperty(options: PropertyOptions<boolean>) {
+export function defineBooleanProperty(definition: PropertyDefinition<boolean>) {
 	const resolve =
-		options.resolve ??
+		definition.resolve ??
 		((base, modifiers) => {
 			let final = base;
 
@@ -44,7 +44,7 @@ export function defineBooleanProperty(options: PropertyOptions<boolean>) {
 			return final;
 		});
 
-	const equals = options.equals ?? ((a, b) => a === b);
+	const equals = definition.equals ?? ((a, b) => a === b);
 
-	return new BooleanProperty(options, resolve, equals);
+	return new BooleanProperty(definition, resolve, equals);
 }

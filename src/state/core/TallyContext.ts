@@ -1,6 +1,6 @@
 import type { Property } from "../property/Property.js";
 import type { Source } from "../source/Source.js";
-import type { ReplicationDefinition, SourceType } from "../source/SourceType.js";
+import type { ReplicationDefinition, SourceTypeBase } from "../source/SourceType.js";
 import { AgentState } from "./AgentState.js";
 
 type ReplicationCallback<TEntity> = (
@@ -17,7 +17,7 @@ export interface Registrable {
 }
 
 export class TallyContext<TEntity> {
-	public readonly sources = new Map<string, SourceType<unknown>>();
+	public readonly sources = new Map<string, SourceTypeBase>();
 	public readonly properties = new Map<string, Property<unknown>>();
 
 	private readonly sourceAddedCallbacks = new Set<SourceCallback<TEntity>>();

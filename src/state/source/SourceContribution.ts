@@ -1,5 +1,3 @@
 import type { ModifierContribution } from "../modifier/ModifierContribution.js";
 
-export interface SourceContribution {
-	readonly modifiers: readonly ModifierContribution[];
-}
+export type SourceContribution = readonly ModifierContribution[];

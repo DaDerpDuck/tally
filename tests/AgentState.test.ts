@@ -20,9 +20,7 @@ describe("agent state", () => {
 		name: "Poison",
 		duplicatePolicy: "ignore",
 
-		create(data) {
-			return { modifiers: [Poison.add(data.intensity)] };
-		},
+		contribute: (data) => [Poison.add(data.intensity)],
 	});
 
 	it("adds source", () => {
@@ -57,11 +55,7 @@ describe("agent state", () => {
 		const BooleanSource = defineSourceType<boolean>({
 			name: "BooleanSource",
 			duplicatePolicy: "ignore",
-			create(value) {
-				return {
-					modifiers: [BooleanProp.toggle(value)],
-				};
-			},
+			contribute: (data) => [BooleanProp.toggle(data)],
 		});
 
 		const agent = new AgentState(undefined);
@@ -87,9 +81,9 @@ describe("agent state", () => {
 		const PropSource = defineSourceType<boolean>({
 			name: "PropSource",
 			duplicatePolicy: "ignore",
-			create(data) {
-				if (data) return { modifiers: [Prop1.add(1), Prop2.add(1)] };
-				else return { modifiers: [Prop1.add(1)] };
+			contribute(data) {
+				if (data) return [Prop1.add(1), Prop2.add(1)];
+				else return [Prop1.add(1)];
 			},
 		});
 
@@ -116,9 +110,7 @@ describe("agent state", () => {
 		const PropSource = defineSourceType<number>({
 			name: "PropSource",
 			duplicatePolicy: "allow",
-			create(data) {
-				return { modifiers: [NumProp.add(data)] };
-			},
+			contribute: (data) => [NumProp.add(data)],
 		});
 
 		const agent = new AgentState(undefined);
@@ -150,7 +142,7 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		const callback = vi.fn();
 
-		agent.observe(Poison, callback);
+		agent.onPropertyChanged(Poison, callback);
 		agent.addSource(PoisonSource, 100, { intensity: 5 });
 
 		expect(callback).toHaveBeenCalledWith(5, 0);
@@ -160,7 +152,7 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		const callback = vi.fn();
 
-		agent.observe(Poison, callback);
+		agent.onPropertyChanged(Poison, callback);
 
 		const poisonSource = agent.addSource(PoisonSource, 100, { intensity: 5 })!;
 		expect(callback).toHaveBeenCalledTimes(1);
@@ -175,7 +167,7 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		const callback = vi.fn();
 
-		agent.observe(Poison, callback);
+		agent.onPropertyChanged(Poison, callback);
 
 		const poisonSource = agent.addSource(PoisonSource, 100, { intensity: 5 })!;
 		expect(callback).toHaveBeenCalledTimes(1);
@@ -189,7 +181,7 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		const callback = vi.fn();
 
-		agent.observe(Poison, callback);
+		agent.onPropertyChanged(Poison, callback);
 
 		const poisonSource = agent.addSource(PoisonSource, 100, { intensity: 5 })!;
 		expect(callback).toHaveBeenCalledTimes(1);
@@ -204,7 +196,7 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		const callback = vi.fn();
 
-		const disconnect = agent.observe(Poison, callback);
+		const disconnect = agent.onPropertyChanged(Poison, callback);
 		disconnect();
 		agent.addSource(PoisonSource, 100, { intensity: 5 });
 
@@ -227,12 +219,10 @@ describe("agent state duplication policies", () => {
 	it("handles duplicate policy 'allow'", () => {
 		const agent = new AgentState(undefined);
 
-		const DupAllowSource = defineSourceType<void>({
+		const DupAllowSource = defineSourceType<undefined>({
 			name: "Dummy",
 			duplicatePolicy: "allow",
-			create() {
-				return { modifiers: [] };
-			},
+			contribute: () => [],
 		});
 
 		const source1 = agent.addSource(DupAllowSource, 0);
@@ -253,12 +243,10 @@ describe("agent state duplication policies", () => {
 	it("handles duplicate policy 'ignore'", () => {
 		const agent = new AgentState(undefined);
 
-		const DupIgnoreSource = defineSourceType<void>({
+		const DupIgnoreSource = defineSourceType<undefined>({
 			name: "Dummy",
 			duplicatePolicy: "ignore",
-			create() {
-				return { modifiers: [] };
-			},
+			contribute: () => [],
 		});
 
 		const source1 = agent.addSource(DupIgnoreSource, 0);
@@ -279,12 +267,10 @@ describe("agent state duplication policies", () => {
 	it("handles duplicate policy 'replace'", () => {
 		const agent = new AgentState(undefined);
 
-		const DupReplaceSource = defineSourceType<void>({
+		const DupReplaceSource = defineSourceType<undefined>({
 			name: "Dummy",
 			duplicatePolicy: "replace",
-			create() {
-				return { modifiers: [] };
-			},
+			contribute: () => [],
 		});
 
 		const source1 = agent.addSource(DupReplaceSource, 0);
@@ -315,12 +301,10 @@ describe("agent state duplication policies", () => {
 		const DupReplaceSource = defineSourceType<DummyData>({
 			name: "Dummy",
 			duplicatePolicy: "replace",
-			create(data) {
-				return { modifiers: [DummyProperty.add(data.value)] };
-			},
+			contribute: (data) => [DummyProperty.add(data.value)],
 		});
 
-		agent.observe(DummyProperty, callback);
+		agent.onPropertyChanged(DummyProperty, callback);
 
 		agent.addSource(DupReplaceSource, 0, { value: 5 });
 		expect(callback).toHaveBeenCalledTimes(1);
@@ -336,12 +320,10 @@ describe("agent state duplication policies", () => {
 
 		const reconcile = vi.fn();
 
-		const DupReconcileSource = defineSourceType<void>({
+		const DupReconcileSource = defineSourceType<undefined>({
 			name: "Dummy",
 			duplicatePolicy: "reconcile",
-			create() {
-				return { modifiers: [] };
-			},
+			contribute: () => [],
 			reconcile,
 		});
 

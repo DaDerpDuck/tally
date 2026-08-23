@@ -3,7 +3,7 @@ import type { SourceType } from "./SourceType.js";
 
 type Disconnect = () => void;
 
-export class StaticSource<TData> implements Source<TData> {
+export class SourceInstance<TData> implements Source<TData> {
 	private readonly updateCallbacks = new Set<(self: this) => void>();
 	private readonly destroyCallbacks = new Set<(self: this) => void>();
 

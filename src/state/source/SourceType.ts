@@ -15,14 +15,25 @@ export interface SourceTypeDefinition<TData> {
 	readonly name: string;
 	readonly duplicatePolicy: DuplicatePolicy;
 
-	create(data: TData): SourceContribution;
-	
-	readonly replication?: ReplicationDefinition<TData>
+	contribute(data: TData): SourceContribution;
+
+	readonly replication?: ReplicationDefinition<TData>;
 	reconcile?(existing: Source<TData>, incoming: TData): void;
 }
 
-export class SourceType<TData> implements Registrable {
-	constructor(public readonly definition: SourceTypeDefinition<TData>) {}
+export interface SourceTypeBase {
+	readonly name: string;
+	readonly duplicatePolicy: DuplicatePolicy;
+}
+
+export class SourceType<TData> implements SourceTypeBase, Registrable {
+	public readonly name: string;
+	public readonly duplicatePolicy: DuplicatePolicy;
+
+	constructor(public readonly definition: SourceTypeDefinition<TData>) {
+		this.name = definition.name;
+		this.duplicatePolicy = definition.duplicatePolicy
+	}
 
 	register(tally: TallyContext<unknown>): void {
 		if (
