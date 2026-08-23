@@ -407,8 +407,7 @@ describe("tally static replication", () => {
 		source.destroy();
 
 		expect(callback).toHaveBeenCalledTimes(3);
-		expect(callback.mock.calls.map((call) => call[1])).toEqual([source, source, source]);
-		expect(callback.mock.calls.map((call) => call[2])).toEqual([
+		expect(callback.mock.calls.map((call) => call[1].kind)).toEqual([
 			"added",
 			"updated",
 			"removed",
