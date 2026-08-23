@@ -227,17 +227,17 @@ describe("agent state duplication policies", () => {
 
 		const source1 = agent.addSource(DupAllowSource, 0);
 		expect(source1).toBeDefined();
-		expect(agent.getSource(DupAllowSource)).toEqual(new Set([source1]));
+		expect(agent.getSources(DupAllowSource)).toEqual(new Set([source1]));
 
 		const source2 = agent.addSource(DupAllowSource, 0);
 		expect(source2).toBeDefined();
-		expect(agent.getSource(DupAllowSource)).toEqual(new Set([source1, source2]));
+		expect(agent.getSources(DupAllowSource)).toEqual(new Set([source1, source2]));
 
 		source2!.destroy();
 
 		const source3 = agent.addSource(DupAllowSource, 0);
 		expect(source3).toBeDefined();
-		expect(agent.getSource(DupAllowSource)).toEqual(new Set([source1, source3]));
+		expect(agent.getSources(DupAllowSource)).toEqual(new Set([source1, source3]));
 	});
 
 	it("handles duplicate policy 'ignore'", () => {
@@ -251,17 +251,17 @@ describe("agent state duplication policies", () => {
 
 		const source1 = agent.addSource(DupIgnoreSource, 0);
 		expect(source1).toBeDefined();
-		expect(agent.getSource(DupIgnoreSource)).toEqual(new Set([source1]));
+		expect(agent.getSources(DupIgnoreSource)).toEqual(new Set([source1]));
 
 		const source2 = agent.addSource(DupIgnoreSource, 0);
 		expect(source2).toBeUndefined();
-		expect(agent.getSource(DupIgnoreSource)).toEqual(new Set([source1]));
+		expect(agent.getSources(DupIgnoreSource)).toEqual(new Set([source1]));
 
 		source1!.destroy();
 
 		const source3 = agent.addSource(DupIgnoreSource, 0);
 		expect(source3).toBeDefined();
-		expect(agent.getSource(DupIgnoreSource)).toEqual(new Set([source3]));
+		expect(agent.getSources(DupIgnoreSource)).toEqual(new Set([source3]));
 	});
 
 	it("handles duplicate policy 'replace'", () => {
@@ -275,17 +275,17 @@ describe("agent state duplication policies", () => {
 
 		const source1 = agent.addSource(DupReplaceSource, 0);
 		expect(source1).toBeDefined();
-		expect(agent.getSource(DupReplaceSource)).toEqual(new Set([source1]));
+		expect(agent.getSources(DupReplaceSource)).toEqual(new Set([source1]));
 
 		const source2 = agent.addSource(DupReplaceSource, 0);
 		expect(source2).toBeDefined();
-		expect(agent.getSource(DupReplaceSource)).toEqual(new Set([source2]));
+		expect(agent.getSources(DupReplaceSource)).toEqual(new Set([source2]));
 
 		source2!.destroy();
 
 		const source3 = agent.addSource(DupReplaceSource, 0);
 		expect(source3).toBeDefined();
-		expect(agent.getSource(DupReplaceSource)).toEqual(new Set([source3]));
+		expect(agent.getSources(DupReplaceSource)).toEqual(new Set([source3]));
 	});
 
 	it("handles duplicate policy 'replace' atomically", () => {
@@ -329,19 +329,19 @@ describe("agent state duplication policies", () => {
 
 		const source1 = agent.addSource(DupReconcileSource, 0);
 		expect(source1).toBeDefined();
-		expect(agent.getSource(DupReconcileSource)).toEqual(new Set([source1]));
+		expect(agent.getSources(DupReconcileSource)).toEqual(new Set([source1]));
 		expect(reconcile).toHaveBeenCalledTimes(0);
 
 		const source2 = agent.addSource(DupReconcileSource, 0);
 		expect(source2).toBeUndefined();
-		expect(agent.getSource(DupReconcileSource)).toEqual(new Set([source1]));
+		expect(agent.getSources(DupReconcileSource)).toEqual(new Set([source1]));
 		expect(reconcile).toHaveBeenCalledTimes(1);
 
 		source1!.destroy();
 
 		const source3 = agent.addSource(DupReconcileSource, 0);
 		expect(source3).toBeDefined();
-		expect(agent.getSource(DupReconcileSource)).toEqual(new Set([source3]));
+		expect(agent.getSources(DupReconcileSource)).toEqual(new Set([source3]));
 		expect(reconcile).toHaveBeenCalledTimes(1);
 	});
 });

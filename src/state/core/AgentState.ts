@@ -164,14 +164,13 @@ export class AgentState<TEntity> {
 		return existingSource !== undefined;
 	}
 
-	getSource<TData>(type: SourceType<TData>): ReadonlySet<Source<TData>> {
+	getSources(): ReadonlySet<Source<unknown>>;
+	getSources<TData>(type: SourceType<TData>): ReadonlySet<Source<TData>>;
+	getSources(type?: SourceType<unknown>): ReadonlySet<Source<unknown>> {
+		if (type === undefined) return new Set(this.sourceModifiersMap.keys());
 		return (this.duplicateLookup.get(type) ?? AgentState.EmptySet) as ReadonlySet<
-			Source<TData>
+			Source<unknown>
 		>;
-	}
-
-	getAllSources(): Set<Source<unknown>> {
-		return new Set(this.sourceModifiersMap.keys());
 	}
 
 	onSourceAdded(callback: SourceCallback<unknown>): Disconnect {
