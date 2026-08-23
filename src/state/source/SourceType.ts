@@ -4,12 +4,20 @@ import type { SourceContribution } from "./SourceContribution.js";
 
 type DuplicatePolicy = "allow" | "ignore" | "replace" | "reconcile";
 
+export interface ReplicationDefinition<TData> {
+	readonly scope?: string;
+
+	serialize(data: TData): string;
+	deserialize(serialized: string): TData;
+}
+
 export interface SourceTypeDefinition<TData> {
 	readonly name: string;
 	readonly duplicatePolicy: DuplicatePolicy;
 
 	create(data: TData): SourceContribution;
-
+	
+	readonly replication?: ReplicationDefinition<TData>
 	reconcile?(existing: Source<TData>, incoming: TData): void;
 }
 

@@ -26,6 +26,7 @@ export class AgentState<TEntity> {
 	private readonly resolvedProperties = new Map<Property<unknown>, unknown>();
 	private readonly dirtyProperties = new Set<Property<unknown>>();
 
+	private sourceCounter = 0;
 	private mutationDepth = 0;
 
 	constructor(public readonly entity: TEntity) {}
@@ -72,7 +73,7 @@ export class AgentState<TEntity> {
 	): StaticSource<TData> {
 		let handles = this.applyModifiers(type, priority, data);
 
-		const source = new StaticSource(type, priority, data);
+		const source = new StaticSource(this.sourceCounter, type, priority, data);
 		this.sourceModifiersMap.set(source, handles);
 		for (const handle of handles) this.dirtyProperties.add(handle.property);
 		this.requestResolve();

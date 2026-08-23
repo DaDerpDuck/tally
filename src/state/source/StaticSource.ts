@@ -8,6 +8,7 @@ export class StaticSource<TData> implements Source<TData> {
 	private readonly destroyCallbacks = new Set<(self: this) => void>();
 
 	constructor(
+		public readonly id: number,
 		public readonly type: SourceType<TData>,
 		public readonly priority: number,
 		private data: TData
