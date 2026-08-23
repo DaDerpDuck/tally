@@ -45,7 +45,7 @@ export class AgentState<TEntity> {
 		priority: number,
 		data?: TData
 	): Source<TData | undefined> | undefined {
-		switch (type.definition.duplicatePolicy) {
+		switch (type.duplication.policy) {
 			case "allow":
 				return this.createSource(type, priority, data);
 			case "ignore": {
@@ -63,7 +63,7 @@ export class AgentState<TEntity> {
 			case "reconcile": {
 				const existingSource = this.duplicateLookup.get(type)?.values().next().value;
 				if (!existingSource) return this.createSource(type, priority, data);
-				existingSource.type.definition.reconcile!(existingSource, data);
+				existingSource.type.duplication.reconcile!(existingSource, data);
 				return undefined;
 			}
 		}
@@ -113,7 +113,7 @@ export class AgentState<TEntity> {
 		priority: number,
 		data: TData
 	): ModifierHandle[] {
-		return type.definition
+		return type
 			.contribute(data)
 			.map((modifier) => modifier.applyTo(this.modifierRegistry, priority));
 	}

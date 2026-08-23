@@ -18,7 +18,6 @@ describe("agent state", () => {
 
 	const PoisonSource = defineSourceType<PoisonData>({
 		name: "Poison",
-		duplicatePolicy: "ignore",
 
 		contribute: (data) => [Poison.add(data.intensity)],
 	});
@@ -54,7 +53,6 @@ describe("agent state", () => {
 
 		const BooleanSource = defineSourceType<boolean>({
 			name: "BooleanSource",
-			duplicatePolicy: "ignore",
 			contribute: (data) => [BooleanProp.toggle(data)],
 		});
 
@@ -80,7 +78,6 @@ describe("agent state", () => {
 
 		const PropSource = defineSourceType<boolean>({
 			name: "PropSource",
-			duplicatePolicy: "ignore",
 			contribute(data) {
 				if (data) return [Prop1.add(1), Prop2.add(1)];
 				else return [Prop1.add(1)];
@@ -109,8 +106,8 @@ describe("agent state", () => {
 
 		const PropSource = defineSourceType<number>({
 			name: "PropSource",
-			duplicatePolicy: "allow",
 			contribute: (data) => [NumProp.add(data)],
+			duplication: { policy: "allow" },
 		});
 
 		const agent = new AgentState(undefined);
@@ -221,8 +218,8 @@ describe("agent state duplication policies", () => {
 
 		const DupAllowSource = defineSourceType<undefined>({
 			name: "Dummy",
-			duplicatePolicy: "allow",
 			contribute: () => [],
+			duplication: { policy: "allow" },
 		});
 
 		const source1 = agent.addSource(DupAllowSource, 0);
@@ -245,8 +242,8 @@ describe("agent state duplication policies", () => {
 
 		const DupIgnoreSource = defineSourceType<undefined>({
 			name: "Dummy",
-			duplicatePolicy: "ignore",
 			contribute: () => [],
+			duplication: { policy: "ignore" },
 		});
 
 		const source1 = agent.addSource(DupIgnoreSource, 0);
@@ -269,8 +266,8 @@ describe("agent state duplication policies", () => {
 
 		const DupReplaceSource = defineSourceType<undefined>({
 			name: "Dummy",
-			duplicatePolicy: "replace",
 			contribute: () => [],
+			duplication: { policy: "replace" },
 		});
 
 		const source1 = agent.addSource(DupReplaceSource, 0);
@@ -300,8 +297,8 @@ describe("agent state duplication policies", () => {
 
 		const DupReplaceSource = defineSourceType<DummyData>({
 			name: "Dummy",
-			duplicatePolicy: "replace",
 			contribute: (data) => [DummyProperty.add(data.value)],
+			duplication: { policy: "replace" },
 		});
 
 		agent.onPropertyChanged(DummyProperty, callback);
@@ -322,9 +319,8 @@ describe("agent state duplication policies", () => {
 
 		const DupReconcileSource = defineSourceType<undefined>({
 			name: "Dummy",
-			duplicatePolicy: "reconcile",
 			contribute: () => [],
-			reconcile,
+			duplication: { policy: "reconcile", reconcile },
 		});
 
 		const source1 = agent.addSource(DupReconcileSource, 0);

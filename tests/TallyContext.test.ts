@@ -13,9 +13,8 @@ describe("tally", () => {
 
 	const PoisonSource = defineSourceType<PoisonData>({
 		name: "Poison",
-		duplicatePolicy: "ignore",
-
 		contribute: () => [],
+		duplication: { policy: "ignore" },
 	});
 
 	it("has observation on source add", () => {
@@ -110,7 +109,6 @@ describe("tally", () => {
 		const source1 = tally.register(
 			defineSourceType({
 				name: "Source1",
-				duplicatePolicy: "allow",
 				contribute: () => [],
 			})
 		);
@@ -120,7 +118,6 @@ describe("tally", () => {
 		const source2 = tally.register(
 			defineSourceType({
 				name: "Source2",
-				duplicatePolicy: "allow",
 				contribute: () => [],
 			})
 		);
@@ -153,7 +150,6 @@ describe("tally", () => {
 
 		const source = defineSourceType({
 			name: "Source1",
-			duplicatePolicy: "allow",
 			contribute: () => [],
 		});
 		tally.register(source);
@@ -166,7 +162,6 @@ describe("tally", () => {
 
 		const anotherSource = defineSourceType({
 			name: "Source1",
-			duplicatePolicy: "allow",
 			contribute: () => [],
 		});
 		expect(() => tally.register(anotherSource)).toThrow();
@@ -182,7 +177,6 @@ describe("tally static replication", () => {
 
 	const PropSource = defineSourceType<PropSourceData>({
 		name: "PropertySource",
-		duplicatePolicy: "allow",
 
 		contribute: (data) => [Prop.add(data.value)],
 
@@ -223,7 +217,7 @@ describe("tally static replication", () => {
 		const sourceType = context.sources.get(obj.sourceId)!;
 		const sourceEvent = obj.sourceEvent;
 		const priority = obj.priority;
-		const data = sourceType.definition.replication!.deserialize(obj.data);
+		const data = sourceType.replication!.deserialize(obj.data);
 		return [sourceType, sourceEvent, priority, data];
 	}
 	*/
@@ -241,7 +235,7 @@ describe("tally static replication", () => {
 			serverAgent,
 			source1,
 			"added",
-			PropSource.definition.replication!
+			PropSource.replication!
 		);
 
 		const source2 = serverAgent.addSource(PropSource, 100, { value: 5 });
@@ -250,7 +244,7 @@ describe("tally static replication", () => {
 			serverAgent,
 			source2,
 			"added",
-			PropSource.definition.replication!
+			PropSource.replication!
 		);
 
 		const source3 = serverAgent.addSource(PropSource, 100, { value: 5 });
@@ -259,7 +253,7 @@ describe("tally static replication", () => {
 			serverAgent,
 			source3,
 			"added",
-			PropSource.definition.replication!
+			PropSource.replication!
 		);
 	});
 
@@ -280,7 +274,7 @@ describe("tally static replication", () => {
 			serverAgent,
 			source3,
 			"removed",
-			PropSource.definition.replication!
+			PropSource.replication!
 		);
 
 		source1!.destroy();
@@ -289,7 +283,7 @@ describe("tally static replication", () => {
 			serverAgent,
 			source1,
 			"removed",
-			PropSource.definition.replication!
+			PropSource.replication!
 		);
 
 		source2!.destroy();
@@ -298,7 +292,7 @@ describe("tally static replication", () => {
 			serverAgent,
 			source2,
 			"removed",
-			PropSource.definition.replication!
+			PropSource.replication!
 		);
 
 		source2!.destroy();
@@ -322,7 +316,7 @@ describe("tally static replication", () => {
 			serverAgent,
 			source3,
 			"updated",
-			PropSource.definition.replication!
+			PropSource.replication!
 		);
 
 		source1!.set({ value: 8 });
@@ -331,7 +325,7 @@ describe("tally static replication", () => {
 			serverAgent,
 			source1,
 			"updated",
-			PropSource.definition.replication!
+			PropSource.replication!
 		);
 
 		source2!.set({ value: 8 });
@@ -340,7 +334,7 @@ describe("tally static replication", () => {
 			serverAgent,
 			source2,
 			"updated",
-			PropSource.definition.replication!
+			PropSource.replication!
 		);
 
 		// TODO: Setting to same value should be a no-op

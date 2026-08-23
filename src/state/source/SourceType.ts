@@ -2,8 +2,6 @@ import type { Registrable, Registry } from "../core/Registrable.js";
 import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
 
-type DuplicatePolicy = "allow" | "ignore" | "replace" | "reconcile";
-
 export interface ReplicationDefinition<TData> {
 	readonly scope?: string;
 
@@ -11,28 +9,42 @@ export interface ReplicationDefinition<TData> {
 	deserialize(serialized: string): TData;
 }
 
+export type Duplication<TData> =
+	| {
+			readonly policy: "allow" | "ignore" | "replace";
+			readonly reconcile?: never;
+	  }
+	| {
+			readonly policy: "reconcile";
+			reconcile(existing: Source<TData>, incoming: TData): void;
+	  };
+
 export interface SourceTypeDefinition<TData> {
 	readonly name: string;
-	readonly duplicatePolicy: DuplicatePolicy;
+	readonly duplication?: Duplication<TData>;
 
 	contribute(data: TData): SourceContribution;
 
 	readonly replication?: ReplicationDefinition<TData>;
-	reconcile?(existing: Source<TData>, incoming: TData): void;
 }
 
 export interface SourceTypeBase {
 	readonly name: string;
-	readonly duplicatePolicy: DuplicatePolicy;
 }
 
 export class SourceType<TData> implements SourceTypeBase, Registrable {
 	public readonly name: string;
-	public readonly duplicatePolicy: DuplicatePolicy;
+	public readonly duplication: Duplication<TData>;
+	public readonly replication: ReplicationDefinition<TData> | undefined;
 
-	constructor(public readonly definition: SourceTypeDefinition<TData>) {
+	constructor(private readonly definition: SourceTypeDefinition<TData>) {
 		this.name = definition.name;
-		this.duplicatePolicy = definition.duplicatePolicy
+		this.duplication = definition.duplication ?? { policy: "allow" };
+		this.replication = definition.replication;
+	}
+
+	contribute(data: TData): SourceContribution {
+		return this.definition.contribute(data);
 	}
 
 	register(registry: Registry): void {
@@ -46,7 +58,5 @@ export class SourceType<TData> implements SourceTypeBase, Registrable {
 }
 
 export function defineSourceType<TData>(definition: SourceTypeDefinition<TData>) {
-	if (definition.duplicatePolicy === "reconcile" && definition.reconcile === undefined)
-		throw new Error("Reconcile policy was specified but no reconcile callback was given");
 	return new SourceType(definition);
 }

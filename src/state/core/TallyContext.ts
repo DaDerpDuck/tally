@@ -38,27 +38,27 @@ export class TallyContext<TEntity> {
 		this.agentConnections.add(
 			agent.onSourceAdded((source) => {
 				this.sourceAddedCallbacks.forEach((callback) => callback(agent, source));
-				if ("replication" in source.type.definition)
+				if (source.type.replication)
 					this.replicationCallbacks.forEach((callback) =>
-						callback(agent, source, "added", source.type.definition.replication!)
+						callback(agent, source, "added", source.type.replication!)
 					);
 			})
 		);
 		this.agentConnections.add(
 			agent.onSourceRemoved((source) => {
 				this.sourceRemovedCallbacks.forEach((callback) => callback(agent, source));
-				if ("replication" in source.type.definition)
+				if (source.type.replication)
 					this.replicationCallbacks.forEach((callback) =>
-						callback(agent, source, "removed", source.type.definition.replication!)
+						callback(agent, source, "removed", source.type.replication!)
 					);
 			})
 		);
 		this.agentConnections.add(
 			agent.onSourceUpdated((source) => {
 				this.sourceUpdatedCallbacks.forEach((callback) => callback(agent, source));
-				if ("replication" in source.type.definition)
+				if (source.type.replication)
 					this.replicationCallbacks.forEach((callback) =>
-						callback(agent, source, "updated", source.type.definition.replication!)
+						callback(agent, source, "updated", source.type.replication!)
 					);
 			})
 		);
