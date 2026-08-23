@@ -2,6 +2,7 @@ import type { Property } from "../property/Property.js";
 import type { Source } from "../source/Source.js";
 import type { ReplicationDefinition, SourceTypeBase } from "../source/SourceType.js";
 import { AgentState } from "./AgentState.js";
+import type { Registrable, Registry } from "./Registrable.js";
 
 type ReplicationCallback<TEntity> = (
 	agent: AgentState<TEntity>,
@@ -12,19 +13,25 @@ type ReplicationCallback<TEntity> = (
 type SourceCallback<TEntity> = (agent: AgentState<TEntity>, source: Source<unknown>) => void;
 type Disconnect = () => void;
 
-export interface Registrable {
-	register(tally: TallyContext<unknown>): void;
-}
-
 export class TallyContext<TEntity> {
-	public readonly sources = new Map<string, SourceTypeBase>();
-	public readonly properties = new Map<string, Property<unknown>>();
+	private readonly registry: Registry = {
+		sources: new Map(),
+		properties: new Map(),
+	};
 
 	private readonly sourceAddedCallbacks = new Set<SourceCallback<TEntity>>();
 	private readonly sourceRemovedCallbacks = new Set<SourceCallback<TEntity>>();
 	private readonly sourceUpdatedCallbacks = new Set<SourceCallback<TEntity>>();
 	private readonly replicationCallbacks = new Set<ReplicationCallback<TEntity>>();
 	private readonly agentConnections = new Set<Disconnect>();
+
+	get sources(): ReadonlyMap<string, SourceTypeBase> {
+		return this.registry.sources;
+	}
+
+	get properties(): ReadonlyMap<string, Property<unknown>> {
+		return this.registry.properties;
+	}
 
 	createAgentState(entity: TEntity) {
 		const agent = new AgentState(entity);
@@ -59,7 +66,7 @@ export class TallyContext<TEntity> {
 	}
 
 	register<T extends Registrable>(definition: T): T {
-		definition.register(this as TallyContext<unknown>);
+		definition.register(this.registry);
 		return definition;
 	}
 

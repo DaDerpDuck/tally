@@ -1,4 +1,4 @@
-import type { Registrable, TallyContext } from "../core/TallyContext.js";
+import type { Registrable, Registry } from "../core/Registrable.js";
 import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
 
@@ -35,13 +35,13 @@ export class SourceType<TData> implements SourceTypeBase, Registrable {
 		this.duplicatePolicy = definition.duplicatePolicy
 	}
 
-	register(tally: TallyContext<unknown>): void {
+	register(registry: Registry): void {
 		if (
-			tally.sources.has(this.definition.name) &&
-			tally.sources.get(this.definition.name) !== this
+			registry.sources.has(this.definition.name) &&
+			registry.sources.get(this.definition.name) !== this
 		)
 			throw new Error("Duplicate source name");
-		tally.sources.set(this.definition.name, this);
+		registry.sources.set(this.definition.name, this);
 	}
 }
 
