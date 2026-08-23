@@ -73,7 +73,7 @@ export class AgentState<TEntity> {
 	): SourceInstance<TData> {
 		let handles = this.applyModifiers(type, priority, data);
 
-		const source = new SourceInstance(this.sourceCounter, type, priority, data);
+		const source = new SourceInstance(this.sourceCounter++, type, priority, data);
 		this.sourceModifiersMap.set(source, handles);
 		for (const handle of handles) this.dirtyProperties.add(handle.property);
 		this.requestResolve();
