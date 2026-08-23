@@ -4,6 +4,7 @@ import {
 	defineBooleanProperty,
 	defineNumberProperty,
 	defineSourceType,
+	Source,
 } from "../src/index.js";
 
 describe("agent state", () => {
@@ -210,9 +211,125 @@ describe("agent state", () => {
 		source.destroy();
 		expect(agent.hasSource(PoisonSource)).toBe(false);
 	});
+
+	it("assigns unique monotonic source ids within an agent", () => {
+		const agent = new AgentState(undefined);
+		const SourceType = defineSourceType<undefined>({
+			name: "IdentifiedSource",
+			contribute: () => [],
+		});
+
+		const source1 = agent.addSource(SourceType, 0)!;
+		const source2 = agent.addSource(SourceType, 0)!;
+		const source3 = agent.addSource(SourceType, 0)!;
+
+		expect([source1.id, source2.id, source3.id]).toEqual([0, 1, 2]);
+	});
+
+	it("removes destroyed sources from unfiltered getSources", () => {
+		const agent = new AgentState(undefined);
+		const SourceTypeA = defineSourceType<undefined>({
+			name: "SourceA",
+			contribute: () => [],
+		});
+		const SourceTypeB = defineSourceType<undefined>({
+			name: "SourceB",
+			contribute: () => [],
+		});
+
+		const source1 = agent.addSource(SourceTypeA, 0)!;
+		const source2 = agent.addSource(SourceTypeB, 0)!;
+		const source3 = agent.addSource(SourceTypeA, 0)!;
+
+		expect(agent.getSources()).toEqual(new Set([source1, source2, source3]));
+
+		source2.destroy();
+		expect(agent.getSources()).toEqual(new Set([source1, source3]));
+	});
+
+	it("destroyAllSources removes all source state and restores defaults", () => {
+		const Property = defineNumberProperty({ name: "DestroyAllProperty", defaultValue: 10 });
+		const SourceTypeA = defineSourceType<number>({
+			name: "DestroyAllSourceA",
+			contribute: (value) => [Property.add(value)],
+		});
+		const SourceTypeB = defineSourceType<number>({
+			name: "DestroyAllSourceB",
+			contribute: (value) => [Property.multiply(value)],
+		});
+		const agent = new AgentState(undefined);
+
+		agent.addSource(SourceTypeA, 0, 5);
+		agent.addSource(SourceTypeB, 100, 2);
+		expect(agent.get(Property)).toBe(30);
+
+		agent.destroyAllSources();
+
+		expect(agent.getSources()).toEqual(new Set());
+		expect(agent.hasSource(SourceTypeA)).toBe(false);
+		expect(agent.hasSource(SourceTypeB)).toBe(false);
+		expect(agent.get(Property)).toBe(10);
+	});
+
+	it("does not notify a disconnected property observer more than once", () => {
+		const Property = defineNumberProperty({ name: "DisconnectProperty", defaultValue: 0 });
+		const SourceType = defineSourceType<number>({
+			name: "DisconnectSource",
+			contribute: (value) => [Property.add(value)],
+		});
+		const agent = new AgentState(undefined);
+		const callback = vi.fn();
+		const disconnect = agent.onPropertyChanged(Property, callback);
+
+		disconnect();
+		disconnect();
+		agent.addSource(SourceType, 0, 1);
+
+		expect(callback).not.toHaveBeenCalled();
+	});
+
+	it("passes the existing source and newest data into reconcile", () => {
+		const Property = defineNumberProperty({ name: "ReconcileProperty", defaultValue: 0 });
+		const reconcile = vi.fn((existing: Source<number>, incoming: number) =>
+			existing.set(incoming)
+		);
+		const SourceType = defineSourceType<number>({
+			name: "ReconcileDataSource",
+			contribute: (value) => [Property.add(value)],
+			duplication: {
+				policy: "reconcile",
+				reconcile,
+			},
+		});
+		const agent = new AgentState(undefined);
+
+		const source = agent.addSource(SourceType, 0, 2)!;
+		const duplicate = agent.addSource(SourceType, 0, 7);
+
+		expect(duplicate).toBeUndefined();
+		expect(reconcile).toHaveBeenCalledTimes(1);
+		expect(reconcile).toHaveBeenCalledWith(source, 7);
+		expect(source.get()).toBe(7);
+		expect(agent.get(Property)).toBe(7);
+	});
 });
 
 describe("agent state duplication policies", () => {
+	it("uses allow as the default duplication policy", () => {
+		const agent = new AgentState(undefined);
+		const SourceType = defineSourceType<undefined>({
+			name: "DefaultDuplicationSource",
+			contribute: () => [],
+		});
+
+		const source1 = agent.addSource(SourceType, 0);
+		const source2 = agent.addSource(SourceType, 0);
+
+		expect(source1).toBeDefined();
+		expect(source2).toBeDefined();
+		expect(agent.getSources(SourceType)).toEqual(new Set([source1, source2]));
+	});
+
 	it("handles duplicate policy 'allow'", () => {
 		const agent = new AgentState(undefined);
 
