@@ -342,4 +342,76 @@ describe("tally static replication", () => {
 		source2!.set({ value: 8 });
 		expect(callback).toHaveBeenCalledTimes(7);
 	});
+
+	it("does not emit replication events for non-replicated source types", () => {
+		const tally = new TallyContext();
+		const agent = tally.createAgentState(undefined);
+		const callback = vi.fn();
+		tally.onReplicationEmit(callback);
+
+		const SourceType = defineSourceType<number>({
+			name: "LocalOnlySource",
+			contribute: () => [],
+		});
+
+		const source = agent.addSource(SourceType, 0, 1)!;
+		source.set(2);
+		source.destroy();
+
+		expect(callback).not.toHaveBeenCalled();
+	});
+
+	it("stops forwarding source events after context destruction", () => {
+		const tally = new TallyContext();
+		const agent = tally.createAgentState(undefined);
+		const added = vi.fn();
+		const updated = vi.fn();
+		const removed = vi.fn();
+
+		tally.onSourceAdded(added);
+		tally.onSourceUpdated(updated);
+		tally.onSourceRemoved(removed);
+
+		tally.destroy();
+
+		const SourceType = defineSourceType<number>({
+			name: "AfterDestroySource",
+			contribute: () => [],
+		});
+		const source = agent.addSource(SourceType, 0, 1)!;
+		source.set(2);
+		source.destroy();
+
+		expect(added).not.toHaveBeenCalled();
+		expect(updated).not.toHaveBeenCalled();
+		expect(removed).not.toHaveBeenCalled();
+	});
+
+	it("emits replication lifecycle events using the same source identity", () => {
+		const tally = new TallyContext();
+		const agent = tally.createAgentState(undefined);
+		const callback = vi.fn();
+		tally.onReplicationEmit(callback);
+
+		const SourceType = defineSourceType<number>({
+			name: "ReplicatedLifecycleSource",
+			contribute: () => [],
+			replication: {
+				serialize: (value) => value.toString(),
+				deserialize: (value) => Number(value),
+			},
+		});
+
+		const source = agent.addSource(SourceType, 50, 1)!;
+		source.set(2);
+		source.destroy();
+
+		expect(callback).toHaveBeenCalledTimes(3);
+		expect(callback.mock.calls.map((call) => call[1])).toEqual([source, source, source]);
+		expect(callback.mock.calls.map((call) => call[2])).toEqual([
+			"added",
+			"updated",
+			"removed",
+		]);
+	});
 });
