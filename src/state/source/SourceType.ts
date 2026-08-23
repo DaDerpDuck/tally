@@ -1,13 +1,7 @@
 import type { Registrable, Registry } from "../core/Registrable.js";
+import type { ReplicationDefinition } from "../replication/ReplicationDefinition.js";
 import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
-
-export interface ReplicationDefinition<TData> {
-	readonly scope?: string;
-
-	serialize(data: TData): string;
-	deserialize(serialized: string): TData;
-}
 
 export type Duplication<TData> =
 	| {
