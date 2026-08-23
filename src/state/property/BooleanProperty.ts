@@ -1,5 +1,6 @@
-import { BaseProperty, type Modifier, type PropertyDefinition } from "../../index.js";
+import type { Modifier } from "../modifier/Modifier.js";
 import { contributeModifier } from "../modifier/ModifierContribution.js";
+import { BaseProperty, type PropertyDefinition } from "./BaseProperty.js";
 
 export class BooleanProperty extends BaseProperty<boolean> {
 	protected override defaultResolve(

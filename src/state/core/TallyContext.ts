@@ -1,4 +1,4 @@
-import type { Property } from "../property/Property.js";
+import type { AnyProperty } from "../property/Property.js";
 import type { Source } from "../source/Source.js";
 import type { ReplicationDefinition, AnySourceType } from "../source/SourceType.js";
 import { AgentState } from "./AgentState.js";
@@ -29,7 +29,7 @@ export class TallyContext<TEntity> {
 		return this.registry.sources;
 	}
 
-	get properties(): ReadonlyMap<string, Property<unknown>> {
+	get properties(): ReadonlyMap<string, AnyProperty> {
 		return this.registry.properties;
 	}
 

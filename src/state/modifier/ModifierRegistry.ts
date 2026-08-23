@@ -1,12 +1,12 @@
 import { OrderedBuckets } from "../core/OrderedBuckets.js";
-import type { Property } from "../property/Property.js";
+import type { AnyProperty, Property } from "../property/Property.js";
 import type { Modifier } from "./Modifier.js";
 import type { ModifierCollection } from "./ModifierContribution.js";
 
 export interface ModifierHandle {
-	readonly property: Property<unknown>;
+	readonly property: AnyProperty;
 	readonly handle: unknown;
-};
+}
 
 export class ModifierRegistry implements ModifierCollection {
 	private readonly map = new Map<unknown, OrderedBuckets<unknown>>();
@@ -16,7 +16,7 @@ export class ModifierRegistry implements ModifierCollection {
 		const buckets = this.map.get(property);
 		if (buckets) {
 			return {
-				property: property as Property<unknown>,
+				property: property,
 				handle: buckets.insert(modifier, priority),
 			};
 		} else {
@@ -24,7 +24,7 @@ export class ModifierRegistry implements ModifierCollection {
 			const handle = newBuckets.insert(modifier, priority);
 			this.map.set(property, newBuckets);
 			return {
-				property: property as Property<unknown>,
+				property: property,
 				handle,
 			};
 		}

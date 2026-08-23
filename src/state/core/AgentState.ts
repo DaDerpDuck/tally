@@ -1,5 +1,5 @@
 import { ModifierRegistry, type ModifierHandle } from "../modifier/ModifierRegistry.js";
-import { type Property } from "../property/Property.js";
+import { type AnyProperty, type Property } from "../property/Property.js";
 import type { Source } from "../source/Source.js";
 import { SourceType, type AnySourceType } from "../source/SourceType.js";
 import { SourceInstance } from "../source/SourceInstance.js";
@@ -15,16 +15,13 @@ export class AgentState<TEntity> {
 	private readonly sourceModifiersMap = new Map<Source<unknown>, ModifierHandle[]>();
 	private readonly duplicateLookup = new Map<AnySourceType, Set<Source<unknown>>>();
 
-	private readonly propertyCallbacks = new Map<
-		Property<unknown>,
-		Set<PropertyCallback<unknown>>
-	>();
+	private readonly propertyCallbacks = new Map<AnyProperty, Set<PropertyCallback<unknown>>>();
 	private readonly sourceAddedCallbacks = new Set<SourceCallback<unknown>>();
 	private readonly sourceRemovedCallbacks = new Set<SourceCallback<unknown>>();
 	private readonly sourceUpdatedCallbacks = new Set<SourceCallback<unknown>>();
 
-	private readonly resolvedProperties = new Map<Property<unknown>, unknown>();
-	private readonly dirtyProperties = new Set<Property<unknown>>();
+	private readonly resolvedProperties = new Map<AnyProperty, unknown>();
+	private readonly dirtyProperties = new Set<AnyProperty>();
 
 	private sourceCounter = 0;
 	private mutationDepth = 0;
@@ -140,19 +137,19 @@ export class AgentState<TEntity> {
 	}
 
 	get<T>(property: Property<T>): T {
-		if (!this.resolvedProperties.has(property as Property<unknown>)) {
-			this.resolvedProperties.set(property as Property<unknown>, property.defaultValue);
+		if (!this.resolvedProperties.has(property)) {
+			this.resolvedProperties.set(property, property.defaultValue);
 		}
-		return this.resolvedProperties.get(property as Property<unknown>) as T;
+		return this.resolvedProperties.get(property) as T;
 	}
 
 	onPropertyChanged<T>(property: Property<T>, callback: PropertyCallback<T>): Disconnect {
-		let callbacks = this.propertyCallbacks.get(property as Property<unknown>);
+		let callbacks = this.propertyCallbacks.get(property);
 		if (callbacks) {
 			callbacks.add(callback as PropertyCallback<unknown>);
 		} else {
 			callbacks = new Set();
-			this.propertyCallbacks.set(property as Property<unknown>, callbacks);
+			this.propertyCallbacks.set(property, callbacks);
 			callbacks.add(callback as PropertyCallback<unknown>);
 		}
 

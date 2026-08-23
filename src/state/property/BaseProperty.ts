@@ -38,6 +38,6 @@ export class BaseProperty<T> implements Registrable {
 	register(registry: Registry): void {
 		if (registry.properties.has(this.name) && registry.properties.get(this.name) !== this)
 			throw new Error(`Duplicate property name: ${this.name}`);
-		registry.properties.set(this.name, this as BaseProperty<unknown>);
+		registry.properties.set(this.name, this);
 	}
 }
