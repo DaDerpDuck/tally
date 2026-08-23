@@ -14,7 +14,7 @@ export class ReplicationReceiver {
 	) {}
 
 	apply(events: readonly SourceReplicationEvent[]) {
-		this.agent.transaction(() => {
+		this.agent.transact(() => {
 			for (const event of events) {
 				if (event.kind === "added") {
 					this.addSource(event.source);
@@ -31,7 +31,7 @@ export class ReplicationReceiver {
 	}
 
 	applySnapshot(snapshot: ReplicationSnapshot) {
-		this.agent.transaction(() => {
+		this.agent.transact(() => {
 			for (const replicatedSource of snapshot.sources) {
 				this.addSource(replicatedSource);
 			}

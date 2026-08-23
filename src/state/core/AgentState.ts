@@ -66,10 +66,6 @@ export class AgentState<TEntity> {
 		}
 	}
 
-	transaction(fn: () => void) {
-		this.transact(fn);
-	}
-
 	private createSource<TData>(
 		type: SourceType<TData>,
 		priority: number,
@@ -209,7 +205,7 @@ export class AgentState<TEntity> {
 		if (this.mutationDepth === 0) this.resolveProperties();
 	}
 
-	private transact<T>(callback: () => T): T {
+	transact<T>(callback: () => T): T {
 		this.mutationDepth++;
 
 		try {
