@@ -5,6 +5,7 @@ import {
 	defineSourceType,
 	TallyContext,
 } from "../src";
+import { SourceReplicationEvent } from "../src/state/replication/SourceReplicationEvent";
 
 describe("tally", () => {
 	interface PoisonData {
@@ -181,11 +182,11 @@ describe("tally static replication", () => {
 		contribute: (data) => [Prop.add(data.value)],
 
 		replication: {
-			serialize(data) {
-				return data.value.toString();
+			serialize(data): number {
+				return data.value;
 			},
-			deserialize(serialized) {
-				return { value: parseInt(serialized, 10) };
+			deserialize(serialized: number) {
+				return { value: serialized };
 			},
 		},
 	});
@@ -229,32 +230,41 @@ describe("tally static replication", () => {
 		const callback = vi.fn();
 		serverTally.onReplicationEmit(callback);
 
-		const source1 = serverAgent.addSource(PropSource, 100, { value: 5 });
+		serverAgent.addSource(PropSource, 100, { value: 5 });
 		expect(callback).toHaveBeenCalledTimes(1);
-		expect(callback).toHaveBeenCalledWith(
-			serverAgent,
-			source1,
-			"added",
-			PropSource.replication!
-		);
+		expect(callback).toHaveBeenCalledWith(serverAgent, {
+			kind: "added",
+			source: {
+				id: 0,
+				type: "PropertySource",
+				priority: 100,
+				data: 5,
+			},
+		} satisfies SourceReplicationEvent);
 
-		const source2 = serverAgent.addSource(PropSource, 100, { value: 5 });
+		serverAgent.addSource(PropSource, 200, { value: 6 });
 		expect(callback).toHaveBeenCalledTimes(2);
-		expect(callback).toHaveBeenCalledWith(
-			serverAgent,
-			source2,
-			"added",
-			PropSource.replication!
-		);
+		expect(callback).toHaveBeenCalledWith(serverAgent, {
+			kind: "added",
+			source: {
+				id: 1,
+				type: "PropertySource",
+				priority: 200,
+				data: 6,
+			},
+		} satisfies SourceReplicationEvent);
 
-		const source3 = serverAgent.addSource(PropSource, 100, { value: 5 });
+		serverAgent.addSource(PropSource, 300, { value: 7 });
 		expect(callback).toHaveBeenCalledTimes(3);
-		expect(callback).toHaveBeenCalledWith(
-			serverAgent,
-			source3,
-			"added",
-			PropSource.replication!
-		);
+		expect(callback).toHaveBeenCalledWith(serverAgent, {
+			kind: "added",
+			source: {
+				id: 2,
+				type: "PropertySource",
+				priority: 300,
+				data: 7,
+			},
+		} satisfies SourceReplicationEvent);
 	});
 
 	it("emits replication removed", () => {
@@ -270,30 +280,24 @@ describe("tally static replication", () => {
 
 		source3!.destroy();
 		expect(callback).toHaveBeenCalledTimes(4);
-		expect(callback).toHaveBeenCalledWith(
-			serverAgent,
-			source3,
-			"removed",
-			PropSource.replication!
-		);
+		expect(callback).toHaveBeenCalledWith(serverAgent, {
+			kind: "removed",
+			id: 2,
+		} satisfies SourceReplicationEvent);
 
 		source1!.destroy();
 		expect(callback).toHaveBeenCalledTimes(5);
-		expect(callback).toHaveBeenCalledWith(
-			serverAgent,
-			source1,
-			"removed",
-			PropSource.replication!
-		);
+		expect(callback).toHaveBeenCalledWith(serverAgent, {
+			kind: "removed",
+			id: 0,
+		} satisfies SourceReplicationEvent);
 
 		source2!.destroy();
 		expect(callback).toHaveBeenCalledTimes(6);
-		expect(callback).toHaveBeenCalledWith(
-			serverAgent,
-			source2,
-			"removed",
-			PropSource.replication!
-		);
+		expect(callback).toHaveBeenCalledWith(serverAgent, {
+			kind: "removed",
+			id: 1,
+		} satisfies SourceReplicationEvent);
 
 		source2!.destroy();
 		expect(callback).toHaveBeenCalledTimes(6);
@@ -312,30 +316,27 @@ describe("tally static replication", () => {
 
 		source3!.set({ value: 8 });
 		expect(callback).toHaveBeenCalledTimes(4);
-		expect(callback).toHaveBeenCalledWith(
-			serverAgent,
-			source3,
-			"updated",
-			PropSource.replication!
-		);
+		expect(callback).toHaveBeenCalledWith(serverAgent, {
+			kind: "updated",
+			id: 2,
+			data: 8,
+		} satisfies SourceReplicationEvent);
 
 		source1!.set({ value: 8 });
 		expect(callback).toHaveBeenCalledTimes(5);
-		expect(callback).toHaveBeenCalledWith(
-			serverAgent,
-			source1,
-			"updated",
-			PropSource.replication!
-		);
+		expect(callback).toHaveBeenCalledWith(serverAgent, {
+			kind: "updated",
+			id: 0,
+			data: 8,
+		} satisfies SourceReplicationEvent);
 
 		source2!.set({ value: 8 });
 		expect(callback).toHaveBeenCalledTimes(6);
-		expect(callback).toHaveBeenCalledWith(
-			serverAgent,
-			source2,
-			"updated",
-			PropSource.replication!
-		);
+		expect(callback).toHaveBeenCalledWith(serverAgent, {
+			kind: "updated",
+			id: 1,
+			data: 8,
+		} satisfies SourceReplicationEvent);
 
 		// TODO: Setting to same value should be a no-op
 		source2!.set({ value: 8 });

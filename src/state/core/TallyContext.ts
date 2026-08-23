@@ -1,14 +1,13 @@
 import type { AnyProperty } from "../property/Property.js";
+import type { SourceReplicationEvent } from "../replication/SourceReplicationEvent.js";
 import type { Source } from "../source/Source.js";
-import type { ReplicationDefinition, AnySourceType } from "../source/SourceType.js";
+import type { AnySourceType } from "../source/SourceType.js";
 import { AgentState } from "./AgentState.js";
 import type { Registrable, Registry } from "./Registrable.js";
 
 type ReplicationCallback<TEntity> = (
 	agent: AgentState<TEntity>,
-	source: Source<unknown>,
-	sourceEvent: "added" | "removed" | "updated",
-	replicationOption: ReplicationDefinition<unknown>
+	event: SourceReplicationEvent
 ) => void;
 type SourceCallback<TEntity> = (agent: AgentState<TEntity>, source: Source<unknown>) => void;
 type Disconnect = () => void;
@@ -40,7 +39,15 @@ export class TallyContext<TEntity> {
 				this.sourceAddedCallbacks.forEach((callback) => callback(agent, source));
 				if (source.type.replication)
 					this.replicationCallbacks.forEach((callback) =>
-						callback(agent, source, "added", source.type.replication!)
+						callback(agent, {
+							kind: "added",
+							source: {
+								id: source.id,
+								type: source.type.name,
+								priority: source.priority,
+								data: source.type.replication!.serialize(source.get()),
+							},
+						})
 					);
 			})
 		);
@@ -49,7 +56,10 @@ export class TallyContext<TEntity> {
 				this.sourceRemovedCallbacks.forEach((callback) => callback(agent, source));
 				if (source.type.replication)
 					this.replicationCallbacks.forEach((callback) =>
-						callback(agent, source, "removed", source.type.replication!)
+						callback(agent, {
+							kind: "removed",
+							id: source.id,
+						})
 					);
 			})
 		);
@@ -58,7 +68,11 @@ export class TallyContext<TEntity> {
 				this.sourceUpdatedCallbacks.forEach((callback) => callback(agent, source));
 				if (source.type.replication)
 					this.replicationCallbacks.forEach((callback) =>
-						callback(agent, source, "updated", source.type.replication!)
+						callback(agent, {
+							kind: "updated",
+							id: source.id,
+							data: source.type.replication!.serialize(source.get()),
+						})
 					);
 			})
 		);
