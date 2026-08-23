@@ -1,7 +1,7 @@
 import { ModifierRegistry, type ModifierHandle } from "../modifier/ModifierRegistry.js";
-import { Property } from "../property/Property.js";
+import { type Property } from "../property/Property.js";
 import type { Source } from "../source/Source.js";
-import { SourceType, type SourceTypeBase } from "../source/SourceType.js";
+import { SourceType, type AnySourceType } from "../source/SourceType.js";
 import { SourceInstance } from "../source/SourceInstance.js";
 
 type Disconnect = () => void;
@@ -13,7 +13,7 @@ export class AgentState<TEntity> {
 
 	private readonly modifierRegistry = new ModifierRegistry();
 	private readonly sourceModifiersMap = new Map<Source<unknown>, ModifierHandle[]>();
-	private readonly duplicateLookup = new Map<SourceTypeBase, Set<Source<unknown>>>();
+	private readonly duplicateLookup = new Map<AnySourceType, Set<Source<unknown>>>();
 
 	private readonly propertyCallbacks = new Map<
 		Property<unknown>,

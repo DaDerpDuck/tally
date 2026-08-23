@@ -1,8 +1,8 @@
 import type { Modifier } from "../../index.js";
 import { contributeModifier } from "../modifier/ModifierContribution.js";
-import { Property, type PropertyDefinition } from "./Property.js";
+import { BaseProperty, type PropertyDefinition } from "./Property.js";
 
-export class BooleanProperty extends Property<boolean> {
+export class BooleanProperty extends BaseProperty<boolean> {
 	protected override defaultResolve(
 		base: boolean,
 		modifiers: readonly Modifier<boolean>[]

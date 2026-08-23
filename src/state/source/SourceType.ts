@@ -28,11 +28,11 @@ export interface SourceTypeDefinition<TData> {
 	readonly replication?: ReplicationDefinition<TData>;
 }
 
-export interface SourceTypeBase {
+export interface AnySourceType {
 	readonly name: string;
 }
 
-export class SourceType<TData> implements SourceTypeBase, Registrable {
+export class SourceType<TData> implements AnySourceType, Registrable {
 	public readonly name: string;
 	public readonly duplication: Duplication<TData>;
 	public readonly replication: ReplicationDefinition<TData> | undefined;

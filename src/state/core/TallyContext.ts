@@ -1,6 +1,6 @@
 import type { Property } from "../property/Property.js";
 import type { Source } from "../source/Source.js";
-import type { ReplicationDefinition, SourceTypeBase } from "../source/SourceType.js";
+import type { ReplicationDefinition, AnySourceType } from "../source/SourceType.js";
 import { AgentState } from "./AgentState.js";
 import type { Registrable, Registry } from "./Registrable.js";
 
@@ -25,7 +25,7 @@ export class TallyContext<TEntity> {
 	private readonly replicationCallbacks = new Set<ReplicationCallback<TEntity>>();
 	private readonly agentConnections = new Set<Disconnect>();
 
-	get sources(): ReadonlyMap<string, SourceTypeBase> {
+	get sources(): ReadonlyMap<string, AnySourceType> {
 		return this.registry.sources;
 	}
 

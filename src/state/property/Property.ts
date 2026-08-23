@@ -8,7 +8,14 @@ export interface PropertyDefinition<T> {
 	resolve?: (base: T, modifiers: readonly Modifier<T>[]) => T;
 }
 
-export class Property<T> implements Registrable {
+export interface Property<T> {
+	readonly name: string;
+	readonly defaultValue: T;
+	equals(a: T, b: T): boolean;
+	resolve(base: T, modifiers: readonly Modifier<T>[]): T;
+}
+
+export class BaseProperty<T> implements Registrable {
 	public readonly name: string;
 	public readonly defaultValue: T;
 
@@ -38,6 +45,6 @@ export class Property<T> implements Registrable {
 	register(registry: Registry): void {
 		if (registry.properties.has(this.name) && registry.properties.get(this.name) !== this)
 			throw new Error(`Duplicate property name: ${this.name}`);
-		registry.properties.set(this.name, this as Property<unknown>);
+		registry.properties.set(this.name, this as BaseProperty<unknown>);
 	}
 }

@@ -1,8 +1,8 @@
 import type { Modifier } from "../../index.js";
 import { contributeModifier } from "../modifier/ModifierContribution.js";
-import { Property, type PropertyDefinition } from "./Property.js";
+import { BaseProperty, type PropertyDefinition } from "./Property.js";
 
-export class NumberProperty extends Property<number> {
+export class NumberProperty extends BaseProperty<number> {
 	protected override defaultResolve(
 		base: number,
 		modifiers: readonly Modifier<number>[]

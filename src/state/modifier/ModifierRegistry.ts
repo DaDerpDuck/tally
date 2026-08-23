@@ -1,5 +1,5 @@
 import { OrderedBuckets } from "../core/OrderedBuckets.js";
-import { Property } from "../property/Property.js";
+import type { Property } from "../property/Property.js";
 import type { Modifier } from "./Modifier.js";
 import type { ModifierCollection } from "./ModifierContribution.js";
 
