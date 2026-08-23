@@ -31,7 +31,7 @@ export class Property<T> implements Registrable {
 
 	register(registry: Registry): void {
 		if (registry.properties.has(this.name) && registry.properties.get(this.name) !== this)
-			throw "Duplicate property name";
+			throw new Error(`Duplicate property name: ${this.name}`);
 		registry.properties.set(this.name, this as Property<unknown>);
 	}
 }

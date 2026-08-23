@@ -40,7 +40,7 @@ export class SourceType<TData> implements SourceTypeBase, Registrable {
 			registry.sources.has(this.definition.name) &&
 			registry.sources.get(this.definition.name) !== this
 		)
-			throw new Error("Duplicate source name");
+			throw new Error(`Duplicate source name: ${this.definition.name}`);
 		registry.sources.set(this.definition.name, this);
 	}
 }
