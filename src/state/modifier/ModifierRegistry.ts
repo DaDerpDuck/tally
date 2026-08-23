@@ -3,9 +3,9 @@ import { Property } from "../property/Property.js";
 import type { Modifier } from "./Modifier.js";
 import type { ModifierCollection } from "./ModifierContribution.js";
 
-export type ModifierHandle = {
-	property: Property<unknown>;
-	handle: unknown;
+export interface ModifierHandle {
+	readonly property: Property<unknown>;
+	readonly handle: unknown;
 };
 
 export class ModifierRegistry implements ModifierCollection {
