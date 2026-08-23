@@ -1,7 +1,25 @@
+import type { Modifier } from "../../index.js";
 import { contributeModifier } from "../modifier/ModifierContribution.js";
 import { Property, type PropertyDefinition } from "./Property.js";
 
 export class BooleanProperty extends Property<boolean> {
+	protected override defaultResolve(
+		base: boolean,
+		modifiers: readonly Modifier<boolean>[]
+	): boolean {
+		let final = base;
+
+		for (const modifier of modifiers) {
+			switch (modifier.operation) {
+				case "override":
+					final = modifier.value as boolean;
+					break;
+			}
+		}
+
+		return final;
+	}
+
 	enable() {
 		return contributeModifier({
 			property: this,
@@ -28,23 +46,5 @@ export class BooleanProperty extends Property<boolean> {
 }
 
 export function defineBooleanProperty(definition: PropertyDefinition<boolean>) {
-	const resolve =
-		definition.resolve ??
-		((base, modifiers) => {
-			let final = base;
-
-			for (const modifier of modifiers) {
-				switch (modifier.operation) {
-					case "override":
-						final = modifier.value as boolean;
-						break;
-				}
-			}
-
-			return final;
-		});
-
-	const equals = definition.equals ?? ((a, b) => a === b);
-
-	return new BooleanProperty(definition, resolve, equals);
+	return new BooleanProperty(definition);
 }

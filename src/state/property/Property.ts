@@ -12,21 +12,27 @@ export class Property<T> implements Registrable {
 	public readonly name: string;
 	public readonly defaultValue: T;
 
-	constructor(
-		definition: PropertyDefinition<T>,
-		private readonly resolveCallback: (base: T, modifiers: readonly Modifier<T>[]) => T,
-		private readonly equalsCallback: (a: T, b: T) => boolean
-	) {
+	constructor(private readonly definition: PropertyDefinition<T>) {
 		this.name = definition.name;
 		this.defaultValue = definition.defaultValue;
 	}
 
 	resolve(base: T, modifiers: readonly Modifier<T>[]): T {
-		return this.resolveCallback(base, modifiers);
+		if ("resolve" in this.definition) return this.definition.resolve(base, modifiers);
+		return this.defaultResolve(base, modifiers);
 	}
 
 	equals(a: T, b: T): boolean {
-		return this.equalsCallback(a, b);
+		return this.definition.equals?.(a, b) ?? this.defaultEquals(a, b);
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	protected defaultResolve(base: T, modifiers: readonly Modifier<T>[]): T {
+		return base;
+	}
+
+	protected defaultEquals(a: T, b: T): boolean {
+		return a === b;
 	}
 
 	register(registry: Registry): void {
@@ -34,12 +40,4 @@ export class Property<T> implements Registrable {
 			throw new Error(`Duplicate property name: ${this.name}`);
 		registry.properties.set(this.name, this as Property<unknown>);
 	}
-}
-
-export function defineProperty<T>(options: PropertyDefinition<T>) {
-	return new Property(
-		options,
-		options.resolve ?? ((base) => base),
-		options.equals ?? ((a, b) => a === b)
-	);
 }

@@ -1,7 +1,31 @@
+import type { Modifier } from "../../index.js";
 import { contributeModifier } from "../modifier/ModifierContribution.js";
 import { Property, type PropertyDefinition } from "./Property.js";
 
 export class NumberProperty extends Property<number> {
+	protected override defaultResolve(
+		base: number,
+		modifiers: readonly Modifier<number>[]
+	): number {
+		let final = base;
+
+		for (const modifier of modifiers) {
+			switch (modifier.operation) {
+				case "add":
+					final += modifier.value as number;
+					break;
+				case "multiply":
+					final *= modifier.value as number;
+					break;
+				case "override":
+					final = modifier.value as number;
+					break;
+			}
+		}
+
+		return final;
+	}
+
 	add(n: number) {
 		return contributeModifier({
 			property: this,
@@ -28,29 +52,5 @@ export class NumberProperty extends Property<number> {
 }
 
 export function defineNumberProperty(definition: PropertyDefinition<number>) {
-	const resolve =
-		definition.resolve ??
-		((base, modifiers) => {
-			let final = base;
-
-			for (const modifier of modifiers) {
-				switch (modifier.operation) {
-					case "add":
-						final += modifier.value as number;
-						break;
-					case "multiply":
-						final *= modifier.value as number;
-						break;
-					case "override":
-						final = modifier.value as number;
-						break;
-				}
-			}
-
-			return final;
-		});
-
-	const equals = definition.equals ?? ((a, b) => a === b);
-
-	return new NumberProperty(definition, resolve, equals);
+	return new NumberProperty(definition);
 }
