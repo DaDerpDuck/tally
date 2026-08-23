@@ -1,4 +1,5 @@
 import type { AnyProperty } from "../property/Property.js";
+import { serializeSource } from "../replication/ReplicatedSource.js";
 import type { SourceReplicationEvent } from "../replication/SourceReplicationEvent.js";
 import type { Source } from "../source/Source.js";
 import type { AnySourceType } from "../source/SourceType.js";
@@ -41,12 +42,7 @@ export class TallyContext<TEntity> {
 					this.replicationCallbacks.forEach((callback) =>
 						callback(agent, {
 							kind: "added",
-							source: {
-								id: source.id,
-								type: source.type.name,
-								priority: source.priority,
-								data: source.type.replication!.serialize(source.get()),
-							},
+							source: serializeSource(source),
 						})
 					);
 			})

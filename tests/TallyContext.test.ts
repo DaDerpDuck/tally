@@ -3,9 +3,9 @@ import {
 	defineBooleanProperty,
 	defineNumberProperty,
 	defineSourceType,
+	SourceReplicationEvent,
 	TallyContext,
 } from "../src";
-import { SourceReplicationEvent } from "../src/state/replication/SourceReplicationEvent";
 
 describe("tally", () => {
 	interface PoisonData {
