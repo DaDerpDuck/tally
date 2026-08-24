@@ -10,7 +10,7 @@ export interface ReplicatedSource {
 	readonly data: ReplicationValue;
 }
 
-export function serializeSource(source: Source<unknown>): ReplicatedSource {
+export function serializeSource(source: Source): ReplicatedSource {
 	if (!source.type.replication)
 		throw new Error("Cannot serialize a source without a ReplicationDefinition");
 	return {

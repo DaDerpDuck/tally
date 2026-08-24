@@ -3,3 +3,4 @@ export * from "./state/property/index.js";
 export * from "./state/modifier/index.js";
 export * from "./state/source/index.js";
 export * from "./state/replication/index.js";
+export * from "./state/descriptor/index.js";

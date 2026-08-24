@@ -5,6 +5,7 @@ import {
 	defineNumberProperty,
 	defineSourceType,
 	NumberProperty,
+	ReplicationEvent,
 	type SourceReplicationEvent,
 	TallyContext,
 } from "../src";
@@ -213,7 +214,7 @@ describe("tally context replication emission", () => {
 	function createReplicationFixture() {
 		const tally = new TallyContext<Player>();
 		const agentState = tally.createAgentState({ name: "Bob" });
-		const callback = vi.fn<(agent: typeof agentState, event: SourceReplicationEvent) => void>();
+		const callback = vi.fn<(agent: typeof agentState, event: ReplicationEvent) => void>();
 		tally.onReplicationEmit(callback);
 		return { agent: agentState, callback, tally };
 	}
@@ -231,18 +232,27 @@ describe("tally context replication emission", () => {
 
 		expect(emittedEvents(callback)).toEqual([
 			{
-				kind: "added",
-				source: { id: 0, type: "PropertySource", priority: 100, data: 5 },
+				target: "source",
+				event: {
+					kind: "added",
+					source: { id: 0, type: "PropertySource", priority: 100, data: 5 },
+				},
 			},
 			{
-				kind: "added",
-				source: { id: 1, type: "PropertySource", priority: 200, data: 6 },
+				target: "source",
+				event: {
+					kind: "added",
+					source: { id: 1, type: "PropertySource", priority: 200, data: 6 },
+				},
 			},
 			{
-				kind: "added",
-				source: { id: 2, type: "PropertySource", priority: 300, data: 7 },
+				target: "source",
+				event: {
+					kind: "added",
+					source: { id: 2, type: "PropertySource", priority: 300, data: 7 },
+				},
 			},
-		] satisfies SourceReplicationEvent[]);
+		] satisfies ReplicationEvent[]);
 	});
 
 	it("emits removed events with source ids", () => {
@@ -258,10 +268,10 @@ describe("tally context replication emission", () => {
 		second.destroy();
 
 		expect(emittedEvents(callback)).toEqual([
-			{ kind: "removed", id: 2 },
-			{ kind: "removed", id: 0 },
-			{ kind: "removed", id: 1 },
-		] satisfies SourceReplicationEvent[]);
+			{ target: "source", event: { kind: "removed", id: 2 } },
+			{ target: "source", event: { kind: "removed", id: 0 } },
+			{ target: "source", event: { kind: "removed", id: 1 } },
+		] satisfies ReplicationEvent[]);
 	});
 
 	it("emits updated events with serialized data", () => {
@@ -278,11 +288,11 @@ describe("tally context replication emission", () => {
 		second.set({ value: 8 });
 
 		expect(emittedEvents(callback)).toEqual([
-			{ kind: "updated", id: 2, data: 8 },
-			{ kind: "updated", id: 0, data: 8 },
-			{ kind: "updated", id: 1, data: 8 },
-			{ kind: "updated", id: 1, data: 8 },
-		] satisfies SourceReplicationEvent[]);
+			{ target: "source", event: { kind: "updated", id: 2, data: 8 } },
+			{ target: "source", event: { kind: "updated", id: 0, data: 8 } },
+			{ target: "source", event: { kind: "updated", id: 1, data: 8 } },
+			{ target: "source", event: { kind: "updated", id: 1, data: 8 } },
+		] satisfies ReplicationEvent[]);
 	});
 
 	it("does not emit events for source types without replication", () => {
@@ -305,15 +315,22 @@ describe("tally context replication emission", () => {
 		source.set({ value: 2 });
 		source.destroy();
 
-		expect(emittedEvents(callback).map((event) => event.kind)).toEqual([
-			"added",
-			"updated",
-			"removed",
+		expect(emittedEvents(callback).map((event) => event.target)).toEqual([
+			"source",
+			"source",
+			"source",
 		]);
 		expect(
-			emittedEvents(callback).map((event) =>
-				event.kind === "added" ? event.source.id : event.id
-			)
+			emittedEvents(callback)
+				.filter((event) => event.target === "source")
+				.map((event) => event.event.kind)
+		).toEqual(["added", "updated", "removed"]);
+		expect(
+			emittedEvents(callback)
+				.filter((event) => event.target === "source")
+				.map((event) =>
+					event.event.kind === "added" ? event.event.source.id : event.event.id
+				)
 		).toEqual([0, 0, 0]);
 	});
 });

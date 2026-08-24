@@ -6,7 +6,7 @@ import type { ReplicationSnapshot } from "./ReplicationSnapshot.js";
 import type { SourceReplicationEvent } from "./SourceReplicationEvent.js";
 
 export class ReplicationReceiver {
-	private readonly replicatedSources = new Map<number, Source<unknown>>();
+	private readonly replicatedSources = new Map<number, Source>();
 
 	constructor(
 		private readonly agent: AgentState<unknown>,
@@ -66,7 +66,7 @@ export class ReplicationReceiver {
 			);
 	}
 
-	private addSource(replicatedSource: ReplicatedSource): Source<unknown> {
+	private addSource(replicatedSource: ReplicatedSource): Source {
 		if (this.replicatedSources.has(replicatedSource.id))
 			throw new Error("Attempted to add an existing replicated source");
 		const sourceType = this.resolveType(replicatedSource.type);

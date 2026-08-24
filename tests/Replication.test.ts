@@ -41,7 +41,10 @@ function createReplicationFixture(attachReplicationEmit: boolean = true) {
 	clientTally.register(Property);
 
 	const receiver = new ReplicationReceiver(clientAgent, (name) => clientTally.sources.get(name));
-	if (attachReplicationEmit) serverTally.onReplicationEmit((_, event) => receiver.apply([event]));
+	if (attachReplicationEmit)
+		serverTally.onReplicationEmit((_, event) => {
+			if (event.target === "source") receiver.apply([event.event]);
+		});
 
 	return { clientTally, clientAgent, serverTally, serverAgent, receiver };
 }

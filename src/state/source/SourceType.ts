@@ -47,11 +47,11 @@ export class SourceType<TData> implements AnySourceType, Registrable {
 
 	register(registry: Registry): void {
 		if (
-			registry.sources.has(this.definition.name) &&
-			registry.sources.get(this.definition.name) !== this
+			registry.sources.has(this.name) &&
+			registry.sources.get(this.name) !== this
 		)
-			throw new Error(`Duplicate source name: ${this.definition.name}`);
-		registry.sources.set(this.definition.name, this);
+			throw new Error(`Duplicate source name: ${this.name}`);
+		registry.sources.set(this.name, this);
 	}
 }
 
