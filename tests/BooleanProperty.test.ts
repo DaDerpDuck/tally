@@ -1,73 +1,57 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { defineBooleanProperty, ModifierRegistry } from "../src";
 
+const Invisibility = defineBooleanProperty({
+	name: "Invisibility",
+	defaultValue: false,
+});
+
+function resolve(registry: ModifierRegistry, base: boolean) {
+	return Invisibility.resolve(base, registry.get(Invisibility));
+}
+
 describe("boolean property", () => {
-	const Invisibility = defineBooleanProperty({
-		name: "Invisibility",
-		defaultValue: false,
+	it.each([false, true])("returns the base value with no modifiers (%s)", (base) => {
+		expect(Invisibility.resolve(base, [])).toBe(base);
 	});
 
-	it("resolves zero modifiers", () => {
-		expect(Invisibility.resolve(false, [])).toBe(false);
-		expect(Invisibility.resolve(true, [])).toBe(true);
+	it.each([
+		["enable", () => Invisibility.enable(), true],
+		["disable", () => Invisibility.disable(), false],
+		["toggle(false)", () => Invisibility.toggle(false), false],
+		["toggle(true)", () => Invisibility.toggle(true), true],
+	] as const)("resolves %s", (_, createModifier, expected) => {
+		const registry = new ModifierRegistry();
+		createModifier().applyTo(registry, 0);
+
+		expect(resolve(registry, false)).toBe(expected);
+		expect(resolve(registry, true)).toBe(expected);
 	});
 
-	it("resolves enable modifier", () => {
-		const modifierRegistry = new ModifierRegistry();
-		Invisibility.enable().applyTo(modifierRegistry, 0);
-		expect(Invisibility.resolve(true, modifierRegistry.get(Invisibility))).toBe(true);
-		expect(Invisibility.resolve(false, modifierRegistry.get(Invisibility))).toBe(true);
+	it("preserves insertion order within the same priority", () => {
+		const registry = new ModifierRegistry();
+
+		Invisibility.toggle(true).applyTo(registry, 0);
+		expect(resolve(registry, false)).toBe(true);
+		expect(resolve(registry, true)).toBe(true);
+
+		Invisibility.enable().applyTo(registry, 0);
+		expect(resolve(registry, false)).toBe(true);
+		expect(resolve(registry, true)).toBe(true);
+
+		Invisibility.disable().applyTo(registry, 0);
+		expect(resolve(registry, false)).toBe(false);
+		expect(resolve(registry, true)).toBe(false);
 	});
 
-	it("resolves disable modifier", () => {
-		const modifierRegistry = new ModifierRegistry();
-		Invisibility.disable().applyTo(modifierRegistry, 0);
-		expect(Invisibility.resolve(false, modifierRegistry.get(Invisibility))).toBe(false);
-		expect(Invisibility.resolve(true, modifierRegistry.get(Invisibility))).toBe(false);
-	});
+	it("resolves modifiers by priority instead of insertion order", () => {
+		const registry = new ModifierRegistry();
 
-	it("resolves toggle false modifier", () => {
-		const modifierRegistry = new ModifierRegistry();
-		Invisibility.toggle(false).applyTo(modifierRegistry, 0);
-		expect(Invisibility.resolve(false, modifierRegistry.get(Invisibility))).toBe(false);
-		expect(Invisibility.resolve(true, modifierRegistry.get(Invisibility))).toBe(false);
-	});
+		Invisibility.toggle(true).applyTo(registry, 300);
+		Invisibility.enable().applyTo(registry, 200);
+		Invisibility.disable().applyTo(registry, 100);
 
-	it("resolves toggle true modifier", () => {
-		const modifierRegistry = new ModifierRegistry();
-		Invisibility.toggle(true).applyTo(modifierRegistry, 0);
-		expect(Invisibility.resolve(false, modifierRegistry.get(Invisibility))).toBe(true);
-		expect(Invisibility.resolve(true, modifierRegistry.get(Invisibility))).toBe(true);
-	});
-
-	it("resolves multiple order-dependent modifiers", () => {
-		const modifierRegistry = new ModifierRegistry();
-		Invisibility.toggle(true).applyTo(modifierRegistry, 0);
-		expect(Invisibility.resolve(false, modifierRegistry.get(Invisibility))).toBe(true);
-		expect(Invisibility.resolve(true, modifierRegistry.get(Invisibility))).toBe(true);
-
-		Invisibility.enable().applyTo(modifierRegistry, 0);
-		expect(Invisibility.resolve(false, modifierRegistry.get(Invisibility))).toBe(true);
-		expect(Invisibility.resolve(true, modifierRegistry.get(Invisibility))).toBe(true);
-
-		Invisibility.disable().applyTo(modifierRegistry, 0);
-		expect(Invisibility.resolve(false, modifierRegistry.get(Invisibility))).toBe(false);
-		expect(Invisibility.resolve(true, modifierRegistry.get(Invisibility))).toBe(false);
-	});
-
-	it("resolves multiple priority-dependent modifiers", () => {
-		const modifierRegistry = new ModifierRegistry();
-		Invisibility.toggle(true).applyTo(modifierRegistry, 300);
-		expect(Invisibility.resolve(false, modifierRegistry.get(Invisibility))).toBe(true);
-		expect(Invisibility.resolve(true, modifierRegistry.get(Invisibility))).toBe(true);
-
-		Invisibility.enable().applyTo(modifierRegistry, 200);
-		expect(Invisibility.resolve(false, modifierRegistry.get(Invisibility))).toBe(true);
-		expect(Invisibility.resolve(true, modifierRegistry.get(Invisibility))).toBe(true);
-
-		Invisibility.disable().applyTo(modifierRegistry, 100);
-
-		expect(Invisibility.resolve(false, modifierRegistry.get(Invisibility))).toBe(true);
-		expect(Invisibility.resolve(true, modifierRegistry.get(Invisibility))).toBe(true);
+		expect(resolve(registry, false)).toBe(true);
+		expect(resolve(registry, true)).toBe(true);
 	});
 });
