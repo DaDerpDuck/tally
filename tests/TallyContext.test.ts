@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+	BooleanProperty,
 	defineBooleanProperty,
 	defineNumberProperty,
 	defineSourceType,
+	NumberProperty,
 	type SourceReplicationEvent,
 	TallyContext,
 } from "../src";
@@ -109,7 +111,7 @@ describe("tally context registry", () => {
 		);
 
 		expect(tally.properties).toEqual(
-			new Map([
+			new Map<string, BooleanProperty | NumberProperty>([
 				["Boolean", booleanProperty],
 				["Number", numberProperty],
 			])
@@ -210,10 +212,10 @@ describe("tally context replication emission", () => {
 
 	function createReplicationFixture() {
 		const tally = new TallyContext<Player>();
-		const agent = tally.createAgentState({ name: "Bob" });
-		const callback = vi.fn<(agent: typeof agent, event: SourceReplicationEvent) => void>();
+		const agentState = tally.createAgentState({ name: "Bob" });
+		const callback = vi.fn<(agent: typeof agentState, event: SourceReplicationEvent) => void>();
 		tally.onReplicationEmit(callback);
-		return { agent, callback, tally };
+		return { agent: agentState, callback, tally };
 	}
 
 	function emittedEvents(callback: ReturnType<typeof createReplicationFixture>["callback"]) {
@@ -308,8 +310,10 @@ describe("tally context replication emission", () => {
 			"updated",
 			"removed",
 		]);
-		expect(emittedEvents(callback).map((event) =>
-			event.kind === "added" ? event.source.id : event.id
-		)).toEqual([0, 0, 0]);
+		expect(
+			emittedEvents(callback).map((event) =>
+				event.kind === "added" ? event.source.id : event.id
+			)
+		).toEqual([0, 0, 0]);
 	});
 });
