@@ -1,11 +1,12 @@
 import type { AgentState } from "../core/AgentState.js";
 import type { Source } from "../source/Source.js";
 import type { AnySourceType, SourceType } from "../source/SourceType.js";
-import type { ReplicatedSource, ReplicationValue, SourceId } from "./index.js";
+import type { ReplicatedSource, ReplicationEvent, ReplicationValue, SourceId } from "./index.js";
+import type { Receiver } from "./Receiver.js";
 import type { ReplicationSnapshot } from "./ReplicationSnapshot.js";
 import type { SourceReplicationEvent } from "./SourceReplicationEvent.js";
 
-export class ReplicationReceiver {
+export class ReplicationReceiver implements Receiver {
 	private readonly replicatedSources = new Map<number, Source>();
 
 	constructor(
@@ -13,22 +14,25 @@ export class ReplicationReceiver {
 		private readonly resolveType: (name: string) => AnySourceType | undefined
 	) {}
 
-	apply(events: readonly SourceReplicationEvent[]) {
+	apply(events: readonly ReplicationEvent[]) {
 		const errors: { event: SourceReplicationEvent; error: Error }[] = [];
 
 		this.agent.batch(() => {
-			for (const event of events) {
-				try {
-					if (event.kind === "added") this.addSource(event.source);
-					else if (event.kind === "updated") this.updateSource(event.id, event.data);
-					else if (event.kind === "removed") this.removeSource(event.id);
-				} catch (err) {
-					errors.push({
-						event,
-						error: err instanceof Error ? err : new Error(String(err)),
-					});
-				}
-			}
+			events
+				.filter((event) => event.target === "source")
+				.map((event) => event.event)
+				.forEach((event) => {
+					try {
+						if (event.kind === "added") this.addSource(event.source);
+						else if (event.kind === "updated") this.updateSource(event.id, event.data);
+						else if (event.kind === "removed") this.removeSource(event.id);
+					} catch (err) {
+						errors.push({
+							event,
+							error: err instanceof Error ? err : new Error(String(err)),
+						});
+					}
+				});
 		});
 
 		if (errors.length > 0)

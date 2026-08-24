@@ -43,7 +43,7 @@ function createReplicationFixture(attachReplicationEmit: boolean = true) {
 	const receiver = new ReplicationReceiver(clientAgent, (name) => clientTally.sources.get(name));
 	if (attachReplicationEmit)
 		serverTally.onReplicationEmit((_, event) => {
-			if (event.target === "source") receiver.apply([event.event]);
+			receiver.apply([event]);
 		});
 
 	return { clientTally, clientAgent, serverTally, serverAgent, receiver };
@@ -201,25 +201,34 @@ describe("replication", () => {
 		expect(() =>
 			receiver.apply([
 				{
-					kind: "added",
-					source: serializeSource(
-						serverAgent.addSource(PropertySource, 100, { value: 1 })!
-					),
-				},
-				{
-					kind: "added",
-					source: {
-						id: 10,
-						type: "unknown",
-						priority: 0,
-						data: null,
+					target: "source",
+					event: {
+						kind: "added",
+						source: serializeSource(
+							serverAgent.addSource(PropertySource, 100, { value: 1 })!
+						),
 					},
 				},
 				{
-					kind: "added",
-					source: serializeSource(
-						serverAgent.addSource(PropertySource, 100, { value: 2 })!
-					),
+					target: "source",
+					event: {
+						kind: "added",
+						source: {
+							id: 10,
+							type: "unknown",
+							priority: 0,
+							data: null,
+						},
+					},
+				},
+				{
+					target: "source",
+					event: {
+						kind: "added",
+						source: serializeSource(
+							serverAgent.addSource(PropertySource, 100, { value: 2 })!
+						),
+					},
 				},
 			])
 		).toThrow("Failed to apply 1 replication event(s)");
