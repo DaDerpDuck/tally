@@ -44,18 +44,16 @@ export class ReplicationReceiver {
 		this.agent.transact(() => {
 			const markForRemoval = new Set(this.replicatedSources.keys());
 			for (const replicatedSource of snapshot.sources) {
-				markForRemoval.delete(replicatedSource.id);
-				if (this.replicatedSources.has(replicatedSource.id))
-					this.updateSource(replicatedSource.id, replicatedSource.data);
-				else {
-					try {
-						this.addSource(replicatedSource);
-					} catch (err) {
-						errors.push({
-							source: replicatedSource,
-							error: err instanceof Error ? err : new Error(String(err)),
-						});
-					}
+				try {
+					markForRemoval.delete(replicatedSource.id);
+					if (this.replicatedSources.has(replicatedSource.id))
+						this.updateSource(replicatedSource.id, replicatedSource.data);
+					else this.addSource(replicatedSource);
+				} catch (err) {
+					errors.push({
+						source: replicatedSource,
+						error: err instanceof Error ? err : new Error(String(err)),
+					});
 				}
 			}
 			markForRemoval.forEach((id) => this.removeSource(id));
@@ -68,7 +66,7 @@ export class ReplicationReceiver {
 			);
 	}
 
-	private addSource(replicatedSource: ReplicatedSource): Source<unknown> | undefined {
+	private addSource(replicatedSource: ReplicatedSource): Source<unknown> {
 		if (this.replicatedSources.has(replicatedSource.id))
 			throw new Error("Attempted to add an existing replicated source");
 		const sourceType = this.resolveType(replicatedSource.type);
@@ -83,7 +81,7 @@ export class ReplicationReceiver {
 			replicatedSource.priority,
 			sourceType.replication.deserialize(replicatedSource.data)
 		);
-		if (!source) return undefined;
+		if (!source) throw new Error("Unable to add a replicated source due to duplication policy");
 
 		this.replicatedSources.set(replicatedSource.id, source);
 		source.onDestroy(() => {
