@@ -29,11 +29,14 @@ export class ReplicationReceiver {
 
 	applySnapshot(snapshot: ReplicationSnapshot) {
 		this.agent.transact(() => {
+			const markForRemoval = new Set(this.replicatedSources.keys());
 			for (const replicatedSource of snapshot.sources) {
+				markForRemoval.delete(replicatedSource.id);
 				if (this.replicatedSources.has(replicatedSource.id))
 					this.updateSource(replicatedSource.id, replicatedSource.data);
 				else this.addSource(replicatedSource);
 			}
+			markForRemoval.forEach((id) => this.removeSource(id));
 		});
 	}
 
