@@ -56,7 +56,7 @@ export class AgentState<TEntity> {
 				return this.createSource(type, priority, data);
 			}
 			case "replace": {
-				return this.transact(() => {
+				return this.batch(() => {
 					const existingSource = this.duplicateLookup.get(type)?.values().next().value;
 					existingSource?.destroy();
 					return this.createSource(type, priority, data);
@@ -210,7 +210,7 @@ export class AgentState<TEntity> {
 		if (this.mutationDepth === 0) this.resolveProperties();
 	}
 
-	transact<T>(callback: () => T): T {
+	batch<T>(callback: () => T): T {
 		this.mutationDepth++;
 
 		try {

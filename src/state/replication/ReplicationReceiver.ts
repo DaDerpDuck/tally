@@ -16,7 +16,7 @@ export class ReplicationReceiver {
 	apply(events: readonly SourceReplicationEvent[]) {
 		const errors: { event: SourceReplicationEvent; error: Error }[] = [];
 
-		this.agent.transact(() => {
+		this.agent.batch(() => {
 			for (const event of events) {
 				try {
 					if (event.kind === "added") this.addSource(event.source);
@@ -41,7 +41,7 @@ export class ReplicationReceiver {
 	applySnapshot(snapshot: ReplicationSnapshot) {
 		const errors: { source: ReplicatedSource; error: Error }[] = [];
 
-		this.agent.transact(() => {
+		this.agent.batch(() => {
 			const markForRemoval = new Set(this.replicatedSources.keys());
 			for (const replicatedSource of snapshot.sources) {
 				try {
