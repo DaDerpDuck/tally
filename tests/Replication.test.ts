@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { defineNumberProperty, defineSourceType, ReplicationReceiver, TallyContext } from "../src";
+import {
+	createReplicationSnapshot,
+	defineNumberProperty,
+	defineSourceType,
+	ReplicationReceiver,
+	serializeSource,
+	SourceTypeDefinition,
+	TallyContext,
+} from "../src";
 
 interface Player {
 	name: string;
@@ -10,16 +18,18 @@ interface PropSourceData {
 }
 
 const Property = defineNumberProperty({ name: "Property", defaultValue: 0 });
-const PropertySource = defineSourceType<PropSourceData>({
+
+const basicSourceDef: SourceTypeDefinition<PropSourceData> = {
 	name: "PropertySource",
 	contribute: (data) => [Property.add(data.value)],
 	replication: {
 		serialize: (data) => data.value,
 		deserialize: (value: number) => ({ value }),
 	},
-});
+} as const;
+const PropertySource = defineSourceType<PropSourceData>(basicSourceDef);
 
-function createReplicationFixture() {
+function createReplicationFixture(attachReplicationEmit: boolean = true) {
 	const serverTally = new TallyContext<Player>();
 	const serverAgent = serverTally.createAgentState({ name: "Bob" });
 	serverTally.register(PropertySource);
@@ -31,9 +41,9 @@ function createReplicationFixture() {
 	clientTally.register(Property);
 
 	const receiver = new ReplicationReceiver(clientAgent, (name) => clientTally.sources.get(name));
-	serverTally.onReplicationEmit((_, event) => receiver.apply([event]));
+	if (attachReplicationEmit) serverTally.onReplicationEmit((_, event) => receiver.apply([event]));
 
-	return { clientAgent, serverAgent };
+	return { clientTally, clientAgent, serverTally, serverAgent, receiver };
 }
 
 function getClientSource(clientAgent: ReturnType<typeof createReplicationFixture>["clientAgent"]) {
@@ -77,5 +87,139 @@ describe("replication", () => {
 		expect(clientAgent.get(Property)).toBe(0);
 	});
 
-	// TODO: edge cases with multiple sources
+	it("replicates same-type sources", () => {
+		const { clientAgent, serverAgent } = createReplicationFixture();
+		clientAgent.addSource(PropertySource, 100, { value: 1000 });
+		const serverSource1 = serverAgent.addSource(PropertySource, 100, { value: 1 })!;
+		const serverSource2 = serverAgent.addSource(PropertySource, 100, { value: 10 })!;
+		const serverSource3 = serverAgent.addSource(PropertySource, 100, { value: 100 })!;
+		expect(clientAgent.getSources(PropertySource).size).toBe(4);
+		expect(clientAgent.get(Property)).toBe(1111);
+
+		serverSource2.set({ value: 20 });
+		serverSource1.destroy();
+		expect(clientAgent.getSources(PropertySource).size).toBe(3);
+		expect(clientAgent.get(Property)).toBe(1120);
+	});
+
+	it("reconciles snapshot", () => {
+		const { clientAgent, serverAgent, clientTally, serverTally, receiver } =
+			createReplicationFixture(false);
+
+		const PropertySource1 = defineSourceType<PropSourceData>({
+			...basicSourceDef,
+			name: "PropertySource1",
+		});
+		clientTally.register(PropertySource1);
+		serverTally.register(PropertySource1);
+
+		const PropertySource2 = defineSourceType<PropSourceData>({
+			...basicSourceDef,
+			name: "PropertySource2",
+		});
+		clientTally.register(PropertySource2);
+		serverTally.register(PropertySource2);
+
+		const PropertySource3 = defineSourceType<PropSourceData>({
+			...basicSourceDef,
+			name: "PropertySource3",
+		});
+		clientTally.register(PropertySource3);
+		serverTally.register(PropertySource3);
+
+		const source1 = serverAgent.addSource(PropertySource1, 100, { value: 5 })!;
+		const source3 = serverAgent.addSource(PropertySource3, 100, { value: 6 })!;
+		expect(clientAgent.getSources().size).toBe(0);
+		expect(clientAgent.get(Property)).toBe(0);
+
+		receiver.applySnapshot(createReplicationSnapshot(serverAgent));
+		expect(clientAgent.getSources().size).toBe(2);
+		expect(clientAgent.get(Property)).toBe(11);
+		expect(
+			new Set(
+				clientAgent
+					.getSources()
+					.values()
+					.map((source) => source.type.name)
+			)
+		).toEqual(new Set(["PropertySource1", "PropertySource3"]));
+
+		source1.set({ value: 7 });
+		source3.destroy();
+		serverAgent.addSource(PropertySource2, 100, { value: 8 });
+		receiver.applySnapshot(createReplicationSnapshot(serverAgent));
+		expect(clientAgent.getSources().size).toBe(2);
+		expect(clientAgent.get(Property)).toBe(15);
+		expect(
+			new Set(
+				clientAgent
+					.getSources()
+					.values()
+					.map((source) => source.type.name)
+			)
+		).toEqual(new Set(["PropertySource1", "PropertySource2"]));
+	});
+
+	it("filters snapshot", () => {
+		const { clientAgent, serverAgent, clientTally, serverTally, receiver } =
+			createReplicationFixture(false);
+
+		const LocalPropertySource = defineSourceType<PropSourceData>({
+			...basicSourceDef,
+			name: "LocalPropertySource",
+			replication: undefined,
+		});
+		clientTally.register(LocalPropertySource);
+		serverTally.register(LocalPropertySource);
+
+		serverAgent.addSource(PropertySource, 100, { value: 5 });
+		serverAgent.addSource(LocalPropertySource, 100, { value: 6 });
+		expect(clientAgent.getSources().size).toBe(0);
+		expect(clientAgent.get(Property)).toBe(0);
+		expect(serverAgent.getSources().size).toBe(2);
+		expect(serverAgent.get(Property)).toBe(11);
+
+		receiver.applySnapshot(createReplicationSnapshot(serverAgent));
+		expect(clientAgent.getSources().size).toBe(1);
+		expect(clientAgent.get(Property)).toBe(5);
+		expect(
+			new Set(
+				clientAgent
+					.getSources()
+					.values()
+					.map((source) => source.type.name)
+			)
+		).toEqual(new Set(["PropertySource"]));
+	});
+
+	it("throws on unknown source type", () => {
+		const { clientAgent, serverAgent, receiver } = createReplicationFixture(false);
+
+		expect(() =>
+			receiver.apply([
+				{
+					kind: "added",
+					source: serializeSource(
+						serverAgent.addSource(PropertySource, 100, { value: 1 })!
+					),
+				},
+				{
+					kind: "added",
+					source: {
+						id: 10,
+						type: "unknown",
+						priority: 0,
+						data: null,
+					},
+				},
+				{
+					kind: "added",
+					source: serializeSource(
+						serverAgent.addSource(PropertySource, 100, { value: 2 })!
+					),
+				},
+			])
+		).toThrow("Failed to apply 1 replication event(s)");
+		expect(clientAgent.getSources().size).toBe(2);
+	});
 });

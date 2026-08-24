@@ -159,7 +159,7 @@ describe("tally context registry", () => {
 
 		expect(() =>
 			tally.register(defineBooleanProperty({ name: "Boolean", defaultValue: false }))
-		).toThrowError("Duplicate property name: Boolean");
+		).toThrow("Duplicate property name: Boolean");
 	});
 
 	it("allows the same source type instance to be registered repeatedly", () => {
@@ -191,7 +191,7 @@ describe("tally context registry", () => {
 					contribute: () => [],
 				})
 			)
-		).toThrowError("Duplicate source name: Source1");
+		).toThrow("Duplicate source name: Source1");
 	});
 });
 

@@ -14,38 +14,69 @@ export class ReplicationReceiver {
 	) {}
 
 	apply(events: readonly SourceReplicationEvent[]) {
+		const errors: { event: SourceReplicationEvent; error: Error }[] = [];
+
 		this.agent.transact(() => {
 			for (const event of events) {
-				if (event.kind === "added") {
-					this.addSource(event.source);
-				} else if (event.kind === "updated") {
-					this.updateSource(event.id, event.data);
-				} else if (event.kind === "removed") {
-					this.removeSource(event.id);
+				try {
+					if (event.kind === "added") this.addSource(event.source);
+					else if (event.kind === "updated") this.updateSource(event.id, event.data);
+					else if (event.kind === "removed") this.removeSource(event.id);
+				} catch (err) {
+					errors.push({
+						event,
+						error: err instanceof Error ? err : new Error(String(err)),
+					});
 				}
 			}
 		});
+
+		if (errors.length > 0)
+			throw new AggregateError(
+				errors.map((e) => e.error),
+				`Failed to apply ${errors.length} replication event(s)`
+			);
 	}
 
 	applySnapshot(snapshot: ReplicationSnapshot) {
+		const errors: { source: ReplicatedSource; error: Error }[] = [];
+
 		this.agent.transact(() => {
 			const markForRemoval = new Set(this.replicatedSources.keys());
 			for (const replicatedSource of snapshot.sources) {
 				markForRemoval.delete(replicatedSource.id);
 				if (this.replicatedSources.has(replicatedSource.id))
 					this.updateSource(replicatedSource.id, replicatedSource.data);
-				else this.addSource(replicatedSource);
+				else {
+					try {
+						this.addSource(replicatedSource);
+					} catch (err) {
+						errors.push({
+							source: replicatedSource,
+							error: err instanceof Error ? err : new Error(String(err)),
+						});
+					}
+				}
 			}
 			markForRemoval.forEach((id) => this.removeSource(id));
 		});
+
+		if (errors.length > 0)
+			throw new AggregateError(
+				errors.map((e) => e.error),
+				`Failed to apply ${errors.length} replication source(s)`
+			);
 	}
 
 	private addSource(replicatedSource: ReplicatedSource): Source<unknown> | undefined {
 		if (this.replicatedSources.has(replicatedSource.id))
 			throw new Error("Attempted to add an existing replicated source");
 		const sourceType = this.resolveType(replicatedSource.type);
-		if (!sourceType) return undefined;
-		if (!sourceType.replication) return undefined;
+		if (!sourceType) throw new Error("Attempted to add a non-existant replicated source");
+		if (!sourceType.replication)
+			throw new Error(
+				"Attempted to add a replicated source without a replication definition"
+			);
 
 		const source = this.agent.addSource(
 			sourceType as SourceType<unknown>,
