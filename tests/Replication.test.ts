@@ -1,113 +1,81 @@
 import { describe, expect, it } from "vitest";
 import { defineNumberProperty, defineSourceType, ReplicationReceiver, TallyContext } from "../src";
 
+interface Player {
+	name: string;
+}
+
+interface PropSourceData {
+	value: number;
+}
+
+const Property = defineNumberProperty({ name: "Property", defaultValue: 0 });
+const PropertySource = defineSourceType<PropSourceData>({
+	name: "PropertySource",
+	contribute: (data) => [Property.add(data.value)],
+	replication: {
+		serialize: (data) => data.value,
+		deserialize: (value: number) => ({ value }),
+	},
+});
+
+function createReplicationFixture() {
+	const serverTally = new TallyContext<Player>();
+	const serverAgent = serverTally.createAgentState({ name: "Bob" });
+	serverTally.register(PropertySource);
+	serverTally.register(Property);
+
+	const clientTally = new TallyContext<Player>();
+	const clientAgent = clientTally.createAgentState({ name: "Bob" });
+	clientTally.register(PropertySource);
+	clientTally.register(Property);
+
+	const receiver = new ReplicationReceiver(clientAgent, (name) => clientTally.sources.get(name));
+	serverTally.onReplicationEmit((_, event) => receiver.apply([event]));
+
+	return { clientAgent, serverAgent };
+}
+
+function getClientSource(clientAgent: ReturnType<typeof createReplicationFixture>["clientAgent"]) {
+	const sources = [...clientAgent.getSources(PropertySource)];
+	expect(sources).toHaveLength(1);
+	return sources[0]!;
+}
+
 describe("replication", () => {
-	const Prop = defineNumberProperty({ name: "Property", defaultValue: 0 });
+	it("replicates source addition", () => {
+		const { clientAgent, serverAgent } = createReplicationFixture();
 
-	interface PropSourceData {
-		value: number;
-	}
+		serverAgent.addSource(PropertySource, 100, { value: 5 });
 
-	const PropSource = defineSourceType<PropSourceData>({
-		name: "PropertySource",
-
-		contribute: (data) => [Prop.add(data.value)],
-
-		replication: {
-			serialize(data): number {
-				return data.value;
-			},
-			deserialize(serialized: number) {
-				return { value: serialized };
-			},
-		},
-	});
-
-	interface Player {
-		name: string;
-	}
-
-	it("receives source add", () => {
-		const serverTally = new TallyContext<Player>();
-		const serverAgent = serverTally.createAgentState({ name: "Bob" });
-		serverTally.register(PropSource);
-		serverTally.register(Prop);
-
-		const clientTally = new TallyContext<Player>();
-		const clientAgent = clientTally.createAgentState({ name: "Bob" });
-		clientTally.register(PropSource);
-		clientTally.register(Prop);
-
-		const replicationReceiver = new ReplicationReceiver(clientAgent, (name) =>
-			clientTally.sources.get(name)
-		);
-
-		serverTally.onReplicationEmit((_, event) => {
-			replicationReceiver.apply([event]);
-		});
-
-		serverAgent.addSource(PropSource, 100, { value: 5 });
-
-		expect(clientAgent.getSources().size).toBe(1);
-
-		const clientSource = clientAgent.getSources(PropSource).values().toArray()[0];
+		const clientSource = getClientSource(clientAgent);
 		expect(clientSource.priority).toBe(100);
 		expect(clientSource.get()).toEqual({ value: 5 });
+		expect(clientAgent.get(Property)).toBe(5);
 	});
 
-	it("receives source update", () => {
-		const serverTally = new TallyContext<Player>();
-		const serverAgent = serverTally.createAgentState({ name: "Bob" });
-		serverTally.register(PropSource);
-		serverTally.register(Prop);
-
-		const clientTally = new TallyContext<Player>();
-		const clientAgent = clientTally.createAgentState({ name: "Bob" });
-		clientTally.register(PropSource);
-		clientTally.register(Prop);
-
-		const replicationReceiver = new ReplicationReceiver(clientAgent, (name) =>
-			clientTally.sources.get(name)
-		);
-
-		serverTally.onReplicationEmit((_, event) => {
-			replicationReceiver.apply([event]);
-		});
-
-		const serverSource = serverAgent.addSource(PropSource, 100, { value: 5 })!;
-		expect(clientAgent.getSources().size).toBe(1);
+	it("replicates source updates", () => {
+		const { clientAgent, serverAgent } = createReplicationFixture();
+		const serverSource = serverAgent.addSource(PropertySource, 100, { value: 5 })!;
 
 		serverSource.set({ value: 10 });
-		const clientSource = clientAgent.getSources(PropSource).values().toArray()[0];
+
+		const clientSource = getClientSource(clientAgent);
 		expect(clientSource.priority).toBe(100);
 		expect(clientSource.get()).toEqual({ value: 10 });
+		expect(clientAgent.get(Property)).toBe(10);
 	});
 
-	it("receives source destroy", () => {
-		const serverTally = new TallyContext<Player>();
-		const serverAgent = serverTally.createAgentState({ name: "Bob" });
-		serverTally.register(PropSource);
-		serverTally.register(Prop);
+	it("replicates source removal", () => {
+		const { clientAgent, serverAgent } = createReplicationFixture();
+		const serverSource = serverAgent.addSource(PropertySource, 100, { value: 5 })!;
+		expect(clientAgent.getSources(PropertySource).size).toBe(1);
 
-		const clientTally = new TallyContext<Player>();
-		const clientAgent = clientTally.createAgentState({ name: "Bob" });
-		clientTally.register(PropSource);
-		clientTally.register(Prop);
+		serverSource.destroy();
 
-		const replicationReceiver = new ReplicationReceiver(clientAgent, (name) =>
-			clientTally.sources.get(name)
-		);
-
-		serverTally.onReplicationEmit((_, event) => {
-			replicationReceiver.apply([event]);
-		});
-
-		const serverSource = serverAgent.addSource(PropSource, 100, { value: 5 })!;
-		expect(clientAgent.getSources().size).toBe(1);
-
-        serverSource.destroy();
-        expect(clientAgent.getSources().size).toBe(0);
+		expect(clientAgent.getSources(PropertySource).size).toBe(0);
+		expect(clientAgent.get(Property)).toBe(0);
 	});
 
-    // TODO: edge cases with multiple sources
+	// TODO: edge cases with multiple sources
 });
