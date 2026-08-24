@@ -1,71 +1,71 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { OrderedBuckets } from "../src";
 
+function expectContents(buckets: OrderedBuckets<number>, values: number[]) {
+	expect(buckets.values()).toEqual(values);
+	expect(buckets.size()).toBe(values.length);
+}
+
 describe("ordered buckets", () => {
-	it("inserts at different priorities", () => {
+	it.each([
+		{
+			name: "different priorities",
+			entries: [
+				[1, 10],
+				[3, 30],
+				[2, 20],
+			] as const,
+		},
+		{
+			name: "the same priority",
+			entries: [
+				[1, 10],
+				[2, 10],
+				[3, 10],
+			] as const,
+		},
+		{
+			name: "mixed priorities",
+			entries: [
+				[4, 30],
+				[3, 20],
+				[5, 30],
+				[1, 10],
+				[2, 10],
+			] as const,
+		},
+	])("orders values inserted at $name", ({ entries }) => {
 		const buckets = new OrderedBuckets<number>();
-		buckets.insert(1, 10);
-		buckets.insert(3, 30);
-		buckets.insert(2, 20);
-		expect(buckets.values()).toEqual([1, 2, 3]);
-		expect(buckets.size()).toBe(3);
+
+		for (const [value, priority] of entries) buckets.insert(value, priority);
+
+		expectContents(
+			buckets,
+			entries
+				.toSorted(([, aPriority], [, bPriority]) => aPriority - bPriority)
+				.map(([value]) => value)
+		);
 	});
 
-	it("inserts at same priority", () => {
+	it.each([
+		["different buckets", 10, 20],
+		["the same bucket", 10, 10],
+	] as const)("updates entry indexes after deleting from %s", (_, firstPriority, secondPriority) => {
 		const buckets = new OrderedBuckets<number>();
-		buckets.insert(1, 10);
-		buckets.insert(2, 10);
-		buckets.insert(3, 10);
-		expect(buckets.values()).toEqual([1, 2, 3]);
-		expect(buckets.size()).toBe(3);
-	});
+		const first = buckets.insert(1, firstPriority);
+		const second = buckets.insert(2, secondPriority);
 
-	it("inserts at mixed priorities", () => {
-		const buckets = new OrderedBuckets<number>();
-		buckets.insert(4, 30);
-		buckets.insert(3, 20);
-		buckets.insert(5, 30);
-		buckets.insert(1, 10);
-		buckets.insert(2, 10);
-		expect(buckets.values()).toEqual([1, 2, 3, 4, 5]);
-		expect(buckets.size()).toBe(5);
-	});
-
-	it("deletes at different bucket", () => {
-		const buckets = new OrderedBuckets<number>();
-		const entry1 = buckets.insert(1, 10);
-		const entry2 = buckets.insert(2, 20);
-		expect(buckets.delete(entry1)).toBe(true);
-		expect(entry1).toEqual({
+		expect(buckets.delete(first)).toBe(true);
+		expect(first).toEqual({
 			value: 1,
-			priority: 10,
+			priority: firstPriority,
 			bucketIndex: -1,
 		});
-		expect(entry2).toEqual({
+		expect(second).toEqual({
 			value: 2,
-			priority: 20,
+			priority: secondPriority,
 			bucketIndex: 0,
 		});
-		expect(buckets.values()).toEqual([2]);
-		expect(buckets.size()).toBe(1);
-	});
-
-	it("deletes at same bucket", () => {
-		const buckets = new OrderedBuckets<number>();
-		const entry1 = buckets.insert(1, 10);
-		const entry2 = buckets.insert(2, 10);
-		expect(buckets.delete(entry1)).toBe(true);
-		expect(entry1).toEqual({
-			value: 1,
-			priority: 10,
-			bucketIndex: -1,
-		});
-		expect(entry2).toEqual({
-			value: 2,
-			priority: 10,
-			bucketIndex: 0,
-		});
-		expect(buckets.values()).toEqual([2]);
-		expect(buckets.size()).toBe(1);
+		expectContents(buckets, [2]);
 	});
 });
