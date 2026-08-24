@@ -40,6 +40,11 @@ export class AgentState<TEntity> {
 	addSource<TData>(
 		type: SourceType<TData>,
 		priority: number,
+		data: TData
+	): Source<TData> | undefined;
+	addSource<TData>(
+		type: SourceType<TData>,
+		priority: number,
 		data?: TData
 	): Source<TData | undefined> | undefined {
 		switch (type.duplication.policy) {

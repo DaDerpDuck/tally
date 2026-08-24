@@ -38,18 +38,24 @@ export class ReplicationReceiver {
 	}
 
 	private addSource(replicatedSource: ReplicatedSource): Source<unknown> | undefined {
-		const sourceType = this.resolveType(replicatedSource.type) as SourceType<object>;
+		if (this.replicatedSources.has(replicatedSource.id))
+			throw new Error("Attempted to add an existing replicated source");
+		const sourceType = this.resolveType(replicatedSource.type);
 		if (!sourceType) return undefined;
+		if (!sourceType.replication) return undefined;
 
 		const source = this.agent.addSource(
-			sourceType,
+			sourceType as SourceType<unknown>,
 			replicatedSource.priority,
-			sourceType.replication!.deserialize(replicatedSource.data)
+			sourceType.replication.deserialize(replicatedSource.data)
 		);
 		if (!source) return undefined;
 
 		this.replicatedSources.set(replicatedSource.id, source);
-		source.onDestroy(() => this.replicatedSources.delete(replicatedSource.id));
+		source.onDestroy(() => {
+			if (this.replicatedSources.get(replicatedSource.id) === source)
+				this.replicatedSources.delete(replicatedSource.id);
+		});
 		return source;
 	}
 

@@ -1,5 +1,8 @@
 import type { Registrable, Registry } from "../core/Registrable.js";
-import type { ReplicationDefinition } from "../replication/ReplicationDefinition.js";
+import type {
+	AnyReplicationDefinition,
+	ReplicationDefinition,
+} from "../replication/ReplicationDefinition.js";
 import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
 
@@ -24,12 +27,13 @@ export interface SourceTypeDefinition<TData> {
 
 export interface AnySourceType {
 	readonly name: string;
+	readonly replication?: AnyReplicationDefinition | undefined;
 }
 
 export class SourceType<TData> implements AnySourceType, Registrable {
 	public readonly name: string;
 	public readonly duplication: Duplication<TData>;
-	public readonly replication: ReplicationDefinition<TData> | undefined;
+	public readonly replication?: ReplicationDefinition<TData> | undefined;
 
 	constructor(private readonly definition: SourceTypeDefinition<TData>) {
 		this.name = definition.name;
