@@ -10,6 +10,7 @@ export function createReplicationSnapshot(agent: AgentState<unknown>): Replicati
 		sources: agent
 			.getSources()
 			.values()
+			.filter((source) => source.type.replication !== undefined)
 			.map((source) => serializeSource(source))
 			.toArray(),
 	};
