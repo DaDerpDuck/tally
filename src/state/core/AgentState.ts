@@ -16,7 +16,7 @@ type Disconnect = () => void;
 type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
 type SourceCallback<T = unknown> = (source: Source<T>) => void;
 type DescriptorCallback<
-	T extends DescriptorType<unknown, Source> = DescriptorType<unknown, Source>,
+	T extends DescriptorType<unknown, unknown> = DescriptorType<unknown, unknown>,
 > = (descriptor: Descriptor<T>) => void;
 
 export class AgentState<TEntity> {
@@ -30,7 +30,7 @@ export class AgentState<TEntity> {
 	>();
 
 	private readonly sourceMap = new Map<AnySourceType, Set<Source>>();
-	private readonly descriptorMap = new Map<DescriptorType<unknown, Source>, Set<AnyDescriptor>>();
+	private readonly descriptorMap = new Map<DescriptorType<unknown, unknown>, Set<AnyDescriptor>>();
 
 	private readonly propertyCallbacks = new Map<AnyProperty, Set<PropertyCallback>>();
 	private readonly sourceAddedCallbacks = new Set<SourceCallback>();
@@ -86,7 +86,7 @@ export class AgentState<TEntity> {
 		}
 	}
 
-	addDescriptor<TDescriptorType extends DescriptorType<unknown, Source>>(
+	addDescriptor<TDescriptorType extends DescriptorType<unknown, unknown>>(
 		type: TDescriptorType,
 		data: ExtractDataFromDescriptor<TDescriptorType>
 	): Descriptor<TDescriptorType> | undefined {
@@ -119,7 +119,7 @@ export class AgentState<TEntity> {
 		return descriptor;
 	}
 
-	registerDescriptorHandler<TDescriptor extends DescriptorType<unknown, Source>>(
+	registerDescriptorHandler<TDescriptor extends DescriptorType<unknown, unknown>>(
 		descriptor: TDescriptor,
 		handler: (agent: AgentState<unknown>) => DescriptorBinding<TDescriptor>
 	) {
@@ -227,17 +227,17 @@ export class AgentState<TEntity> {
 		return (this.sourceMap.get(type) ?? AgentState.EmptySet) as ReadonlySet<Source>;
 	}
 
-	getDescriptors(): ReadonlySet<Descriptor<DescriptorType<unknown, Source>>>;
-	getDescriptors<TDescriptor extends DescriptorType<unknown, Source>>(
+	getDescriptors(): ReadonlySet<Descriptor<DescriptorType<unknown, unknown>>>;
+	getDescriptors<TDescriptor extends DescriptorType<unknown, unknown>>(
 		type: TDescriptor
 	): ReadonlySet<Descriptor<TDescriptor>>;
 	getDescriptors(
-		type?: DescriptorType<unknown, Source>
-	): ReadonlySet<Descriptor<DescriptorType<unknown, Source>>> {
+		type?: DescriptorType<unknown, unknown>
+	): ReadonlySet<Descriptor<DescriptorType<unknown, unknown>>> {
 		if (type === undefined)
 			return new Set(this.descriptorMap.values().flatMap((x) => x.values().toArray()));
 		return (this.descriptorMap.get(type) ?? AgentState.EmptySet) as ReadonlySet<
-			Descriptor<DescriptorType<unknown, Source>>
+			Descriptor<DescriptorType<unknown, unknown>>
 		>;
 	}
 
