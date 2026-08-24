@@ -3,367 +3,78 @@ import {
 	defineBooleanProperty,
 	defineNumberProperty,
 	defineSourceType,
-	SourceReplicationEvent,
+	type SourceReplicationEvent,
 	TallyContext,
 } from "../src";
 
-describe("tally", () => {
-	interface PoisonData {
-		intensity: number;
-	}
+interface PoisonData {
+	intensity: number;
+}
 
-	const PoisonSource = defineSourceType<PoisonData>({
-		name: "Poison",
-		contribute: () => [],
-		duplication: { policy: "ignore" },
-	});
+const PoisonSource = defineSourceType<PoisonData>({
+	name: "Poison",
+	contribute: () => [],
+	duplication: { policy: "ignore" },
+});
 
-	it("has observation on source add", () => {
-		const tally = new TallyContext();
-		const agent = tally.createAgentState(undefined);
+function createContextFixture() {
+	const tally = new TallyContext();
+	const agent = tally.createAgentState(undefined);
+	return { agent, tally };
+}
+
+describe("tally context source events", () => {
+	it("forwards source additions", () => {
+		const { agent, tally } = createContextFixture();
 		const callback = vi.fn();
 		tally.onSourceAdded(callback);
 
-		const source1 = agent.addSource(PoisonSource, 0, { intensity: 5 });
-		expect(callback).toHaveBeenCalledTimes(1);
-		expect(callback).toHaveBeenCalledWith(agent, source1);
-
+		const first = agent.addSource(PoisonSource, 0, { intensity: 5 });
 		agent.addSource(PoisonSource, 0, { intensity: 10 });
-		expect(callback).toHaveBeenCalledTimes(1);
+		first!.destroy();
+		const second = agent.addSource(PoisonSource, 0, { intensity: 5 });
 
-		source1!.destroy();
-		expect(callback).toHaveBeenCalledTimes(1);
-
-		const source2 = agent.addSource(PoisonSource, 0, { intensity: 5 });
 		expect(callback).toHaveBeenCalledTimes(2);
-		expect(callback).toHaveBeenCalledWith(agent, source2);
+		expect(callback).toHaveBeenNthCalledWith(1, agent, first);
+		expect(callback).toHaveBeenNthCalledWith(2, agent, second);
 	});
 
-	it("has observation on source remove", () => {
-		const tally = new TallyContext();
-		const agent = tally.createAgentState(undefined);
+	it("forwards source removals", () => {
+		const { agent, tally } = createContextFixture();
 		const callback = vi.fn();
 		tally.onSourceRemoved(callback);
 
-		const source1 = agent.addSource(PoisonSource, 0, { intensity: 5 });
-		expect(callback).toHaveBeenCalledTimes(0);
-
+		const source = agent.addSource(PoisonSource, 0, { intensity: 5 })!;
 		agent.addSource(PoisonSource, 0, { intensity: 10 });
-		expect(callback).toHaveBeenCalledTimes(0);
+		expect(callback).not.toHaveBeenCalled();
 
-		source1!.destroy();
-		expect(callback).toHaveBeenCalledTimes(1);
-		expect(callback).toHaveBeenCalledWith(agent, source1);
-
+		source.destroy();
 		agent.addSource(PoisonSource, 0, { intensity: 5 });
+
 		expect(callback).toHaveBeenCalledTimes(1);
+		expect(callback).toHaveBeenCalledWith(agent, source);
 	});
 
-	it("has observation on source set", () => {
-		const tally = new TallyContext();
-		const agent = tally.createAgentState(undefined);
+	it("forwards source updates", () => {
+		const { agent, tally } = createContextFixture();
 		const callback = vi.fn();
 		tally.onSourceUpdated(callback);
 
-		const source1 = agent.addSource(PoisonSource, 0, { intensity: 5 });
-		expect(callback).toHaveBeenCalledTimes(0);
-
-		source1!.set({ intensity: 15 });
-		expect(callback).toHaveBeenCalledTimes(1);
-		expect(callback).toHaveBeenCalledWith(agent, source1);
-
+		const first = agent.addSource(PoisonSource, 0, { intensity: 5 })!;
+		first.set({ intensity: 15 });
 		agent.addSource(PoisonSource, 0, { intensity: 10 });
-		expect(callback).toHaveBeenCalledTimes(1);
+		first.destroy();
 
-		source1!.destroy();
-		expect(callback).toHaveBeenCalledTimes(1);
+		const second = agent.addSource(PoisonSource, 0, { intensity: 5 })!;
+		second.set({ intensity: 10 });
 
-		const source2 = agent.addSource(PoisonSource, 0, { intensity: 5 });
-		expect(callback).toHaveBeenCalledTimes(1);
-
-		source2!.set({ intensity: 10 });
 		expect(callback).toHaveBeenCalledTimes(2);
-		expect(callback).toHaveBeenCalledWith(agent, source2);
+		expect(callback).toHaveBeenNthCalledWith(1, agent, first);
+		expect(callback).toHaveBeenNthCalledWith(2, agent, second);
 	});
 
-	it("registers properties", () => {
-		const tally = new TallyContext();
-		expect(tally.properties.size).toBe(0);
-
-		const property1 = tally.register(
-			defineBooleanProperty({ name: "Boolean", defaultValue: false })
-		);
-		expect(tally.properties.size).toBe(1);
-		expect(tally.properties.get("Boolean")).toBe(property1);
-
-		const property2 = tally.register(defineNumberProperty({ name: "Number", defaultValue: 0 }));
-		expect(tally.properties.size).toBe(2);
-		expect(tally.properties.get("Number")).toBe(property2);
-
-		expect(tally.properties.get("Nonexistent")).toBeUndefined();
-	});
-
-	it("registers sources", () => {
-		const tally = new TallyContext();
-		expect(tally.sources.size).toBe(0);
-
-		const source1 = tally.register(
-			defineSourceType({
-				name: "Source1",
-				contribute: () => [],
-			})
-		);
-		expect(tally.sources.size).toBe(1);
-		expect(tally.sources.get("Source1")).toBe(source1);
-
-		const source2 = tally.register(
-			defineSourceType({
-				name: "Source2",
-				contribute: () => [],
-			})
-		);
-		expect(tally.sources.size).toBe(2);
-		expect(tally.sources.get("Source2")).toBe(source2);
-
-		expect(tally.sources.get("Nonexistent")).toBeUndefined();
-	});
-
-	it("registers properties idempotently", () => {
-		const tally = new TallyContext();
-		expect(tally.properties.size).toBe(0);
-
-		const property = defineBooleanProperty({ name: "Boolean", defaultValue: false });
-		tally.register(property);
-		expect(tally.properties.size).toBe(1);
-		expect(tally.properties.get("Boolean")).toBe(property);
-
-		tally.register(property);
-		expect(tally.properties.size).toBe(1);
-		expect(tally.properties.get("Boolean")).toBe(property);
-
-		const anotherProperty = defineBooleanProperty({ name: "Boolean", defaultValue: false });
-		expect(() => tally.register(anotherProperty)).toThrow();
-	});
-
-	it("registers sources idempotently", () => {
-		const tally = new TallyContext();
-		expect(tally.sources.size).toBe(0);
-
-		const source = defineSourceType({
-			name: "Source1",
-			contribute: () => [],
-		});
-		tally.register(source);
-		expect(tally.sources.size).toBe(1);
-		expect(tally.sources.get("Source1")).toBe(source);
-
-		tally.register(source);
-		expect(tally.sources.size).toBe(1);
-		expect(tally.sources.get("Source1")).toBe(source);
-
-		const anotherSource = defineSourceType({
-			name: "Source1",
-			contribute: () => [],
-		});
-		expect(() => tally.register(anotherSource)).toThrow();
-	});
-});
-
-describe("tally static replication", () => {
-	const Prop = defineNumberProperty({ name: "Property", defaultValue: 0 });
-
-	interface PropSourceData {
-		value: number;
-	}
-
-	const PropSource = defineSourceType<PropSourceData>({
-		name: "PropertySource",
-
-		contribute: (data) => [Prop.add(data.value)],
-
-		replication: {
-			serialize(data): number {
-				return data.value;
-			},
-			deserialize(serialized: number) {
-				return { value: serialized };
-			},
-		},
-	});
-
-	interface Player {
-		name: string;
-	}
-
-	/*
-	function serializeData(
-		source: Source<unknown>,
-		sourceEvent: "added" | "removed" | "updated",
-		replicationOption: ReplicationDefinition<unknown>
-	): string {
-		return JSON.stringify({
-			sourceId: source.id,
-			sourcePriority: source.priority,
-			sourceType: source.type.definition.name,
-			sourceEvent,
-			data: replicationOption.serialize(source.get()),
-		});
-	}
-
-	function deserializeData(
-		context: TallyContext<Player>,
-		serialized: string
-	): [SourceType<unknown>, "added" | "removed" | "updated", number, unknown] {
-		const obj = JSON.parse(serialized);
-		const sourceType = context.sources.get(obj.sourceId)!;
-		const sourceEvent = obj.sourceEvent;
-		const priority = obj.priority;
-		const data = sourceType.replication!.deserialize(obj.data);
-		return [sourceType, sourceEvent, priority, data];
-	}
-	*/
-
-	it("emits replication added", () => {
-		const serverTally = new TallyContext<Player>();
-		const serverAgent = serverTally.createAgentState({ name: "Bob" });
-
-		const callback = vi.fn();
-		serverTally.onReplicationEmit(callback);
-
-		serverAgent.addSource(PropSource, 100, { value: 5 });
-		expect(callback).toHaveBeenCalledTimes(1);
-		expect(callback).toHaveBeenCalledWith(serverAgent, {
-			kind: "added",
-			source: {
-				id: 0,
-				type: "PropertySource",
-				priority: 100,
-				data: 5,
-			},
-		} satisfies SourceReplicationEvent);
-
-		serverAgent.addSource(PropSource, 200, { value: 6 });
-		expect(callback).toHaveBeenCalledTimes(2);
-		expect(callback).toHaveBeenCalledWith(serverAgent, {
-			kind: "added",
-			source: {
-				id: 1,
-				type: "PropertySource",
-				priority: 200,
-				data: 6,
-			},
-		} satisfies SourceReplicationEvent);
-
-		serverAgent.addSource(PropSource, 300, { value: 7 });
-		expect(callback).toHaveBeenCalledTimes(3);
-		expect(callback).toHaveBeenCalledWith(serverAgent, {
-			kind: "added",
-			source: {
-				id: 2,
-				type: "PropertySource",
-				priority: 300,
-				data: 7,
-			},
-		} satisfies SourceReplicationEvent);
-	});
-
-	it("emits replication removed", () => {
-		const serverTally = new TallyContext<Player>();
-		const serverAgent = serverTally.createAgentState({ name: "Bob" });
-
-		const callback = vi.fn();
-		serverTally.onReplicationEmit(callback);
-
-		const source1 = serverAgent.addSource(PropSource, 100, { value: 5 });
-		const source2 = serverAgent.addSource(PropSource, 100, { value: 5 });
-		const source3 = serverAgent.addSource(PropSource, 100, { value: 5 });
-
-		source3!.destroy();
-		expect(callback).toHaveBeenCalledTimes(4);
-		expect(callback).toHaveBeenCalledWith(serverAgent, {
-			kind: "removed",
-			id: 2,
-		} satisfies SourceReplicationEvent);
-
-		source1!.destroy();
-		expect(callback).toHaveBeenCalledTimes(5);
-		expect(callback).toHaveBeenCalledWith(serverAgent, {
-			kind: "removed",
-			id: 0,
-		} satisfies SourceReplicationEvent);
-
-		source2!.destroy();
-		expect(callback).toHaveBeenCalledTimes(6);
-		expect(callback).toHaveBeenCalledWith(serverAgent, {
-			kind: "removed",
-			id: 1,
-		} satisfies SourceReplicationEvent);
-
-		source2!.destroy();
-		expect(callback).toHaveBeenCalledTimes(6);
-	});
-
-	it("emits replication updated", () => {
-		const serverTally = new TallyContext<Player>();
-		const serverAgent = serverTally.createAgentState({ name: "Bob" });
-
-		const callback = vi.fn();
-		serverTally.onReplicationEmit(callback);
-
-		const source1 = serverAgent.addSource(PropSource, 100, { value: 5 });
-		const source2 = serverAgent.addSource(PropSource, 100, { value: 5 });
-		const source3 = serverAgent.addSource(PropSource, 100, { value: 5 });
-
-		source3!.set({ value: 8 });
-		expect(callback).toHaveBeenCalledTimes(4);
-		expect(callback).toHaveBeenCalledWith(serverAgent, {
-			kind: "updated",
-			id: 2,
-			data: 8,
-		} satisfies SourceReplicationEvent);
-
-		source1!.set({ value: 8 });
-		expect(callback).toHaveBeenCalledTimes(5);
-		expect(callback).toHaveBeenCalledWith(serverAgent, {
-			kind: "updated",
-			id: 0,
-			data: 8,
-		} satisfies SourceReplicationEvent);
-
-		source2!.set({ value: 8 });
-		expect(callback).toHaveBeenCalledTimes(6);
-		expect(callback).toHaveBeenCalledWith(serverAgent, {
-			kind: "updated",
-			id: 1,
-			data: 8,
-		} satisfies SourceReplicationEvent);
-
-		// TODO: Setting to same value should be a no-op
-		source2!.set({ value: 8 });
-		expect(callback).toHaveBeenCalledTimes(7);
-	});
-
-	it("does not emit replication events for non-replicated source types", () => {
-		const tally = new TallyContext();
-		const agent = tally.createAgentState(undefined);
-		const callback = vi.fn();
-		tally.onReplicationEmit(callback);
-
-		const SourceType = defineSourceType<number>({
-			name: "LocalOnlySource",
-			contribute: () => [],
-		});
-
-		const source = agent.addSource(SourceType, 0, 1)!;
-		source.set(2);
-		source.destroy();
-
-		expect(callback).not.toHaveBeenCalled();
-	});
-
-	it("stops forwarding source events after context destruction", () => {
-		const tally = new TallyContext();
-		const agent = tally.createAgentState(undefined);
+	it("stops forwarding source events after destruction", () => {
+		const { agent, tally } = createContextFixture();
 		const added = vi.fn();
 		const updated = vi.fn();
 		const removed = vi.fn();
@@ -371,7 +82,6 @@ describe("tally static replication", () => {
 		tally.onSourceAdded(added);
 		tally.onSourceUpdated(updated);
 		tally.onSourceRemoved(removed);
-
 		tally.destroy();
 
 		const SourceType = defineSourceType<number>({
@@ -386,31 +96,220 @@ describe("tally static replication", () => {
 		expect(updated).not.toHaveBeenCalled();
 		expect(removed).not.toHaveBeenCalled();
 	});
+});
 
-	it("emits replication lifecycle events using the same source identity", () => {
+describe("tally context registry", () => {
+	it("registers properties by name", () => {
 		const tally = new TallyContext();
-		const agent = tally.createAgentState(undefined);
-		const callback = vi.fn();
-		tally.onReplicationEmit(callback);
+		const booleanProperty = tally.register(
+			defineBooleanProperty({ name: "Boolean", defaultValue: false })
+		);
+		const numberProperty = tally.register(
+			defineNumberProperty({ name: "Number", defaultValue: 0 })
+		);
 
-		const SourceType = defineSourceType<number>({
-			name: "ReplicatedLifecycleSource",
+		expect(tally.properties).toEqual(
+			new Map([
+				["Boolean", booleanProperty],
+				["Number", numberProperty],
+			])
+		);
+		expect(tally.properties.get("Nonexistent")).toBeUndefined();
+	});
+
+	it("registers source types by name", () => {
+		const tally = new TallyContext();
+		const first = tally.register(
+			defineSourceType({
+				name: "Source1",
+				contribute: () => [],
+			})
+		);
+		const second = tally.register(
+			defineSourceType({
+				name: "Source2",
+				contribute: () => [],
+			})
+		);
+
+		expect(tally.sources).toEqual(
+			new Map([
+				["Source1", first],
+				["Source2", second],
+			])
+		);
+		expect(tally.sources.get("Nonexistent")).toBeUndefined();
+	});
+
+	it("allows the same property instance to be registered repeatedly", () => {
+		const tally = new TallyContext();
+		const property = defineBooleanProperty({ name: "Boolean", defaultValue: false });
+
+		tally.register(property);
+		tally.register(property);
+
+		expect(tally.properties).toEqual(new Map([["Boolean", property]]));
+	});
+
+	it("rejects a different property with the same name", () => {
+		const tally = new TallyContext();
+		tally.register(defineBooleanProperty({ name: "Boolean", defaultValue: false }));
+
+		expect(() =>
+			tally.register(defineBooleanProperty({ name: "Boolean", defaultValue: false }))
+		).toThrowError("Duplicate property name: Boolean");
+	});
+
+	it("allows the same source type instance to be registered repeatedly", () => {
+		const tally = new TallyContext();
+		const sourceType = defineSourceType({
+			name: "Source1",
 			contribute: () => [],
-			replication: {
-				serialize: (value) => value.toString(),
-				deserialize: (value) => Number(value),
-			},
 		});
 
-		const source = agent.addSource(SourceType, 50, 1)!;
+		tally.register(sourceType);
+		tally.register(sourceType);
+
+		expect(tally.sources).toEqual(new Map([["Source1", sourceType]]));
+	});
+
+	it("rejects a different source type with the same name", () => {
+		const tally = new TallyContext();
+		tally.register(
+			defineSourceType({
+				name: "Source1",
+				contribute: () => [],
+			})
+		);
+
+		expect(() =>
+			tally.register(
+				defineSourceType({
+					name: "Source1",
+					contribute: () => [],
+				})
+			)
+		).toThrowError("Duplicate source name: Source1");
+	});
+});
+
+describe("tally context replication emission", () => {
+	const Property = defineNumberProperty({ name: "Property", defaultValue: 0 });
+	const PropertySource = defineSourceType<{ value: number }>({
+		name: "PropertySource",
+		contribute: (data) => [Property.add(data.value)],
+		replication: {
+			serialize: (data) => data.value,
+			deserialize: (value: number) => ({ value }),
+		},
+	});
+
+	interface Player {
+		name: string;
+	}
+
+	function createReplicationFixture() {
+		const tally = new TallyContext<Player>();
+		const agent = tally.createAgentState({ name: "Bob" });
+		const callback = vi.fn<(agent: typeof agent, event: SourceReplicationEvent) => void>();
+		tally.onReplicationEmit(callback);
+		return { agent, callback, tally };
+	}
+
+	function emittedEvents(callback: ReturnType<typeof createReplicationFixture>["callback"]) {
+		return callback.mock.calls.map(([, event]) => event);
+	}
+
+	it("emits added events with serialized source state", () => {
+		const { agent, callback } = createReplicationFixture();
+
+		agent.addSource(PropertySource, 100, { value: 5 });
+		agent.addSource(PropertySource, 200, { value: 6 });
+		agent.addSource(PropertySource, 300, { value: 7 });
+
+		expect(emittedEvents(callback)).toEqual([
+			{
+				kind: "added",
+				source: { id: 0, type: "PropertySource", priority: 100, data: 5 },
+			},
+			{
+				kind: "added",
+				source: { id: 1, type: "PropertySource", priority: 200, data: 6 },
+			},
+			{
+				kind: "added",
+				source: { id: 2, type: "PropertySource", priority: 300, data: 7 },
+			},
+		] satisfies SourceReplicationEvent[]);
+	});
+
+	it("emits removed events with source ids", () => {
+		const { agent, callback } = createReplicationFixture();
+		const first = agent.addSource(PropertySource, 100, { value: 5 })!;
+		const second = agent.addSource(PropertySource, 100, { value: 5 })!;
+		const third = agent.addSource(PropertySource, 100, { value: 5 })!;
+
+		callback.mockClear();
+		third.destroy();
+		first.destroy();
+		second.destroy();
+		second.destroy();
+
+		expect(emittedEvents(callback)).toEqual([
+			{ kind: "removed", id: 2 },
+			{ kind: "removed", id: 0 },
+			{ kind: "removed", id: 1 },
+		] satisfies SourceReplicationEvent[]);
+	});
+
+	it("emits updated events with serialized data", () => {
+		const { agent, callback } = createReplicationFixture();
+		const first = agent.addSource(PropertySource, 100, { value: 5 })!;
+		const second = agent.addSource(PropertySource, 100, { value: 5 })!;
+		const third = agent.addSource(PropertySource, 100, { value: 5 })!;
+
+		callback.mockClear();
+		third.set({ value: 8 });
+		first.set({ value: 8 });
+		second.set({ value: 8 });
+		// TODO: Setting equivalent data currently still emits an update.
+		second.set({ value: 8 });
+
+		expect(emittedEvents(callback)).toEqual([
+			{ kind: "updated", id: 2, data: 8 },
+			{ kind: "updated", id: 0, data: 8 },
+			{ kind: "updated", id: 1, data: 8 },
+			{ kind: "updated", id: 1, data: 8 },
+		] satisfies SourceReplicationEvent[]);
+	});
+
+	it("does not emit events for source types without replication", () => {
+		const { agent, callback } = createReplicationFixture();
+		const LocalOnlySource = defineSourceType<number>({
+			name: "LocalOnlySource",
+			contribute: () => [],
+		});
+
+		const source = agent.addSource(LocalOnlySource, 0, 1)!;
 		source.set(2);
 		source.destroy();
 
-		expect(callback).toHaveBeenCalledTimes(3);
-		expect(callback.mock.calls.map((call) => call[1].kind)).toEqual([
+		expect(callback).not.toHaveBeenCalled();
+	});
+
+	it("preserves source identity across lifecycle events", () => {
+		const { agent, callback } = createReplicationFixture();
+		const source = agent.addSource(PropertySource, 50, { value: 1 })!;
+		source.set({ value: 2 });
+		source.destroy();
+
+		expect(emittedEvents(callback).map((event) => event.kind)).toEqual([
 			"added",
 			"updated",
 			"removed",
 		]);
+		expect(emittedEvents(callback).map((event) =>
+			event.kind === "added" ? event.source.id : event.id
+		)).toEqual([0, 0, 0]);
 	});
 });
