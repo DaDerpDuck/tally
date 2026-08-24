@@ -3,7 +3,6 @@ import type { Receiver } from "../replication/Receiver.js";
 import type { ReplicationEvent } from "../replication/ReplicationEvent.js";
 import type { ReplicationSnapshot } from "../replication/ReplicationSnapshot.js";
 import type { ReplicationValue } from "../replication/ReplicationValue.js";
-import type { Source } from "../source/Source.js";
 import type { AnyDescriptor } from "./Descriptor.js";
 import type { DescriptorReplicationEvent } from "./DescriptorReplicationEvent.js";
 import type { AnyDescriptorType, DescriptorType } from "./DescriptorType.js";
@@ -82,7 +81,7 @@ export class DescriptorReceiver implements Receiver {
 			throw new Error("Attempted to add a non-existant replicated descriptor");
 
 		const descriptor = this.agent.addDescriptor(
-			descriptorType as DescriptorType<unknown, Source>,
+			descriptorType as DescriptorType<unknown, unknown>,
 			descriptorType.replication.deserialize(replicatedDescriptor.data)
 		);
 		if (!descriptor)
@@ -101,7 +100,7 @@ export class DescriptorReceiver implements Receiver {
 	private updateDescriptor(descriptorId: DescriptorId, data: ReplicationValue) {
 		const descriptor = this.replicatedDescriptors.get(descriptorId);
 		if (!descriptor) return;
-		descriptor.set(descriptor.type.replication!.deserialize(data));
+		descriptor.set(descriptor.type.replication.deserialize(data));
 	}
 
 	private removeDescriptor(descriptorId: DescriptorId) {
