@@ -10,8 +10,9 @@ permissions:
   contents: read
 
 jobs:
-  validate:
-    name: Validate
+
+  typecheck:
+    name: Type Check
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
 
       - name: Install dependencies
@@ -30,11 +31,45 @@ jobs:
       - name: Typecheck
         run: npm run typetest
 
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Lint
         run: npm run lint
 
       - name: Format
         run: npm run format:check
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Test
         run: npm test
@@ -43,4 +78,4 @@ jobs:
         run: npm run build
 
       - name: Pack
-        run: npm run pack --dry-run
+        run: npm pack --dry-run
