@@ -183,7 +183,12 @@ export class AgentState<TEntity> {
 			throw new Error(
 				"Attempted to add a descriptor source before a descriptor handler was assigned"
 			);
-		const descriptorOrder = options?.provenance?.sequence ?? this.sourceCounter;
+
+		const provenance = options?.provenance ?? {
+			domain: "local",
+			sequence: this.sourceCounter,
+		};
+
 		const binding = handler(
 			{
 				agent: this,
@@ -194,8 +199,11 @@ export class AgentState<TEntity> {
 					const writableOptions: Writable<SourceOption> = {
 						priority: type.source.priority,
 						provenance: {
-							domain: "descriptor",
-							sequence: descriptorOrder,
+							domain:
+								provenance.domain === "local"
+									? "descriptor-local"
+									: "descriptor-replicated",
+							sequence: provenance.sequence,
 						},
 					};
 					if (options?.priority !== undefined)
@@ -208,8 +216,6 @@ export class AgentState<TEntity> {
 			data
 		);
 		if (!binding) return undefined;
-
-		const provenance = options?.provenance ?? { domain: "local", sequence: this.sourceCounter };
 
 		const descriptor = new DescriptorInstance<TDescriptorData, TSourceData>(
 			this.sourceCounter++,
@@ -243,7 +249,7 @@ export class AgentState<TEntity> {
 			modifier.applyTo(this.modifierRegistry, {
 				priority,
 				domain:
-					provenance.domain === "local"
+					provenance.domain === "local" || provenance.domain === "descriptor-local"
 						? OrderingDomain.local
 						: OrderingDomain.authoritative,
 				sequence: provenance.sequence,

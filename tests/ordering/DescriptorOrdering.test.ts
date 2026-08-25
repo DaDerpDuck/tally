@@ -99,7 +99,7 @@ describe("deterministic Descriptor ordering integration", () => {
 		// A Descriptor-owned Source remains descriptor-origin state, but it must occupy the same
 		// authoritative sequence position as the Descriptor that caused it.
 		expect(descriptor.getSource().provenance).toEqual({
-			domain: "descriptor",
+			domain: "descriptor-replicated",
 			sequence: 1,
 		});
 
