@@ -82,8 +82,14 @@ export class ReplicationReceiver implements Receiver {
 
 		const source = this.agent.addSource(
 			sourceType as SourceType<unknown>,
-			replicatedSource.priority,
-			sourceType.replication.deserialize(replicatedSource.data)
+			sourceType.replication.deserialize(replicatedSource.data),
+			{
+				priority: replicatedSource.priority,
+				provenance: {
+					domain: "replicated",
+					order: replicatedSource.id,
+				},
+			}
 		);
 		if (!source) throw new Error("Unable to add a replicated source due to duplication policy");
 

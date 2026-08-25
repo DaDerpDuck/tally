@@ -11,6 +11,7 @@ import {
 import type { AnyDescriptorBinding, DescriptorBinding } from "../descriptor/DescriptorBinding.js";
 import { DescriptorInstance } from "../descriptor/DescriptorInstance.js";
 import type { AnyDescriptor, Descriptor } from "../descriptor/Descriptor.js";
+import type { SourceOption } from "../source/SourceOption.js";
 
 type Disconnect = () => void;
 type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
@@ -53,36 +54,37 @@ export class AgentState<TEntity> {
 
 	addSource<TData extends undefined>(
 		type: SourceType<TData>,
-		priority: number
+		data?: TData,
+		options?: SourceOption
 	): Source<TData> | undefined;
 	addSource<TData>(
 		type: SourceType<TData>,
-		priority: number,
-		data: TData
+		data: TData,
+		options?: SourceOption
 	): Source<TData> | undefined;
 	addSource<TData>(
 		type: SourceType<TData>,
-		priority: number,
-		data?: TData
+		data: TData,
+		options?: SourceOption
 	): Source<TData | undefined> | undefined {
 		switch (type.duplication.policy) {
 			case "allow":
-				return this.createSource(type, priority, data);
+				return this.createSource(type, data, options);
 			case "ignore": {
 				const existingSource = this.sourceMap.get(type)?.values().next().value;
 				if (existingSource) return undefined;
-				return this.createSource(type, priority, data);
+				return this.createSource(type, data, options);
 			}
 			case "replace": {
 				return this.batch(() => {
 					const existingSource = this.sourceMap.get(type)?.values().next().value;
 					existingSource?.destroy();
-					return this.createSource(type, priority, data);
+					return this.createSource(type, data, options);
 				});
 			}
 			case "reconcile": {
 				const existingSource = this.sourceMap.get(type)?.values().next().value;
-				if (!existingSource) return this.createSource(type, priority, data);
+				if (!existingSource) return this.createSource(type, data, options);
 				existingSource.type.duplication.reconcile!(existingSource, data);
 				return undefined;
 			}
@@ -131,9 +133,10 @@ export class AgentState<TEntity> {
 
 	private createSource<TData>(
 		type: SourceType<TData>,
-		priority: number,
-		data: TData
+		data: TData,
+		options?: SourceOption
 	): SourceInstance<TData> {
+		const priority = options?.priority ?? type.priority;
 		let handles = this.applyModifiers(type, priority, data);
 
 		const source = new SourceInstance(this.sourceCounter++, type, priority, data);

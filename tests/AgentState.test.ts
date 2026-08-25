@@ -19,6 +19,7 @@ describe("agent state", () => {
 
 	const PoisonSource = defineSourceType<PoisonData>({
 		name: "Poison",
+		priority: 100,
 
 		contribute: (data) => [Poison.add(data.intensity)],
 	});
@@ -27,7 +28,7 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		expect(agent.get(Poison)).toBe(0);
 
-		const source = agent.addSource(PoisonSource, 100, { intensity: 5 });
+		const source = agent.addSource(PoisonSource, { intensity: 5 });
 		expect(source).toBeDefined();
 		expect(agent.get(Poison)).toBe(5);
 	});
@@ -36,16 +37,16 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		expect(agent.get(Poison)).toBe(0);
 
-		const source = agent.addSource(PoisonSource, 100, { intensity: 5 });
+		const source = agent.addSource(PoisonSource, { intensity: 5 })!;
 		expect(agent.get(Poison)).toBe(5);
 
-		source!.set({ intensity: 0 });
+		source.set({ intensity: 0 });
 		expect(agent.get(Poison)).toBe(0);
 
-		source!.set({ intensity: 5 });
+		source.set({ intensity: 5 });
 		expect(agent.get(Poison)).toBe(5);
 
-		source!.destroy();
+		source.destroy();
 		expect(agent.get(Poison)).toBe(0);
 	});
 
@@ -54,22 +55,23 @@ describe("agent state", () => {
 
 		const BooleanSource = defineSourceType<boolean>({
 			name: "BooleanSource",
+			priority: 100,
 			contribute: (data) => [BooleanProp.toggle(data)],
 		});
 
 		const agent = new AgentState(undefined);
 		expect(agent.get(BooleanProp)).toBe(false);
 
-		const source = agent.addSource(BooleanSource, 100, true);
+		const source = agent.addSource(BooleanSource, true)!;
 		expect(agent.get(BooleanProp)).toBe(true);
 
-		source!.set(false);
+		source.set(false);
 		expect(agent.get(BooleanProp)).toBe(false);
 
-		source!.set(true);
+		source.set(true);
 		expect(agent.get(BooleanProp)).toBe(true);
 
-		source!.destroy();
+		source.destroy();
 		expect(agent.get(BooleanProp)).toBe(false);
 	});
 
@@ -79,6 +81,7 @@ describe("agent state", () => {
 
 		const PropSource = defineSourceType<boolean>({
 			name: "PropSource",
+			priority: 100,
 			contribute(data) {
 				if (data) return [Prop1.add(1), Prop2.add(1)];
 				else return [Prop1.add(1)];
@@ -89,15 +92,15 @@ describe("agent state", () => {
 		expect(agent.get(Prop1)).toBe(10);
 		expect(agent.get(Prop2)).toBe(20);
 
-		const source = agent.addSource(PropSource, 100, true);
+		const source = agent.addSource(PropSource, true)!;
 		expect(agent.get(Prop1)).toBe(11);
 		expect(agent.get(Prop2)).toBe(21);
 
-		source!.set(false);
+		source.set(false);
 		expect(agent.get(Prop1)).toBe(11);
 		expect(agent.get(Prop2)).toBe(20);
 
-		source!.destroy();
+		source.destroy();
 		expect(agent.get(Prop1)).toBe(10);
 		expect(agent.get(Prop2)).toBe(20);
 	});
@@ -107,6 +110,7 @@ describe("agent state", () => {
 
 		const PropSource = defineSourceType<number>({
 			name: "PropSource",
+			priority: 100,
 			contribute: (data) => [NumProp.add(data)],
 			duplication: { policy: "allow" },
 		});
@@ -114,25 +118,25 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		expect(agent.get(NumProp)).toBe(0);
 
-		const source1 = agent.addSource(PropSource, 0, 1);
+		const source1 = agent.addSource(PropSource, 1)!;
 		expect(source1).toBeDefined();
 		expect(agent.get(NumProp)).toBe(1);
 
-		const source2 = agent.addSource(PropSource, 0, 10);
+		const source2 = agent.addSource(PropSource, 10)!;
 		expect(source2).toBeDefined();
 		expect(agent.get(NumProp)).toBe(11);
 
-		const source3 = agent.addSource(PropSource, 0, 100);
+		const source3 = agent.addSource(PropSource, 100)!;
 		expect(source3).toBeDefined();
 		expect(agent.get(NumProp)).toBe(111);
 
-		source2!.set(20);
+		source2.set(20);
 		expect(agent.get(NumProp)).toBe(121);
 
-		source1!.set(2);
+		source1.set(2);
 		expect(agent.get(NumProp)).toBe(122);
 
-		source3!.set(200);
+		source3.set(200);
 		expect(agent.get(NumProp)).toBe(222);
 	});
 
@@ -141,7 +145,7 @@ describe("agent state", () => {
 		const callback = vi.fn();
 
 		agent.onPropertyChanged(Poison, callback);
-		agent.addSource(PoisonSource, 100, { intensity: 5 });
+		agent.addSource(PoisonSource, { intensity: 5 });
 
 		expect(callback).toHaveBeenCalledWith(5, 0);
 	});
@@ -152,7 +156,7 @@ describe("agent state", () => {
 
 		agent.onPropertyChanged(Poison, callback);
 
-		const poisonSource = agent.addSource(PoisonSource, 100, { intensity: 5 })!;
+		const poisonSource = agent.addSource(PoisonSource, { intensity: 5 })!;
 		expect(callback).toHaveBeenCalledTimes(1);
 		expect(callback).toHaveBeenCalledWith(5, 0);
 
@@ -167,7 +171,7 @@ describe("agent state", () => {
 
 		agent.onPropertyChanged(Poison, callback);
 
-		const poisonSource = agent.addSource(PoisonSource, 100, { intensity: 5 })!;
+		const poisonSource = agent.addSource(PoisonSource, { intensity: 5 })!;
 		expect(callback).toHaveBeenCalledTimes(1);
 		expect(callback).toHaveBeenCalledWith(5, 0);
 
@@ -181,7 +185,7 @@ describe("agent state", () => {
 
 		agent.onPropertyChanged(Poison, callback);
 
-		const poisonSource = agent.addSource(PoisonSource, 100, { intensity: 5 })!;
+		const poisonSource = agent.addSource(PoisonSource, { intensity: 5 })!;
 		expect(callback).toHaveBeenCalledTimes(1);
 		expect(callback).toHaveBeenCalledWith(5, 0);
 
@@ -196,7 +200,7 @@ describe("agent state", () => {
 
 		const disconnect = agent.onPropertyChanged(Poison, callback);
 		disconnect();
-		agent.addSource(PoisonSource, 100, { intensity: 5 });
+		agent.addSource(PoisonSource, { intensity: 5 });
 
 		expect(callback).toHaveBeenCalledTimes(0);
 	});
@@ -205,7 +209,7 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		expect(agent.hasSource(PoisonSource)).toBe(false);
 
-		const source = agent.addSource(PoisonSource, 100, { intensity: 100 })!;
+		const source = agent.addSource(PoisonSource, { intensity: 100 })!;
 		expect(agent.hasSource(PoisonSource)).toBe(true);
 
 		source.destroy();
@@ -216,12 +220,13 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		const SourceType = defineSourceType<undefined>({
 			name: "IdentifiedSource",
+			priority: 100,
 			contribute: () => [],
 		});
 
-		const source1 = agent.addSource(SourceType, 0)!;
-		const source2 = agent.addSource(SourceType, 0)!;
-		const source3 = agent.addSource(SourceType, 0)!;
+		const source1 = agent.addSource(SourceType)!;
+		const source2 = agent.addSource(SourceType)!;
+		const source3 = agent.addSource(SourceType)!;
 
 		expect([source1.id, source2.id, source3.id]).toEqual([0, 1, 2]);
 	});
@@ -230,16 +235,18 @@ describe("agent state", () => {
 		const agent = new AgentState(undefined);
 		const SourceTypeA = defineSourceType<undefined>({
 			name: "SourceA",
+			priority: 100,
 			contribute: () => [],
 		});
 		const SourceTypeB = defineSourceType<undefined>({
 			name: "SourceB",
+			priority: 100,
 			contribute: () => [],
 		});
 
-		const source1 = agent.addSource(SourceTypeA, 0)!;
-		const source2 = agent.addSource(SourceTypeB, 0)!;
-		const source3 = agent.addSource(SourceTypeA, 0)!;
+		const source1 = agent.addSource(SourceTypeA)!;
+		const source2 = agent.addSource(SourceTypeB)!;
+		const source3 = agent.addSource(SourceTypeA)!;
 
 		expect(agent.getSources()).toEqual(new Set([source1, source2, source3]));
 
@@ -251,16 +258,18 @@ describe("agent state", () => {
 		const Property = defineNumberProperty({ name: "DestroyAllProperty", defaultValue: 10 });
 		const SourceTypeA = defineSourceType<number>({
 			name: "DestroyAllSourceA",
+			priority: 0,
 			contribute: (value) => [Property.add(value)],
 		});
 		const SourceTypeB = defineSourceType<number>({
 			name: "DestroyAllSourceB",
+			priority: 100,
 			contribute: (value) => [Property.multiply(value)],
 		});
 		const agent = new AgentState(undefined);
 
-		agent.addSource(SourceTypeA, 0, 5);
-		agent.addSource(SourceTypeB, 100, 2);
+		agent.addSource(SourceTypeA, 5);
+		agent.addSource(SourceTypeB, 2);
 		expect(agent.get(Property)).toBe(30);
 
 		agent.destroyAllSources();
@@ -275,6 +284,7 @@ describe("agent state", () => {
 		const Property = defineNumberProperty({ name: "DisconnectProperty", defaultValue: 0 });
 		const SourceType = defineSourceType<number>({
 			name: "DisconnectSource",
+			priority: 100,
 			contribute: (value) => [Property.add(value)],
 		});
 		const agent = new AgentState(undefined);
@@ -283,7 +293,7 @@ describe("agent state", () => {
 
 		disconnect();
 		disconnect();
-		agent.addSource(SourceType, 0, 1);
+		agent.addSource(SourceType, 1);
 
 		expect(callback).not.toHaveBeenCalled();
 	});
@@ -295,6 +305,7 @@ describe("agent state", () => {
 		);
 		const SourceType = defineSourceType<number>({
 			name: "ReconcileDataSource",
+			priority: 100,
 			contribute: (value) => [Property.add(value)],
 			duplication: {
 				policy: "reconcile",
@@ -303,8 +314,8 @@ describe("agent state", () => {
 		});
 		const agent = new AgentState(undefined);
 
-		const source = agent.addSource(SourceType, 0, 2)!;
-		const duplicate = agent.addSource(SourceType, 0, 7);
+		const source = agent.addSource(SourceType, 2)!;
+		const duplicate = agent.addSource(SourceType, 7);
 
 		expect(duplicate).toBeUndefined();
 		expect(reconcile).toHaveBeenCalledTimes(1);
@@ -319,11 +330,12 @@ describe("agent state duplication policies", () => {
 		const agent = new AgentState(undefined);
 		const SourceType = defineSourceType<undefined>({
 			name: "DefaultDuplicationSource",
+			priority: 100,
 			contribute: () => [],
 		});
 
-		const source1 = agent.addSource(SourceType, 0);
-		const source2 = agent.addSource(SourceType, 0);
+		const source1 = agent.addSource(SourceType);
+		const source2 = agent.addSource(SourceType);
 
 		expect(source1).toBeDefined();
 		expect(source2).toBeDefined();
@@ -335,21 +347,22 @@ describe("agent state duplication policies", () => {
 
 		const DupAllowSource = defineSourceType<undefined>({
 			name: "Dummy",
+			priority: 100,
 			contribute: () => [],
 			duplication: { policy: "allow" },
 		});
 
-		const source1 = agent.addSource(DupAllowSource, 0);
+		const source1 = agent.addSource(DupAllowSource);
 		expect(source1).toBeDefined();
 		expect(agent.getSources(DupAllowSource)).toEqual(new Set([source1]));
 
-		const source2 = agent.addSource(DupAllowSource, 0);
+		const source2 = agent.addSource(DupAllowSource);
 		expect(source2).toBeDefined();
 		expect(agent.getSources(DupAllowSource)).toEqual(new Set([source1, source2]));
 
 		source2!.destroy();
 
-		const source3 = agent.addSource(DupAllowSource, 0);
+		const source3 = agent.addSource(DupAllowSource);
 		expect(source3).toBeDefined();
 		expect(agent.getSources(DupAllowSource)).toEqual(new Set([source1, source3]));
 	});
@@ -359,21 +372,22 @@ describe("agent state duplication policies", () => {
 
 		const DupIgnoreSource = defineSourceType<undefined>({
 			name: "Dummy",
+			priority: 100,
 			contribute: () => [],
 			duplication: { policy: "ignore" },
 		});
 
-		const source1 = agent.addSource(DupIgnoreSource, 0);
+		const source1 = agent.addSource(DupIgnoreSource);
 		expect(source1).toBeDefined();
 		expect(agent.getSources(DupIgnoreSource)).toEqual(new Set([source1]));
 
-		const source2 = agent.addSource(DupIgnoreSource, 0);
+		const source2 = agent.addSource(DupIgnoreSource);
 		expect(source2).toBeUndefined();
 		expect(agent.getSources(DupIgnoreSource)).toEqual(new Set([source1]));
 
 		source1!.destroy();
 
-		const source3 = agent.addSource(DupIgnoreSource, 0);
+		const source3 = agent.addSource(DupIgnoreSource);
 		expect(source3).toBeDefined();
 		expect(agent.getSources(DupIgnoreSource)).toEqual(new Set([source3]));
 	});
@@ -383,21 +397,22 @@ describe("agent state duplication policies", () => {
 
 		const DupReplaceSource = defineSourceType<undefined>({
 			name: "Dummy",
+			priority: 100,
 			contribute: () => [],
 			duplication: { policy: "replace" },
 		});
 
-		const source1 = agent.addSource(DupReplaceSource, 0);
+		const source1 = agent.addSource(DupReplaceSource);
 		expect(source1).toBeDefined();
 		expect(agent.getSources(DupReplaceSource)).toEqual(new Set([source1]));
 
-		const source2 = agent.addSource(DupReplaceSource, 0);
+		const source2 = agent.addSource(DupReplaceSource);
 		expect(source2).toBeDefined();
 		expect(agent.getSources(DupReplaceSource)).toEqual(new Set([source2]));
 
 		source2!.destroy();
 
-		const source3 = agent.addSource(DupReplaceSource, 0);
+		const source3 = agent.addSource(DupReplaceSource);
 		expect(source3).toBeDefined();
 		expect(agent.getSources(DupReplaceSource)).toEqual(new Set([source3]));
 	});
@@ -414,17 +429,18 @@ describe("agent state duplication policies", () => {
 
 		const DupReplaceSource = defineSourceType<DummyData>({
 			name: "Dummy",
+			priority: 100,
 			contribute: (data) => [DummyProperty.add(data.value)],
 			duplication: { policy: "replace" },
 		});
 
 		agent.onPropertyChanged(DummyProperty, callback);
 
-		agent.addSource(DupReplaceSource, 0, { value: 5 });
+		agent.addSource(DupReplaceSource, { value: 5 });
 		expect(callback).toHaveBeenCalledTimes(1);
 		expect(callback).toHaveBeenCalledWith(5, 0);
 
-		agent.addSource(DupReplaceSource, 0, { value: 10 });
+		agent.addSource(DupReplaceSource, { value: 10 });
 		expect(callback).toHaveBeenCalledTimes(2);
 		expect(callback).toHaveBeenCalledWith(10, 5);
 	});
@@ -436,23 +452,24 @@ describe("agent state duplication policies", () => {
 
 		const DupReconcileSource = defineSourceType<undefined>({
 			name: "Dummy",
+			priority: 100,
 			contribute: () => [],
 			duplication: { policy: "reconcile", reconcile },
 		});
 
-		const source1 = agent.addSource(DupReconcileSource, 0);
+		const source1 = agent.addSource(DupReconcileSource);
 		expect(source1).toBeDefined();
 		expect(agent.getSources(DupReconcileSource)).toEqual(new Set([source1]));
 		expect(reconcile).toHaveBeenCalledTimes(0);
 
-		const source2 = agent.addSource(DupReconcileSource, 0);
+		const source2 = agent.addSource(DupReconcileSource);
 		expect(source2).toBeUndefined();
 		expect(agent.getSources(DupReconcileSource)).toEqual(new Set([source1]));
 		expect(reconcile).toHaveBeenCalledTimes(1);
 
 		source1!.destroy();
 
-		const source3 = agent.addSource(DupReconcileSource, 0);
+		const source3 = agent.addSource(DupReconcileSource);
 		expect(source3).toBeDefined();
 		expect(agent.getSources(DupReconcileSource)).toEqual(new Set([source3]));
 		expect(reconcile).toHaveBeenCalledTimes(1);

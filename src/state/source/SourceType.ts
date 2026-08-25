@@ -18,6 +18,7 @@ export type Duplication<TData> =
 
 export interface SourceTypeDefinition<TData> {
 	readonly name: string;
+	readonly priority: number;
 	readonly duplication?: Duplication<TData>;
 
 	contribute(data: TData): SourceContribution;
@@ -32,11 +33,13 @@ export interface AnySourceType {
 
 export class SourceType<TData> implements AnySourceType, Registrable {
 	public readonly name: string;
+	public readonly priority: number;
 	public readonly duplication: Duplication<TData>;
 	public readonly replication?: ReplicationDefinition<TData> | undefined;
 
 	constructor(private readonly definition: SourceTypeDefinition<TData>) {
 		this.name = definition.name;
+		this.priority = definition.priority;
 		this.duplication = definition.duplication ?? { policy: "allow" };
 		this.replication = definition.replication;
 	}

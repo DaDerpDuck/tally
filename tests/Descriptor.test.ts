@@ -20,6 +20,7 @@ const Value = defineNumberProperty({ name: "DescriptorValue", defaultValue: 0 })
 
 const DescriptorSource = defineSourceType<DescriptorData>({
 	name: "DescriptorSource",
+	priority: 100,
 	contribute: (data) => [Value.add(data.value)],
 });
 
@@ -29,7 +30,8 @@ const ValueDescriptor = new DescriptorType<DescriptorData, DescriptorData>({
 	replication: {
 		serialize: (data) => data.value,
 		deserialize: (value) => {
-			if (typeof value !== "number") throw new Error("Expected descriptor value to be a number");
+			if (typeof value !== "number")
+				throw new Error("Expected descriptor value to be a number");
 			return { value };
 		},
 	},
@@ -42,7 +44,7 @@ function registerHandler(
 	onDestroy = vi.fn()
 ) {
 	agent.registerDescriptorHandler(descriptorType, (state) => {
-		const source = state.addSource(sourceType, 100, { value: 0 })!;
+		const source = state.addSource(sourceType, { value: 0 })!;
 
 		return {
 			source,
@@ -76,9 +78,10 @@ function createReplicationFixture(attachReplication = true) {
 	clientTally.register(ValueDescriptor);
 	registerHandler(clientAgent);
 
-	const receiver = new DescriptorReceiver(clientAgent, (name) => clientTally.descriptors.get(name));
-	if (attachReplication)
-		serverTally.onReplicationEmit((_, event) => receiver.apply([event]));
+	const receiver = new DescriptorReceiver(clientAgent, (name) =>
+		clientTally.descriptors.get(name)
+	);
+	if (attachReplication) serverTally.onReplicationEmit((_, event) => receiver.apply([event]));
 
 	return { clientAgent, clientTally, receiver, serverAgent, serverTally };
 }
@@ -332,11 +335,13 @@ describe("descriptor replication", () => {
 describe("descriptor replication ownership", () => {
 	const ReplicatedDescriptorSource = defineSourceType<DescriptorData>({
 		name: "ReplicatedDescriptorSource",
+		priority: 100,
 		contribute: (data) => [Value.add(data.value)],
 		replication: {
 			serialize: (data) => data.value,
 			deserialize: (value) => {
-				if (typeof value !== "number") throw new Error("Expected source value to be a number");
+				if (typeof value !== "number")
+					throw new Error("Expected source value to be a number");
 				return { value };
 			},
 		},
