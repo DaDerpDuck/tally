@@ -2,16 +2,22 @@ import type {
 	AnyReplicationDefinition,
 	ReplicationDefinition,
 } from "../../replication/ReplicationDefinition.js";
+import type { Duplication } from "../DuplicatePolicy.js";
 import type { Registrable, Registry } from "../Registrable.js";
 import type { SourceType } from "../source/SourceType.js";
+import type { StateTypeDefinition } from "../StateTypeDefinition.js";
+import type { Descriptor } from "./Descriptor.js";
 
 export interface AnyDescriptorType {
 	readonly name: string;
 	readonly replication: AnyReplicationDefinition;
 }
 
-export interface DescriptorTypeDefinition<TDescriptorData, TSourceData> {
-	readonly name: string;
+export interface DescriptorTypeDefinition<
+	TDescriptorData,
+	TSourceData,
+> extends StateTypeDefinition {
+	readonly duplication?: Duplication<Descriptor<TDescriptorData, TSourceData>, TDescriptorData>;
 	readonly source: SourceType<TSourceData>;
 	readonly replication: ReplicationDefinition<TDescriptorData>;
 }

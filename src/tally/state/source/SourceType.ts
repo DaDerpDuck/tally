@@ -2,27 +2,15 @@ import type {
 	AnyReplicationDefinition,
 	ReplicationDefinition,
 } from "../../replication/ReplicationDefinition.js";
+import type { Duplication } from "../DuplicatePolicy.js";
 import type { Registrable, Registry } from "../Registrable.js";
+import type { StateTypeDefinition } from "../StateTypeDefinition.js";
 import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
 
-export type Duplication<TData> =
-	| {
-			readonly policy: "allow" | "ignore" | "replace";
-			readonly reconcile?: never;
-	  }
-	| {
-			readonly policy: "reconcile";
-			reconcile(existing: Source<TData>, incoming: TData): void;
-	  };
-
-export interface SourceTypeDefinition<TData> {
-	readonly name: string;
-	readonly priority: number;
-	readonly duplication?: Duplication<TData>;
-
+export interface SourceTypeDefinition<TData> extends StateTypeDefinition {
+	readonly duplication?: Duplication<Source<TData>, TData>;
 	contribute(data: TData): SourceContribution;
-
 	readonly replication?: ReplicationDefinition<TData>;
 }
 
@@ -34,7 +22,7 @@ export interface AnySourceType {
 export class SourceType<TData> implements AnySourceType, Registrable {
 	public readonly name: string;
 	public readonly priority: number;
-	public readonly duplication: Duplication<TData>;
+	public readonly duplication: Duplication<Source<TData>, TData>;
 	public readonly replication?: ReplicationDefinition<TData> | undefined;
 
 	constructor(private readonly definition: SourceTypeDefinition<TData>) {

@@ -2,8 +2,6 @@ import type { Disconnect } from "../../util/Disconnect.js";
 import type { SourceProvenance } from "./SourceOption.js";
 import type { SourceType } from "./SourceType.js";
 
-
-
 export interface Source<TData = unknown> {
 	readonly id: number;
 	readonly type: SourceType<TData>;

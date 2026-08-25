@@ -85,13 +85,73 @@ export class AgentState<TEntity> {
 			case "reconcile": {
 				const existingSource = this.sourceMap.get(type)?.values().next().value;
 				if (!existingSource) return this.createSource(type, data, options);
-				existingSource.type.duplication.reconcile!(existingSource, data);
+				if (existingSource.type.duplication.policy !== "reconcile")
+					throw new Error("Duplicate policy was changed");
+				existingSource.type.duplication.reconcile(existingSource, data);
 				return undefined;
 			}
 		}
 	}
 
 	addDescriptor<TDescriptorData, TSourceData>(
+		type: DescriptorType<TDescriptorData, TSourceData>,
+		data: TDescriptorData
+	): Descriptor<TDescriptorData, TSourceData> | undefined {
+		// TODO: Handle duplicate policy and priority
+		return this.createDescriptor(type, data)
+	}
+
+	registerDescriptorHandler<TDescriptorData, TSourceData>(
+		type: DescriptorType<TDescriptorData, TSourceData>,
+		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
+	) {
+		this.descriptorHandlers.set(type, handler as AnyDescriptorHandler);
+	}
+
+	private createSource<TData>(
+		type: SourceType<TData>,
+		data: TData,
+		options?: SourceOption
+	): SourceInstance<TData> {
+		const priority = options?.priority ?? type.priority;
+		const provenance = options?.provenance ?? {
+			domain: "local",
+			order: this.sourceCounter,
+		};
+		let handles = this.applyModifiers(type, priority, data);
+
+		const source = new SourceInstance(this.sourceCounter++, type, priority, provenance, data);
+		this.sourceModifiersMap.set(source, handles);
+		for (const handle of handles) this.dirtyProperties.add(handle.property);
+		this.requestResolve();
+
+		this.sourceMap.getOrInsert(type, new Set()).add(source);
+
+		source.onUpdate(() => {
+			for (const handle of handles) this.dirtyProperties.add(handle.property);
+			this.clearModifierHandles(handles);
+			handles = this.applyModifiers(type, priority, source.get());
+			this.sourceModifiersMap.set(source, handles);
+			for (const handle of handles) this.dirtyProperties.add(handle.property);
+			this.requestResolve();
+			this.sourceUpdatedCallbacks.forEach((callback) => callback(source));
+		});
+
+		source.onDestroy(() => {
+			for (const handle of handles) this.dirtyProperties.add(handle.property);
+			this.clearModifierHandles(handles);
+			this.sourceModifiersMap.delete(source);
+			this.sourceMap.get(source.type)?.delete(source);
+			this.requestResolve();
+			this.sourceRemovedCallbacks.forEach((callback) => callback(source));
+		});
+
+		this.sourceAddedCallbacks.forEach((callback) => callback(source));
+
+		return source;
+	}
+
+	private createDescriptor<TDescriptorData, TSourceData>(
 		type: DescriptorType<TDescriptorData, TSourceData>,
 		data: TDescriptorData
 	): Descriptor<TDescriptorData, TSourceData> | undefined {
@@ -144,56 +204,6 @@ export class AgentState<TEntity> {
 		});
 
 		return descriptor;
-	}
-
-	registerDescriptorHandler<TDescriptorData, TSourceData>(
-		type: DescriptorType<TDescriptorData, TSourceData>,
-		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
-	) {
-		this.descriptorHandlers.set(type, handler as AnyDescriptorHandler);
-	}
-
-	private createSource<TData>(
-		type: SourceType<TData>,
-		data: TData,
-		options?: SourceOption
-	): SourceInstance<TData> {
-		const priority = options?.priority ?? type.priority;
-		const provenance = options?.provenance ?? {
-			domain: "local",
-			order: this.sourceCounter,
-		};
-		let handles = this.applyModifiers(type, priority, data);
-
-		const source = new SourceInstance(this.sourceCounter++, type, priority, provenance, data);
-		this.sourceModifiersMap.set(source, handles);
-		for (const handle of handles) this.dirtyProperties.add(handle.property);
-		this.requestResolve();
-
-		this.sourceMap.getOrInsert(type, new Set()).add(source);
-
-		source.onUpdate(() => {
-			for (const handle of handles) this.dirtyProperties.add(handle.property);
-			this.clearModifierHandles(handles);
-			handles = this.applyModifiers(type, priority, source.get());
-			this.sourceModifiersMap.set(source, handles);
-			for (const handle of handles) this.dirtyProperties.add(handle.property);
-			this.requestResolve();
-			this.sourceUpdatedCallbacks.forEach((callback) => callback(source));
-		});
-
-		source.onDestroy(() => {
-			for (const handle of handles) this.dirtyProperties.add(handle.property);
-			this.clearModifierHandles(handles);
-			this.sourceModifiersMap.delete(source);
-			this.sourceMap.get(source.type)?.delete(source);
-			this.requestResolve();
-			this.sourceRemovedCallbacks.forEach((callback) => callback(source));
-		});
-
-		this.sourceAddedCallbacks.forEach((callback) => callback(source));
-
-		return source;
 	}
 
 	private applyModifiers<TData>(
