@@ -3,7 +3,7 @@ import {
 	createReplicationSnapshot,
 	defineNumberProperty,
 	defineSourceType,
-	ReplicationReceiver,
+	SourceReceiver,
 	serializeSource,
 	SourceTypeDefinition,
 	TallyContext,
@@ -41,7 +41,7 @@ function createReplicationFixture(attachReplicationEmit: boolean = true) {
 	clientTally.register(PropertySource);
 	clientTally.register(Property);
 
-	const receiver = new ReplicationReceiver(clientAgent, (name) => clientTally.sources.get(name));
+	const receiver = new SourceReceiver(clientAgent, (name) => clientTally.sources.get(name));
 	if (attachReplicationEmit)
 		serverTally.onReplicationEmit((_, event) => {
 			receiver.apply([event]);
