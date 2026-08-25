@@ -3,7 +3,7 @@ import {
 	createReplicationSnapshot,
 	defineNumberProperty,
 	defineSourceType,
-	ReplicationReceiver,
+	SourceReceiver,
 	serializeSource,
 	SourceTypeDefinition,
 	TallyContext,
@@ -21,6 +21,7 @@ const Property = defineNumberProperty({ name: "Property", defaultValue: 0 });
 
 const basicSourceDef: SourceTypeDefinition<PropSourceData> = {
 	name: "PropertySource",
+	priority: 100,
 	contribute: (data) => [Property.add(data.value)],
 	replication: {
 		serialize: (data) => data.value,
@@ -40,7 +41,7 @@ function createReplicationFixture(attachReplicationEmit: boolean = true) {
 	clientTally.register(PropertySource);
 	clientTally.register(Property);
 
-	const receiver = new ReplicationReceiver(clientAgent, (name) => clientTally.sources.get(name));
+	const receiver = new SourceReceiver(clientAgent, (name) => clientTally.sources.get(name));
 	if (attachReplicationEmit)
 		serverTally.onReplicationEmit((_, event) => {
 			receiver.apply([event]);
@@ -59,7 +60,7 @@ describe("replication", () => {
 	it("replicates source addition", () => {
 		const { clientAgent, serverAgent } = createReplicationFixture();
 
-		serverAgent.addSource(PropertySource, 100, { value: 5 });
+		serverAgent.addSource(PropertySource, { value: 5 });
 
 		const clientSource = getClientSource(clientAgent);
 		expect(clientSource.priority).toBe(100);
@@ -69,7 +70,7 @@ describe("replication", () => {
 
 	it("replicates source updates", () => {
 		const { clientAgent, serverAgent } = createReplicationFixture();
-		const serverSource = serverAgent.addSource(PropertySource, 100, { value: 5 })!;
+		const serverSource = serverAgent.addSource(PropertySource, { value: 5 })!;
 
 		serverSource.set({ value: 10 });
 
@@ -81,7 +82,7 @@ describe("replication", () => {
 
 	it("replicates source removal", () => {
 		const { clientAgent, serverAgent } = createReplicationFixture();
-		const serverSource = serverAgent.addSource(PropertySource, 100, { value: 5 })!;
+		const serverSource = serverAgent.addSource(PropertySource, { value: 5 })!;
 		expect(clientAgent.getSources(PropertySource).size).toBe(1);
 
 		serverSource.destroy();
@@ -92,10 +93,10 @@ describe("replication", () => {
 
 	it("replicates same-type sources", () => {
 		const { clientAgent, serverAgent } = createReplicationFixture();
-		clientAgent.addSource(PropertySource, 100, { value: 1000 });
-		const serverSource1 = serverAgent.addSource(PropertySource, 100, { value: 1 })!;
-		const serverSource2 = serverAgent.addSource(PropertySource, 100, { value: 10 })!;
-		const serverSource3 = serverAgent.addSource(PropertySource, 100, { value: 100 })!;
+		clientAgent.addSource(PropertySource, { value: 1000 });
+		const serverSource1 = serverAgent.addSource(PropertySource, { value: 1 })!;
+		const serverSource2 = serverAgent.addSource(PropertySource, { value: 10 })!;
+		const serverSource3 = serverAgent.addSource(PropertySource, { value: 100 })!;
 		expect(clientAgent.getSources(PropertySource).size).toBe(4);
 		expect(clientAgent.get(Property)).toBe(1111);
 
@@ -130,8 +131,8 @@ describe("replication", () => {
 		clientTally.register(PropertySource3);
 		serverTally.register(PropertySource3);
 
-		const source1 = serverAgent.addSource(PropertySource1, 100, { value: 5 })!;
-		const source3 = serverAgent.addSource(PropertySource3, 100, { value: 6 })!;
+		const source1 = serverAgent.addSource(PropertySource1, { value: 5 })!;
+		const source3 = serverAgent.addSource(PropertySource3, { value: 6 })!;
 		expect(clientAgent.getSources().size).toBe(0);
 		expect(clientAgent.get(Property)).toBe(0);
 
@@ -149,7 +150,7 @@ describe("replication", () => {
 
 		source1.set({ value: 7 });
 		source3.destroy();
-		serverAgent.addSource(PropertySource2, 100, { value: 8 });
+		serverAgent.addSource(PropertySource2, { value: 8 });
 		receiver.applySnapshot(createReplicationSnapshot(serverAgent));
 		expect(clientAgent.getSources().size).toBe(2);
 		expect(clientAgent.get(Property)).toBe(15);
@@ -175,8 +176,8 @@ describe("replication", () => {
 		clientTally.register(LocalPropertySource);
 		serverTally.register(LocalPropertySource);
 
-		serverAgent.addSource(PropertySource, 100, { value: 5 });
-		serverAgent.addSource(LocalPropertySource, 100, { value: 6 });
+		serverAgent.addSource(PropertySource, { value: 5 });
+		serverAgent.addSource(LocalPropertySource, { value: 6 });
 		expect(clientAgent.getSources().size).toBe(0);
 		expect(clientAgent.get(Property)).toBe(0);
 		expect(serverAgent.getSources().size).toBe(2);
@@ -205,7 +206,7 @@ describe("replication", () => {
 					event: {
 						kind: "added",
 						source: serializeSource(
-							serverAgent.addSource(PropertySource, 100, { value: 1 })!
+							serverAgent.addSource(PropertySource, { value: 1 })!
 						),
 					},
 				},
@@ -226,7 +227,7 @@ describe("replication", () => {
 					event: {
 						kind: "added",
 						source: serializeSource(
-							serverAgent.addSource(PropertySource, 100, { value: 2 })!
+							serverAgent.addSource(PropertySource, { value: 2 })!
 						),
 					},
 				},

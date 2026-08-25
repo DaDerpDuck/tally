@@ -6,7 +6,6 @@ import {
 	defineSourceType,
 	NumberProperty,
 	ReplicationEvent,
-	type SourceReplicationEvent,
 	TallyContext,
 } from "../src";
 
@@ -16,6 +15,7 @@ interface PoisonData {
 
 const PoisonSource = defineSourceType<PoisonData>({
 	name: "Poison",
+	priority: 100,
 	contribute: () => [],
 	duplication: { policy: "ignore" },
 });
@@ -32,10 +32,10 @@ describe("tally context source events", () => {
 		const callback = vi.fn();
 		tally.onSourceAdded(callback);
 
-		const first = agent.addSource(PoisonSource, 0, { intensity: 5 });
-		agent.addSource(PoisonSource, 0, { intensity: 10 });
+		const first = agent.addSource(PoisonSource, { intensity: 5 });
+		agent.addSource(PoisonSource, { intensity: 10 });
 		first!.destroy();
-		const second = agent.addSource(PoisonSource, 0, { intensity: 5 });
+		const second = agent.addSource(PoisonSource, { intensity: 5 });
 
 		expect(callback).toHaveBeenCalledTimes(2);
 		expect(callback).toHaveBeenNthCalledWith(1, agent, first);
@@ -47,12 +47,12 @@ describe("tally context source events", () => {
 		const callback = vi.fn();
 		tally.onSourceRemoved(callback);
 
-		const source = agent.addSource(PoisonSource, 0, { intensity: 5 })!;
-		agent.addSource(PoisonSource, 0, { intensity: 10 });
+		const source = agent.addSource(PoisonSource, { intensity: 5 })!;
+		agent.addSource(PoisonSource, { intensity: 10 });
 		expect(callback).not.toHaveBeenCalled();
 
 		source.destroy();
-		agent.addSource(PoisonSource, 0, { intensity: 5 });
+		agent.addSource(PoisonSource, { intensity: 5 });
 
 		expect(callback).toHaveBeenCalledTimes(1);
 		expect(callback).toHaveBeenCalledWith(agent, source);
@@ -63,12 +63,12 @@ describe("tally context source events", () => {
 		const callback = vi.fn();
 		tally.onSourceUpdated(callback);
 
-		const first = agent.addSource(PoisonSource, 0, { intensity: 5 })!;
+		const first = agent.addSource(PoisonSource, { intensity: 5 })!;
 		first.set({ intensity: 15 });
-		agent.addSource(PoisonSource, 0, { intensity: 10 });
+		agent.addSource(PoisonSource, { intensity: 10 });
 		first.destroy();
 
-		const second = agent.addSource(PoisonSource, 0, { intensity: 5 })!;
+		const second = agent.addSource(PoisonSource, { intensity: 5 })!;
 		second.set({ intensity: 10 });
 
 		expect(callback).toHaveBeenCalledTimes(2);
@@ -89,9 +89,10 @@ describe("tally context source events", () => {
 
 		const SourceType = defineSourceType<number>({
 			name: "AfterDestroySource",
+			priority: 100,
 			contribute: () => [],
 		});
-		const source = agent.addSource(SourceType, 0, 1)!;
+		const source = agent.addSource(SourceType, 1)!;
 		source.set(2);
 		source.destroy();
 
@@ -125,12 +126,14 @@ describe("tally context registry", () => {
 		const first = tally.register(
 			defineSourceType({
 				name: "Source1",
+				priority: 100,
 				contribute: () => [],
 			})
 		);
 		const second = tally.register(
 			defineSourceType({
 				name: "Source2",
+				priority: 100,
 				contribute: () => [],
 			})
 		);
@@ -167,6 +170,7 @@ describe("tally context registry", () => {
 		const tally = new TallyContext();
 		const sourceType = defineSourceType({
 			name: "Source1",
+			priority: 100,
 			contribute: () => [],
 		});
 
@@ -181,6 +185,7 @@ describe("tally context registry", () => {
 		tally.register(
 			defineSourceType({
 				name: "Source1",
+				priority: 100,
 				contribute: () => [],
 			})
 		);
@@ -189,6 +194,7 @@ describe("tally context registry", () => {
 			tally.register(
 				defineSourceType({
 					name: "Source1",
+					priority: 100,
 					contribute: () => [],
 				})
 			)
@@ -200,6 +206,7 @@ describe("tally context replication emission", () => {
 	const Property = defineNumberProperty({ name: "Property", defaultValue: 0 });
 	const PropertySource = defineSourceType<{ value: number }>({
 		name: "PropertySource",
+		priority: 100,
 		contribute: (data) => [Property.add(data.value)],
 		replication: {
 			serialize: (data) => data.value,
@@ -226,9 +233,9 @@ describe("tally context replication emission", () => {
 	it("emits added events with serialized source state", () => {
 		const { agent, callback } = createReplicationFixture();
 
-		agent.addSource(PropertySource, 100, { value: 5 });
-		agent.addSource(PropertySource, 200, { value: 6 });
-		agent.addSource(PropertySource, 300, { value: 7 });
+		agent.addSource(PropertySource, { value: 5 }, { priority: 100 });
+		agent.addSource(PropertySource, { value: 6 }, { priority: 200 });
+		agent.addSource(PropertySource, { value: 7 }, { priority: 300 });
 
 		expect(emittedEvents(callback)).toEqual([
 			{
@@ -257,9 +264,9 @@ describe("tally context replication emission", () => {
 
 	it("emits removed events with source ids", () => {
 		const { agent, callback } = createReplicationFixture();
-		const first = agent.addSource(PropertySource, 100, { value: 5 })!;
-		const second = agent.addSource(PropertySource, 100, { value: 5 })!;
-		const third = agent.addSource(PropertySource, 100, { value: 5 })!;
+		const first = agent.addSource(PropertySource, { value: 5 })!;
+		const second = agent.addSource(PropertySource, { value: 5 })!;
+		const third = agent.addSource(PropertySource, { value: 5 })!;
 
 		callback.mockClear();
 		third.destroy();
@@ -276,9 +283,9 @@ describe("tally context replication emission", () => {
 
 	it("emits updated events with serialized data", () => {
 		const { agent, callback } = createReplicationFixture();
-		const first = agent.addSource(PropertySource, 100, { value: 5 })!;
-		const second = agent.addSource(PropertySource, 100, { value: 5 })!;
-		const third = agent.addSource(PropertySource, 100, { value: 5 })!;
+		const first = agent.addSource(PropertySource, { value: 5 })!;
+		const second = agent.addSource(PropertySource, { value: 5 })!;
+		const third = agent.addSource(PropertySource, { value: 5 })!;
 
 		callback.mockClear();
 		third.set({ value: 8 });
@@ -299,10 +306,11 @@ describe("tally context replication emission", () => {
 		const { agent, callback } = createReplicationFixture();
 		const LocalOnlySource = defineSourceType<number>({
 			name: "LocalOnlySource",
+			priority: 100,
 			contribute: () => [],
 		});
 
-		const source = agent.addSource(LocalOnlySource, 0, 1)!;
+		const source = agent.addSource(LocalOnlySource, 1)!;
 		source.set(2);
 		source.destroy();
 
@@ -311,7 +319,7 @@ describe("tally context replication emission", () => {
 
 	it("preserves source identity across lifecycle events", () => {
 		const { agent, callback } = createReplicationFixture();
-		const source = agent.addSource(PropertySource, 50, { value: 1 })!;
+		const source = agent.addSource(PropertySource, { value: 1 }, { priority: 50 })!;
 		source.set({ value: 2 });
 		source.destroy();
 

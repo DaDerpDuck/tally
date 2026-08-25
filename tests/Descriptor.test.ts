@@ -10,6 +10,7 @@ import {
 	TallyContext,
 	type ReplicationEvent,
 	type SourceType,
+	defineDescriptorType,
 } from "../src";
 
 interface DescriptorData {
@@ -20,29 +21,31 @@ const Value = defineNumberProperty({ name: "DescriptorValue", defaultValue: 0 })
 
 const DescriptorSource = defineSourceType<DescriptorData>({
 	name: "DescriptorSource",
+	priority: 100,
 	contribute: (data) => [Value.add(data.value)],
 });
 
-const ValueDescriptor = new DescriptorType<DescriptorData, DescriptorData>({
+const ValueDescriptor = defineDescriptorType<DescriptorData, DescriptorData>({
 	name: "ValueDescriptor",
 	source: DescriptorSource,
 	replication: {
 		serialize: (data) => data.value,
 		deserialize: (value) => {
-			if (typeof value !== "number") throw new Error("Expected descriptor value to be a number");
+			if (typeof value !== "number")
+				throw new Error("Expected descriptor value to be a number");
 			return { value };
 		},
 	},
 });
 
 function registerHandler(
-	agent: AgentState<undefined>,
+	agent: AgentState<undefined> | TallyContext<undefined>,
 	descriptorType: DescriptorType<DescriptorData, DescriptorData> = ValueDescriptor,
 	sourceType: SourceType<DescriptorData> = DescriptorSource,
 	onDestroy = vi.fn()
 ) {
-	agent.registerDescriptorHandler(descriptorType, (state) => {
-		const source = state.addSource(sourceType, 100, { value: 0 })!;
+	agent.registerDescriptorHandler(descriptorType, (ctx, data) => {
+		const source = ctx.addSource(sourceType, { value: data.value })!;
 
 		return {
 			source,
@@ -67,18 +70,19 @@ function createAgentFixture() {
 
 function createReplicationFixture(attachReplication = true) {
 	const serverTally = new TallyContext<undefined>();
+	registerHandler(serverTally);
 	const serverAgent = serverTally.createAgentState(undefined);
 	serverTally.register(ValueDescriptor);
-	registerHandler(serverAgent);
 
 	const clientTally = new TallyContext<undefined>();
+	registerHandler(clientTally);
 	const clientAgent = clientTally.createAgentState(undefined);
 	clientTally.register(ValueDescriptor);
-	registerHandler(clientAgent);
 
-	const receiver = new DescriptorReceiver(clientAgent, (name) => clientTally.descriptors.get(name));
-	if (attachReplication)
-		serverTally.onReplicationEmit((_, event) => receiver.apply([event]));
+	const receiver = new DescriptorReceiver(clientAgent, (name) =>
+		clientTally.descriptors.get(name)
+	);
+	if (attachReplication) serverTally.onReplicationEmit((_, event) => receiver.apply([event]));
 
 	return { clientAgent, clientTally, receiver, serverAgent, serverTally };
 }
@@ -196,7 +200,7 @@ describe("descriptor lifecycle", () => {
 
 	it("filters descriptors by type", () => {
 		const { agent } = createAgentFixture();
-		const OtherDescriptor = new DescriptorType<DescriptorData, DescriptorData>({
+		const OtherDescriptor = defineDescriptorType<DescriptorData, DescriptorData>({
 			name: "OtherDescriptor",
 			source: DescriptorSource,
 			replication: ValueDescriptor.replication,
@@ -332,11 +336,13 @@ describe("descriptor replication", () => {
 describe("descriptor replication ownership", () => {
 	const ReplicatedDescriptorSource = defineSourceType<DescriptorData>({
 		name: "ReplicatedDescriptorSource",
+		priority: 100,
 		contribute: (data) => [Value.add(data.value)],
 		replication: {
 			serialize: (data) => data.value,
 			deserialize: (value) => {
-				if (typeof value !== "number") throw new Error("Expected source value to be a number");
+				if (typeof value !== "number")
+					throw new Error("Expected source value to be a number");
 				return { value };
 			},
 		},

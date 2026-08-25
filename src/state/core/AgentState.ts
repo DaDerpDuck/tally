@@ -3,34 +3,32 @@ import { type AnyProperty, type Property } from "../property/Property.js";
 import type { Source } from "../source/Source.js";
 import { SourceType, type AnySourceType } from "../source/SourceType.js";
 import { SourceInstance } from "../source/SourceInstance.js";
-import {
-	DescriptorType,
-	type AnyDescriptorType,
-	type ExtractDataFromDescriptor,
-} from "../descriptor/DescriptorType.js";
+import { DescriptorType, type AnyDescriptorType } from "../descriptor/DescriptorType.js";
 import type { AnyDescriptorBinding, DescriptorBinding } from "../descriptor/DescriptorBinding.js";
 import { DescriptorInstance } from "../descriptor/DescriptorInstance.js";
 import type { AnyDescriptor, Descriptor } from "../descriptor/Descriptor.js";
+import type { SourceOption } from "../source/SourceOption.js";
+import type { AnyDescriptorHandler, DescriptorHandler } from "../descriptor/DescriptorHandler.js";
 
 type Disconnect = () => void;
 type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
 type SourceCallback<T = unknown> = (source: Source<T>) => void;
-type DescriptorCallback<
-	T extends DescriptorType<unknown, unknown> = DescriptorType<unknown, unknown>,
-> = (descriptor: Descriptor<T>) => void;
+type DescriptorCallback<TDescriptorData = unknown, TSourceData = unknown> = (
+	descriptor: Descriptor<TDescriptorData, TSourceData>
+) => void;
 
 export class AgentState<TEntity> {
 	private static readonly EmptySet: ReadonlySet<unknown> = new Set();
 
 	private readonly modifierRegistry = new ModifierRegistry();
 	private readonly sourceModifiersMap = new Map<Source, ModifierHandle[]>();
-	private readonly descriptorHandlers = new Map<
-		AnyDescriptorType,
-		(agent: AgentState<unknown>) => AnyDescriptorBinding
-	>();
+	private readonly descriptorHandlers = new Map<AnyDescriptorType, AnyDescriptorHandler>();
 
 	private readonly sourceMap = new Map<AnySourceType, Set<Source>>();
-	private readonly descriptorMap = new Map<DescriptorType<unknown, unknown>, Set<AnyDescriptor>>();
+	private readonly descriptorMap = new Map<
+		DescriptorType<unknown, unknown>,
+		Set<AnyDescriptor>
+	>();
 
 	private readonly propertyCallbacks = new Map<AnyProperty, Set<PropertyCallback>>();
 	private readonly sourceAddedCallbacks = new Set<SourceCallback>();
@@ -50,58 +48,81 @@ export class AgentState<TEntity> {
 
 	addSource<TData extends undefined>(
 		type: SourceType<TData>,
-		priority: number
+		data?: TData,
+		options?: SourceOption
 	): Source<TData> | undefined;
 	addSource<TData>(
 		type: SourceType<TData>,
-		priority: number,
-		data: TData
+		data: TData,
+		options?: SourceOption
 	): Source<TData> | undefined;
 	addSource<TData>(
 		type: SourceType<TData>,
-		priority: number,
-		data?: TData
-	): Source<TData | undefined> | undefined {
+		data: TData,
+		options?: SourceOption
+	): Source<TData> | undefined {
 		switch (type.duplication.policy) {
 			case "allow":
-				return this.createSource(type, priority, data);
+				return this.createSource(type, data, options);
 			case "ignore": {
 				const existingSource = this.sourceMap.get(type)?.values().next().value;
 				if (existingSource) return undefined;
-				return this.createSource(type, priority, data);
+				return this.createSource(type, data, options);
 			}
 			case "replace": {
 				return this.batch(() => {
 					const existingSource = this.sourceMap.get(type)?.values().next().value;
 					existingSource?.destroy();
-					return this.createSource(type, priority, data);
+					return this.createSource(type, data, options);
 				});
 			}
 			case "reconcile": {
 				const existingSource = this.sourceMap.get(type)?.values().next().value;
-				if (!existingSource) return this.createSource(type, priority, data);
+				if (!existingSource) return this.createSource(type, data, options);
 				existingSource.type.duplication.reconcile!(existingSource, data);
 				return undefined;
 			}
 		}
 	}
 
-	addDescriptor<TDescriptorType extends DescriptorType<unknown, unknown>>(
-		type: TDescriptorType,
-		data: ExtractDataFromDescriptor<TDescriptorType>
-	): Descriptor<TDescriptorType> | undefined {
+	addDescriptor<TDescriptorData, TSourceData>(
+		type: DescriptorType<TDescriptorData, TSourceData>,
+		data: TDescriptorData
+	): Descriptor<TDescriptorData, TSourceData> | undefined {
 		const handler = this.descriptorHandlers.get(type);
 		if (!handler)
 			throw new Error(
 				"Attempted to add a descriptor source before a descriptor handler was assigned"
 			);
-		const binding = handler(this);
-		if (!binding.source) return undefined;
+		const binding = handler(
+			{
+				agent: this,
+				addSource: (type, data, options) => {
+					type Writable<T> = {
+						-readonly [K in keyof T]: T[K];
+					};
+					const writableOptions: Writable<SourceOption> = {
+						priority: type.priority,
+						provenance: {
+							domain: "descriptor",
+							order: this.sourceCounter,
+						},
+					};
+					if (options?.priority !== undefined)
+						writableOptions.priority = options.priority;
+					if (options?.provenance !== undefined)
+						writableOptions.provenance = options.provenance;
+					return this.addSource(type, data, writableOptions);
+				},
+			},
+			data
+		);
+		if (!binding) return undefined;
 
-		const descriptor = new DescriptorInstance<TDescriptorType>(
+		const descriptor = new DescriptorInstance<TDescriptorData, TSourceData>(
 			this.sourceCounter++,
 			type,
-			binding as DescriptorBinding<TDescriptorType>,
+			binding as DescriptorBinding<TDescriptorData, TSourceData>,
 			data
 		);
 		this.descriptorMap.getOrInsert(type, new Set()).add(descriptor);
@@ -119,21 +140,26 @@ export class AgentState<TEntity> {
 		return descriptor;
 	}
 
-	registerDescriptorHandler<TDescriptor extends DescriptorType<unknown, unknown>>(
-		descriptor: TDescriptor,
-		handler: (agent: AgentState<unknown>) => DescriptorBinding<TDescriptor>
+	registerDescriptorHandler<TDescriptorData, TSourceData>(
+		type: DescriptorType<TDescriptorData, TSourceData>,
+		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
 	) {
-		this.descriptorHandlers.set(descriptor, handler);
+		this.descriptorHandlers.set(type, handler as AnyDescriptorHandler);
 	}
 
 	private createSource<TData>(
 		type: SourceType<TData>,
-		priority: number,
-		data: TData
+		data: TData,
+		options?: SourceOption
 	): SourceInstance<TData> {
+		const priority = options?.priority ?? type.priority;
+		const provenance = options?.provenance ?? {
+			domain: "local",
+			order: this.sourceCounter,
+		};
 		let handles = this.applyModifiers(type, priority, data);
 
-		const source = new SourceInstance(this.sourceCounter++, type, priority, data);
+		const source = new SourceInstance(this.sourceCounter++, type, priority, provenance, data);
 		this.sourceModifiersMap.set(source, handles);
 		for (const handle of handles) this.dirtyProperties.add(handle.property);
 		this.requestResolve();
@@ -227,17 +253,17 @@ export class AgentState<TEntity> {
 		return (this.sourceMap.get(type) ?? AgentState.EmptySet) as ReadonlySet<Source>;
 	}
 
-	getDescriptors(): ReadonlySet<Descriptor<DescriptorType<unknown, unknown>>>;
-	getDescriptors<TDescriptor extends DescriptorType<unknown, unknown>>(
-		type: TDescriptor
-	): ReadonlySet<Descriptor<TDescriptor>>;
+	getDescriptors(): ReadonlySet<AnyDescriptor>;
+	getDescriptors<TDescriptorData, TSourceData>(
+		type: DescriptorType<TDescriptorData, TSourceData>
+	): ReadonlySet<Descriptor<TDescriptorData, TSourceData>>;
 	getDescriptors(
 		type?: DescriptorType<unknown, unknown>
-	): ReadonlySet<Descriptor<DescriptorType<unknown, unknown>>> {
+	): ReadonlySet<Descriptor<unknown, unknown>> {
 		if (type === undefined)
 			return new Set(this.descriptorMap.values().flatMap((x) => x.values().toArray()));
 		return (this.descriptorMap.get(type) ?? AgentState.EmptySet) as ReadonlySet<
-			Descriptor<DescriptorType<unknown, unknown>>
+			Descriptor<unknown, unknown>
 		>;
 	}
 
@@ -280,13 +306,15 @@ export class AgentState<TEntity> {
 	}
 
 	destroyAllDescriptors() {
-		this.descriptorMap.values().forEach((descriptors) => descriptors.forEach((x) => x.destroy));
+		this.descriptorMap
+			.values()
+			.forEach((descriptors) => descriptors.forEach((x) => x.destroy()));
 		this.descriptorMap.clear();
 	}
 
 	destroy() {
-		this.destroyAllSources();
 		this.destroyAllDescriptors();
+		this.destroyAllSources();
 		this.propertyCallbacks.clear();
 		this.sourceAddedCallbacks.clear();
 		this.sourceRemovedCallbacks.clear();

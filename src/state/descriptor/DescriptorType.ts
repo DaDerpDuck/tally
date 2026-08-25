@@ -3,7 +3,6 @@ import type {
 	AnyReplicationDefinition,
 	ReplicationDefinition,
 } from "../replication/ReplicationDefinition.js";
-import type { Source } from "../source/Source.js";
 import type { SourceType } from "../source/SourceType.js";
 
 export interface AnyDescriptorType {
@@ -37,7 +36,8 @@ export class DescriptorType<TDescriptorData, TSourceData>
 	}
 }
 
-export type ExtractDataFromDescriptor<T extends DescriptorType<unknown, unknown>> =
-	T extends DescriptorType<infer U, unknown> ? U : never;
-export type ExtractSourceFromDescriptor<T extends DescriptorType<unknown, unknown>> =
-	T extends DescriptorType<unknown, infer U> ? Source<U> : never;
+export function defineDescriptorType<TDescriptorData, TSourceData>(
+	definition: DescriptorTypeDefinition<TDescriptorData, TSourceData>
+) {
+	return new DescriptorType(definition);
+}
