@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SortedArray } from "../src/tally/util/SortedArray";
+import { SortedArray } from "../../src/tally/util/SortedArray";
 
 function expectContents(array: SortedArray<number, number>, values: number[]) {
 	expect(array.values()).toEqual(values);
