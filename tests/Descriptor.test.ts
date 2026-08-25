@@ -42,11 +42,10 @@ const ValueDescriptor = defineDescriptorType<DescriptorData, DescriptorData>({
 function registerHandler(
 	agent: AgentState<undefined> | TallyContext<undefined>,
 	descriptorType: DescriptorType<DescriptorData, DescriptorData> = ValueDescriptor,
-	sourceType: SourceType<DescriptorData> = DescriptorSource,
 	onDestroy = vi.fn()
 ) {
 	agent.registerDescriptorHandler(descriptorType, (ctx, data) => {
-		const source = ctx.addSource(sourceType, { value: data.value })!;
+		const source = ctx.addSource({ value: data.value })!;
 
 		return {
 			source,
@@ -360,7 +359,7 @@ describe("descriptor replication ownership", () => {
 	it("replicates a descriptor-owned Source through the descriptor only", () => {
 		const tally = new TallyContext<undefined>();
 		const agent = tally.createAgentState(undefined);
-		registerHandler(agent, ReplicatedSourceDescriptor, ReplicatedDescriptorSource);
+		registerHandler(agent, ReplicatedSourceDescriptor);
 		const events: ReplicationEvent[] = [];
 		tally.onReplicationEmit((_, event) => events.push(event));
 
@@ -371,7 +370,7 @@ describe("descriptor replication ownership", () => {
 
 	it("excludes descriptor-owned Sources from the direct Source snapshot namespace", () => {
 		const agent = new AgentState<undefined>(undefined);
-		registerHandler(agent, ReplicatedSourceDescriptor, ReplicatedDescriptorSource);
+		registerHandler(agent, ReplicatedSourceDescriptor);
 		agent.addDescriptor(ReplicatedSourceDescriptor, { value: 5 });
 
 		const snapshot = createReplicationSnapshot(agent);

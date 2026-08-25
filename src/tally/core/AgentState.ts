@@ -98,7 +98,7 @@ export class AgentState<TEntity> {
 		data: TDescriptorData
 	): Descriptor<TDescriptorData, TSourceData> | undefined {
 		// TODO: Handle duplicate policy and priority
-		return this.createDescriptor(type, data)
+		return this.createDescriptor(type, data);
 	}
 
 	registerDescriptorHandler<TDescriptorData, TSourceData>(
@@ -163,12 +163,12 @@ export class AgentState<TEntity> {
 		const binding = handler(
 			{
 				agent: this,
-				addSource: (type, data, options) => {
+				addSource: (data, options) => {
 					type Writable<T> = {
 						-readonly [K in keyof T]: T[K];
 					};
 					const writableOptions: Writable<SourceOption> = {
-						priority: type.priority,
+						priority: type.source.priority,
 						provenance: {
 							domain: "descriptor",
 							order: this.sourceCounter,
@@ -178,7 +178,7 @@ export class AgentState<TEntity> {
 						writableOptions.priority = options.priority;
 					if (options?.provenance !== undefined)
 						writableOptions.provenance = options.provenance;
-					return this.addSource(type, data, writableOptions);
+					return this.addSource(type.source, data, writableOptions);
 				},
 			},
 			data
