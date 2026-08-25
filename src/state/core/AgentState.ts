@@ -3,11 +3,7 @@ import { type AnyProperty, type Property } from "../property/Property.js";
 import type { Source } from "../source/Source.js";
 import { SourceType, type AnySourceType } from "../source/SourceType.js";
 import { SourceInstance } from "../source/SourceInstance.js";
-import {
-	DescriptorType,
-	type AnyDescriptorType,
-	type ExtractDataFromDescriptor,
-} from "../descriptor/DescriptorType.js";
+import { DescriptorType, type AnyDescriptorType } from "../descriptor/DescriptorType.js";
 import type { AnyDescriptorBinding, DescriptorBinding } from "../descriptor/DescriptorBinding.js";
 import { DescriptorInstance } from "../descriptor/DescriptorInstance.js";
 import type { AnyDescriptor, Descriptor } from "../descriptor/Descriptor.js";
@@ -16,9 +12,9 @@ import type { SourceOption } from "../source/SourceOption.js";
 type Disconnect = () => void;
 type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
 type SourceCallback<T = unknown> = (source: Source<T>) => void;
-type DescriptorCallback<
-	T extends DescriptorType<unknown, unknown> = DescriptorType<unknown, unknown>,
-> = (descriptor: Descriptor<T>) => void;
+type DescriptorCallback<TDescriptorData = unknown, TSourceData = unknown> = (
+	descriptor: Descriptor<TDescriptorData, TSourceData>
+) => void;
 
 export class AgentState<TEntity> {
 	private static readonly EmptySet: ReadonlySet<unknown> = new Set();
@@ -91,10 +87,10 @@ export class AgentState<TEntity> {
 		}
 	}
 
-	addDescriptor<TDescriptorType extends DescriptorType<unknown, unknown>>(
-		type: TDescriptorType,
-		data: ExtractDataFromDescriptor<TDescriptorType>
-	): Descriptor<TDescriptorType> | undefined {
+	addDescriptor<TDescriptorData, TSourceData>(
+		type: DescriptorType<TDescriptorData, TSourceData>,
+		data: TDescriptorData
+	): Descriptor<TDescriptorData, TSourceData> | undefined {
 		const handler = this.descriptorHandlers.get(type);
 		if (!handler)
 			throw new Error(
@@ -103,10 +99,10 @@ export class AgentState<TEntity> {
 		const binding = handler(this);
 		if (!binding.source) return undefined;
 
-		const descriptor = new DescriptorInstance<TDescriptorType>(
+		const descriptor = new DescriptorInstance<TDescriptorData, TSourceData>(
 			this.sourceCounter++,
 			type,
-			binding as DescriptorBinding<TDescriptorType>,
+			binding as DescriptorBinding<TDescriptorData, TSourceData>,
 			data
 		);
 		this.descriptorMap.getOrInsert(type, new Set()).add(descriptor);
@@ -124,11 +120,11 @@ export class AgentState<TEntity> {
 		return descriptor;
 	}
 
-	registerDescriptorHandler<TDescriptor extends DescriptorType<unknown, unknown>>(
-		descriptor: TDescriptor,
-		handler: (agent: AgentState<unknown>) => DescriptorBinding<TDescriptor>
+	registerDescriptorHandler<TDescriptorData, TSourceData>(
+		type: DescriptorType<TDescriptorData, TSourceData>,
+		handler: (agent: AgentState<unknown>) => DescriptorBinding<TDescriptorData, TSourceData>
 	) {
-		this.descriptorHandlers.set(descriptor, handler);
+		this.descriptorHandlers.set(type, handler);
 	}
 
 	private createSource<TData>(
@@ -233,17 +229,17 @@ export class AgentState<TEntity> {
 		return (this.sourceMap.get(type) ?? AgentState.EmptySet) as ReadonlySet<Source>;
 	}
 
-	getDescriptors(): ReadonlySet<Descriptor<DescriptorType<unknown, unknown>>>;
-	getDescriptors<TDescriptor extends DescriptorType<unknown, unknown>>(
-		type: TDescriptor
-	): ReadonlySet<Descriptor<TDescriptor>>;
+	getDescriptors(): ReadonlySet<AnyDescriptor>;
+	getDescriptors<TDescriptorData, TSourceData>(
+		type: DescriptorType<TDescriptorData, TSourceData>
+	): ReadonlySet<Descriptor<TDescriptorData, TSourceData>>;
 	getDescriptors(
 		type?: DescriptorType<unknown, unknown>
-	): ReadonlySet<Descriptor<DescriptorType<unknown, unknown>>> {
+	): ReadonlySet<Descriptor<unknown, unknown>> {
 		if (type === undefined)
 			return new Set(this.descriptorMap.values().flatMap((x) => x.values().toArray()));
 		return (this.descriptorMap.get(type) ?? AgentState.EmptySet) as ReadonlySet<
-			Descriptor<DescriptorType<unknown, unknown>>
+			Descriptor<unknown, unknown>
 		>;
 	}
 

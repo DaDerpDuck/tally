@@ -1,31 +1,29 @@
+import type { Source } from "../source/Source.js";
 import type { Descriptor } from "./Descriptor.js";
 import type { DescriptorBinding } from "./DescriptorBinding.js";
-import type {
-	DescriptorType,
-	ExtractDataFromDescriptor,
-	ExtractSourceFromDescriptor,
-} from "./DescriptorType.js";
+import type { DescriptorType } from "./DescriptorType.js";
 import type { DescriptorId } from "./ReplicatedDescriptor.js";
 
 type Disconnect = () => void;
 
-export class DescriptorInstance<
-	TDescriptorType extends DescriptorType<unknown, unknown>,
-> implements Descriptor<TDescriptorType> {
+export class DescriptorInstance<TDescriptorData, TSourceData> implements Descriptor<
+	TDescriptorData,
+	TSourceData
+> {
 	private readonly updateCallbacks = new Set<(self: this) => void>();
 	private readonly destroyCallbacks = new Set<(self: this) => void>();
 
 	constructor(
 		public readonly id: DescriptorId,
-		public readonly type: TDescriptorType,
-		private readonly binding: DescriptorBinding<TDescriptorType>,
-		private data: ExtractDataFromDescriptor<TDescriptorType>
+		public readonly type: DescriptorType<TDescriptorData, TSourceData>,
+		private readonly binding: DescriptorBinding<TDescriptorData, TSourceData>,
+		private data: TDescriptorData
 	) {
 		if (!this.binding.source) throw new Error("Binding has no source");
 		this.binding.update(data);
 	}
 
-	set(data: ExtractDataFromDescriptor<TDescriptorType>) {
+	set(data: TDescriptorData) {
 		this.data = data;
 		this.binding.update(data);
 		for (const callback of this.updateCallbacks) {
@@ -33,11 +31,11 @@ export class DescriptorInstance<
 		}
 	}
 
-	get(): ExtractDataFromDescriptor<TDescriptorType> {
+	get(): TDescriptorData {
 		return this.data;
 	}
 
-	getSource(): ExtractSourceFromDescriptor<TDescriptorType> {
+	getSource(): Source<TSourceData> {
 		return this.binding.source!;
 	}
 

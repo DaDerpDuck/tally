@@ -37,7 +37,3 @@ export class DescriptorType<TDescriptorData, TSourceData>
 	}
 }
 
-export type ExtractDataFromDescriptor<T extends DescriptorType<unknown, unknown>> =
-	T extends DescriptorType<infer U, unknown> ? U : never;
-export type ExtractSourceFromDescriptor<T extends DescriptorType<unknown, unknown>> =
-	T extends DescriptorType<unknown, infer U> ? Source<U> : never;

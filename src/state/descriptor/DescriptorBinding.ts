@@ -1,9 +1,4 @@
 import type { Source } from "../source/Source.js";
-import type {
-	DescriptorType,
-	ExtractDataFromDescriptor,
-	ExtractSourceFromDescriptor,
-} from "./DescriptorType.js";
 
 export interface AnyDescriptorBinding {
 	readonly source: Source | undefined;
@@ -11,10 +6,8 @@ export interface AnyDescriptorBinding {
 	destroy(): void;
 }
 
-export interface DescriptorBinding<
-	TDescriptorType extends DescriptorType<unknown, unknown>,
-> extends AnyDescriptorBinding {
-	readonly source: ExtractSourceFromDescriptor<TDescriptorType> | undefined;
-	update(data: ExtractDataFromDescriptor<TDescriptorType>): void;
+export interface DescriptorBinding<TDescriptorData, TSourceData> extends AnyDescriptorBinding {
+	readonly source: Source<TSourceData> | undefined;
+	update(data: TDescriptorData): void;
 	destroy(): void;
 }
