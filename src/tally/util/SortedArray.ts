@@ -29,9 +29,9 @@ export class SortedArray<T, O> {
 				j = mid - 1;
 			}
 		}
-		for (let i = 0; i < this.array.length; i++) {
-			if (this.array[i]![0] === value) {
-				this.array.splice(i, 1);
+		for (let k = i; k < this.array.length; k++) {
+			if (this.array[k]![0] === value) {
+				this.array.splice(k, 1);
 				return true;
 			}
 		}
