@@ -10,6 +10,7 @@ import {
 	TallyContext,
 	type ReplicationEvent,
 	type SourceType,
+	defineDescriptorType,
 } from "../src";
 
 interface DescriptorData {
@@ -24,7 +25,7 @@ const DescriptorSource = defineSourceType<DescriptorData>({
 	contribute: (data) => [Value.add(data.value)],
 });
 
-const ValueDescriptor = new DescriptorType<DescriptorData, DescriptorData>({
+const ValueDescriptor = defineDescriptorType<DescriptorData, DescriptorData>({
 	name: "ValueDescriptor",
 	source: DescriptorSource,
 	replication: {
@@ -199,7 +200,7 @@ describe("descriptor lifecycle", () => {
 
 	it("filters descriptors by type", () => {
 		const { agent } = createAgentFixture();
-		const OtherDescriptor = new DescriptorType<DescriptorData, DescriptorData>({
+		const OtherDescriptor = defineDescriptorType<DescriptorData, DescriptorData>({
 			name: "OtherDescriptor",
 			source: DescriptorSource,
 			replication: ValueDescriptor.replication,

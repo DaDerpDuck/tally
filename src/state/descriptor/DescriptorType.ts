@@ -3,7 +3,6 @@ import type {
 	AnyReplicationDefinition,
 	ReplicationDefinition,
 } from "../replication/ReplicationDefinition.js";
-import type { Source } from "../source/Source.js";
 import type { SourceType } from "../source/SourceType.js";
 
 export interface AnyDescriptorType {
@@ -24,7 +23,9 @@ export class DescriptorType<TDescriptorData, TSourceData>
 	public readonly source: SourceType<TSourceData>;
 	public readonly replication: ReplicationDefinition<TDescriptorData>;
 
-	constructor(private readonly definition: DescriptorTypeDefinition<TDescriptorData, TSourceData>) {
+	constructor(
+		private readonly definition: DescriptorTypeDefinition<TDescriptorData, TSourceData>
+	) {
 		this.name = definition.name;
 		this.source = definition.source;
 		this.replication = definition.replication;
@@ -37,3 +38,8 @@ export class DescriptorType<TDescriptorData, TSourceData>
 	}
 }
 
+export function defineDescriptorType<TDescriptorData, TSourceData>(
+	definition: DescriptorTypeDefinition<TDescriptorData, TSourceData>
+) {
+	return new DescriptorType(definition);
+}
