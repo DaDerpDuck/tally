@@ -81,26 +81,26 @@ describe("deterministic Descriptor ordering integration", () => {
 		agent.addSource(
 			OrderedSource,
 			{ operation: "add", value: 2 },
-			{ provenance: { domain: "replicated", order: 2 } }
+			{ provenance: { domain: "replicated", sequence: 2 } }
 		);
 
 		const descriptor = agent.addDescriptor(
 			OrderedDescriptor,
 			{ operation: "multiply", value: 10 },
-			{ provenance: { domain: "replicated", order: 1 } }
+			{ provenance: { domain: "replicated", sequence: 1 } }
 		)!;
 
 		agent.addSource(
 			OrderedSource,
 			{ operation: "add", value: 1 },
-			{ provenance: { domain: "replicated", order: 0 } }
+			{ provenance: { domain: "replicated", sequence: 0 } }
 		);
 
 		// A Descriptor-owned Source remains descriptor-origin state, but it must occupy the same
 		// authoritative sequence position as the Descriptor that caused it.
 		expect(descriptor.getSource().provenance).toEqual({
 			domain: "descriptor",
-			order: 1,
+			sequence: 1,
 		});
 
 		// Correct authoritative order: (0 + 1) * 10 + 2 = 12.

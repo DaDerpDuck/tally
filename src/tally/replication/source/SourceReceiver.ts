@@ -89,7 +89,7 @@ export class SourceReceiver implements ReplicationReceiver {
 				priority: replicatedSource.priority,
 				provenance: {
 					domain: "replicated",
-					order: replicatedSource.id,
+					sequence: replicatedSource.id,
 				},
 			}
 		);

@@ -186,17 +186,17 @@ describe("deterministic Source ordering integration", () => {
 		agent.addSource(
 			OrderedSource,
 			{ label: "L" },
-			{ provenance: { domain: "local", order: 0 } }
+			{ provenance: { domain: "local", sequence: 0 } }
 		);
 		agent.addSource(
 			OrderedSource,
 			{ label: "B" },
-			{ provenance: { domain: "replicated", order: 1 } }
+			{ provenance: { domain: "replicated", sequence: 1 } }
 		);
 		agent.addSource(
 			OrderedSource,
 			{ label: "A" },
-			{ provenance: { domain: "replicated", order: 0 } }
+			{ provenance: { domain: "replicated", sequence: 0 } }
 		);
 
 		expect(agent.get(TraceProperty)).toBe("ABL");
@@ -208,12 +208,12 @@ describe("deterministic Source ordering integration", () => {
 		const first = agent.addSource(
 			OrderedSource,
 			{ label: "A" },
-			{ provenance: { domain: "replicated", order: 0 } }
+			{ provenance: { domain: "replicated", sequence: 0 } }
 		)!;
 		agent.addSource(
 			OrderedSource,
 			{ label: "B" },
-			{ provenance: { domain: "replicated", order: 1 } }
+			{ provenance: { domain: "replicated", sequence: 1 } }
 		);
 
 		expect(agent.get(TraceProperty)).toBe("AB");
@@ -231,33 +231,33 @@ describe("deterministic Source ordering integration", () => {
 		firstAgent.addSource(
 			OrderedSource,
 			{ label: "A" },
-			{ provenance: { domain: "replicated", order: 0 } }
+			{ provenance: { domain: "replicated", sequence: 0 } }
 		);
 		firstAgent.addSource(
 			OrderedSource,
 			{ label: "B" },
-			{ provenance: { domain: "replicated", order: 1 } }
+			{ provenance: { domain: "replicated", sequence: 1 } }
 		);
 		firstAgent.addSource(
 			OrderedSource,
 			{ label: "C" },
-			{ provenance: { domain: "replicated", order: 2 } }
+			{ provenance: { domain: "replicated", sequence: 2 } }
 		);
 
 		secondAgent.addSource(
 			OrderedSource,
 			{ label: "C" },
-			{ provenance: { domain: "replicated", order: 2 } }
+			{ provenance: { domain: "replicated", sequence: 2 } }
 		);
 		secondAgent.addSource(
 			OrderedSource,
 			{ label: "A" },
-			{ provenance: { domain: "replicated", order: 0 } }
+			{ provenance: { domain: "replicated", sequence: 0 } }
 		);
 		secondAgent.addSource(
 			OrderedSource,
 			{ label: "B" },
-			{ provenance: { domain: "replicated", order: 1 } }
+			{ provenance: { domain: "replicated", sequence: 1 } }
 		);
 
 		expect(firstAgent.get(TraceProperty)).toBe("ABC");
