@@ -1,4 +1,4 @@
-export type Duplication<TExisting, TData> =
+export type DuplicatePolicy<TExisting, TData> =
 	| {
 			readonly policy: "allow" | "ignore" | "replace";
 	  }

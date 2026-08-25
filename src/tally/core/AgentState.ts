@@ -96,8 +96,31 @@ export class AgentState<TEntity> {
 		data: TDescriptorData,
 		options?: DescriptorOption
 	): Descriptor<TDescriptorData, TSourceData> | undefined {
-		// TODO: Handle duplicate policy and priority
-		return this.createDescriptor(type, data, options);
+		// TODO: Handle priority
+		switch (type.duplication.policy) {
+			case "allow":
+				return this.createDescriptor(type, data, options);
+			case "ignore": {
+				const existingDescriptor = this.descriptorMap.get(type)?.values().next().value;
+				if (existingDescriptor) return undefined;
+				return this.createDescriptor(type, data, options);
+			}
+			case "replace": {
+				return this.batch(() => {
+					const existingDescriptor = this.descriptorMap.get(type)?.values().next().value;
+					existingDescriptor?.destroy();
+					return this.createDescriptor(type, data, options);
+				});
+			}
+			case "reconcile": {
+				const existingDescriptor = this.descriptorMap.get(type)?.values().next().value;
+				if (!existingDescriptor) return this.createDescriptor(type, data, options);
+				if (existingDescriptor.type.duplication.policy !== "reconcile")
+					throw new Error("Duplicate policy was changed");
+				existingDescriptor.type.duplication.reconcile(existingDescriptor, data);
+				return undefined;
+			}
+		}
 	}
 
 	registerDescriptorHandler<TDescriptorData, TSourceData>(
