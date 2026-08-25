@@ -1,3 +1,195 @@
 # Tally
 
-A composable, source-driven status effect framework.
+A composable, source-driven status effect framework for deriving and replicating gameplay state.
+
+Tally models gameplay state as Properties modified by Sources.
+Rather than treating status effects as first-class objects, effects emerge
+from combinations of Sources, Modifiers, Properties, and Descriptors.
+
+## Features
+
+- composable property modifiers
+- configurable source priorities
+- deterministic ordering
+- duplicate policies
+- descriptors for derived/runtime-maintained state
+- transport-agnostic replication
+- snapshots and delta replication
+- strongly typed TypeScript API
+
+## Installation
+
+Tally is available as an npm package.
+
+`npm install tally-effects`
+
+## Quick Start
+
+In this example, a Sprinting source type contributes a multiplier modifier for the MovementSpeed property. The source is added to the agent, where the MovementSpeed's value is then resolved by calling get on the agent. The source then gets destroyed, removing its modifiers, and restoring the MovementSpeed property back to its default value.
+
+```ts
+const MovementSpeed = defineNumberProperty({
+    name: "MovementSpeed",
+    defaultValue: 16,
+});
+
+const Sprinting = defineSourceType<number>({
+    name: "Sprinting",
+    priority: 100,
+    contribute: (multiplier) => [
+        MovementSpeed.multiply(multiplier),
+    ],
+});
+
+const agent = new AgentState(player);
+
+const sprint = agent.addSource(
+    Sprinting,
+    1.5
+);
+
+agent.get(MovementSpeed);
+// 24
+
+sprint?.destroy();
+
+agent.get(MovementSpeed);
+// 16
+```
+The infrastructure that Tally creates is thus:
+```
+Source
+  ↓ contributes
+Modifier
+  ↓ modifies
+Property
+  ↓ resolves to
+final value
+```
+
+### Properties
+
+Properties define values that Tally resolves. A Property provides a default value and defines how its Modifiers combine.
+
+```ts
+const HealthRegen = defineNumberProperty({
+    name: "HealthRegen",
+    defaultValue: 1,
+});
+```
+
+### Sources
+
+A Source represents a current cause of state and is returned by a call to `AgentState:addSource`. It represents the runtime instance of a SourceType.
+
+A SourceType is a definition for the creation of a Source, as shown below:
+
+```ts
+const Poisoned = defineSourceType<PoisonData>({
+    name: "Poisoned",
+    priority: 100,
+    contribute: (data) => [
+        HealthRegen.multiply(data.regenMultiplier),
+    ],
+});
+```
+
+### Priorities and Deterministic Ordering
+
+Modifiers are resolved deterministically. Priority is considered first, followed by provenance ordering and Source sequence. The result does not depend on collection iteration order or the local order in which replicated state arrived.
+
+### Duplicate Policies
+
+A duplicate policy determines what happens when a source is added when a matching type already exists within the agent. The policies are listed below:
+
+| Policy | Behavior |
+| ------ | -------- |
+| `allow` | create another instance |
+| `ignore` | reject the new instance |
+| `replace` | destroy the old instance and create the new one |
+| `reconcile` | let application code merge incoming data into the existing instance |
+
+### Descriptors
+
+A Descriptor represents state whose Source must be maintained by runtime-specific behavior. The Descriptor data can be shared or replicated, while its handler decides locally how to realize that state.
+
+```
+Descriptor
+    ↓ runtime handler
+DescriptorBinding
+    ↓ adds
+Source
+    ↓ contributes
+Modifiers
+```
+
+An example of descriptors being used is a proximity effect, where a status effect scales depending on the proximity to an object.
+
+This creates the DescriptorType which also defines how ProximityData passed to the descriptor is serialized for replication.
+
+```ts
+const ProximityFear = defineDescriptorType<
+    ProximityData,
+    FearData
+>({
+    name: "ProximityFear",
+    source: Fear, // source type
+    replication: {
+        serialize: ...,
+        deserialize: ...,
+    },
+});
+```
+
+Then on a TallyContext or AgentState object, a handler can be injected for that DescriptorType.
+
+```ts
+tally.registerDescriptorHandler(
+    ProximityFear,
+    (ctx, data) => {
+        const source = ctx.addSource(
+            calculateFear(data)
+        );
+
+        if (!source)
+            return;
+
+        return {
+            source,
+            update(next) {
+                source.set(
+                    calculateFear(next)
+                );
+            },
+            destroy() {
+                source.destroy();
+            },
+        };
+    }
+);
+```
+
+Descriptor handlers should be registered before creating AgentStates.
+
+### Replication
+
+Tally emits replication state/events, but does not own your networking layer. Developers are expected to implement how to transport the data.
+
+Tally does offer Receivers for accepting replication events.
+
+The replication model is thus:
+```
+Server AgentState
+      ↓
+Tally replication event
+      ↓
+your transport
+      ↓
+SourceReceiver / DescriptorReceiver
+      ↓
+Client AgentState
+```
+
+## Status
+
+Tally is currently pre-1.0. Public APIs may evolve as the library gains real-world usage.
