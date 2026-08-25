@@ -150,6 +150,21 @@ export class TallyContext<TEntity> {
 		return () => this.sourceUpdatedCallbacks.delete(callback);
 	}
 
+	onDescriptorAdded(callback: DescriptorCallback<TEntity>): Disconnect {
+		this.descriptorAddedCallbacks.add(callback);
+		return () => this.descriptorAddedCallbacks.delete(callback);
+	}
+
+	onDescriptorRemoved(callback: DescriptorCallback<TEntity>): Disconnect {
+		this.descriptorRemovedCallbacks.add(callback);
+		return () => this.descriptorRemovedCallbacks.delete(callback);
+	}
+
+	onDescriptorUpdated(callback: DescriptorCallback<TEntity>): Disconnect {
+		this.descriptorUpdatedCallbacks.add(callback);
+		return () => this.descriptorUpdatedCallbacks.delete(callback);
+	}
+
 	onReplicationEmit(callback: ReplicationCallback<TEntity>): Disconnect {
 		this.replicationCallbacks.add(callback);
 		return () => this.replicationCallbacks.delete(callback);
