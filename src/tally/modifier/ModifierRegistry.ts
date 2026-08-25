@@ -1,4 +1,3 @@
-import { OrderedBuckets } from "../util/OrderedBuckets.js";
 import type { AnyProperty, Property } from "../property/Property.js";
 import type { Modifier } from "./Modifier.js";
 import type { ModifierCollection } from "./ModifierContribution.js";
