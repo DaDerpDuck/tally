@@ -46,6 +46,7 @@ function createDescriptorFixture(
 				if (typeof value !== "number") throw new Error("Expected a number");
 				return value;
 			},
+		}
 	});
 	const agent = new AgentState(undefined);
 	const bindingDestroyed = vi.fn();
