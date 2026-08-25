@@ -6,7 +6,7 @@ import {
 	defineSourceType,
 } from "../src";
 
-interface OrderedData {
+type OrderedData = {
 	readonly operation: "add" | "multiply";
 	readonly value: number;
 }
