@@ -30,7 +30,10 @@ export class AgentState<TEntity> {
 	>();
 
 	private readonly sourceMap = new Map<AnySourceType, Set<Source>>();
-	private readonly descriptorMap = new Map<DescriptorType<unknown, unknown>, Set<AnyDescriptor>>();
+	private readonly descriptorMap = new Map<
+		DescriptorType<unknown, unknown>,
+		Set<AnyDescriptor>
+	>();
 
 	private readonly propertyCallbacks = new Map<AnyProperty, Set<PropertyCallback>>();
 	private readonly sourceAddedCallbacks = new Set<SourceCallback>();
@@ -280,13 +283,15 @@ export class AgentState<TEntity> {
 	}
 
 	destroyAllDescriptors() {
-		this.descriptorMap.values().forEach((descriptors) => descriptors.forEach((x) => x.destroy));
+		this.descriptorMap
+			.values()
+			.forEach((descriptors) => descriptors.forEach((x) => x.destroy()));
 		this.descriptorMap.clear();
 	}
 
 	destroy() {
-		this.destroyAllSources();
 		this.destroyAllDescriptors();
+		this.destroyAllSources();
 		this.propertyCallbacks.clear();
 		this.sourceAddedCallbacks.clear();
 		this.sourceRemovedCallbacks.clear();

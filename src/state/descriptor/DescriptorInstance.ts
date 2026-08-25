@@ -26,6 +26,7 @@ export class DescriptorInstance<
 	}
 
 	set(data: ExtractDataFromDescriptor<TDescriptorType>) {
+		this.data = data;
 		this.binding.update(data);
 		for (const callback of this.updateCallbacks) {
 			callback(this);
@@ -56,5 +57,6 @@ export class DescriptorInstance<
 
 	destroy() {
 		this.binding.destroy();
+		this.destroyCallbacks.forEach((callback) => callback(this));
 	}
 }
