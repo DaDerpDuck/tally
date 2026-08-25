@@ -59,10 +59,7 @@ export class TallyContext<TEntity> {
 					this.replicationCallbacks.forEach((callback) =>
 						callback(agent, {
 							target: "source",
-							event: {
-								kind: "added",
-								source: serializeSource(source),
-							},
+							event: { kind: "added", source: serializeSource(source) },
 						})
 					);
 			})
@@ -74,10 +71,7 @@ export class TallyContext<TEntity> {
 					this.replicationCallbacks.forEach((callback) =>
 						callback(agent, {
 							target: "source",
-							event: {
-								kind: "removed",
-								id: source.id,
-							},
+							event: { kind: "removed", id: source.id },
 						})
 					);
 			})
@@ -101,38 +95,41 @@ export class TallyContext<TEntity> {
 		this.agentConnections.add(
 			agent.onDescriptorAdded((descriptor) => {
 				this.descriptorAddedCallbacks.forEach((callback) => callback(agent, descriptor));
-				this.replicationCallbacks.forEach((callback) =>
-					callback(agent, {
-						target: "descriptor",
-						event: { kind: "added", descriptor: serializeDescriptor(descriptor) },
-					})
-				);
+				if (descriptor.provenance.domain === "local")
+					this.replicationCallbacks.forEach((callback) =>
+						callback(agent, {
+							target: "descriptor",
+							event: { kind: "added", descriptor: serializeDescriptor(descriptor) },
+						})
+					);
 			})
 		);
 		this.agentConnections.add(
 			agent.onDescriptorRemoved((descriptor) => {
 				this.descriptorRemovedCallbacks.forEach((callback) => callback(agent, descriptor));
-				this.replicationCallbacks.forEach((callback) =>
-					callback(agent, {
-						target: "descriptor",
-						event: { kind: "removed", id: descriptor.id },
-					})
-				);
+				if (descriptor.provenance.domain === "local")
+					this.replicationCallbacks.forEach((callback) =>
+						callback(agent, {
+							target: "descriptor",
+							event: { kind: "removed", id: descriptor.id },
+						})
+					);
 			})
 		);
 		this.agentConnections.add(
 			agent.onDescriptorUpdated((descriptor) => {
 				this.descriptorUpdatedCallbacks.forEach((callback) => callback(agent, descriptor));
-				this.replicationCallbacks.forEach((callback) =>
-					callback(agent, {
-						target: "descriptor",
-						event: {
-							kind: "updated",
-							id: descriptor.id,
-							data: descriptor.type.replication.serialize(descriptor.get()),
-						},
-					})
-				);
+				if (descriptor.provenance.domain === "local")
+					this.replicationCallbacks.forEach((callback) =>
+						callback(agent, {
+							target: "descriptor",
+							event: {
+								kind: "updated",
+								id: descriptor.id,
+								data: descriptor.type.replication.serialize(descriptor.get()),
+							},
+						})
+					);
 			})
 		);
 		return agent;

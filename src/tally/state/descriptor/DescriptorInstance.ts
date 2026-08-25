@@ -1,5 +1,6 @@
 import type { DescriptorId } from "../../replication/descriptor/ReplicatedDescriptor.js";
 import type { Disconnect } from "../../util/Disconnect.js";
+import type { StateProvenance } from "../Provenance.js";
 import type { Source } from "../source/Source.js";
 import type { Descriptor } from "./Descriptor.js";
 import type { DescriptorBinding } from "./DescriptorBinding.js";
@@ -15,6 +16,7 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 	constructor(
 		public readonly id: DescriptorId,
 		public readonly type: DescriptorType<TDescriptorData, TSourceData>,
+		public readonly provenance: StateProvenance,
 		private readonly binding: DescriptorBinding<TDescriptorData, TSourceData>,
 		private data: TDescriptorData
 	) {}

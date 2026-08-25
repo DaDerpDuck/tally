@@ -1,11 +1,6 @@
-export type SourceDomain = "local" | "replicated" | "descriptor"
-
-export interface SourceProvenance {
-    readonly domain: SourceDomain;
-    readonly order: number;
-}
+import type { StateProvenance } from "../Provenance.js";
 
 export interface SourceOption {
 	readonly priority?: number;
-    readonly provenance?: SourceProvenance;
+    readonly provenance?: StateProvenance;
 }

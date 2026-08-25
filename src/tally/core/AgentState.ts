@@ -16,6 +16,7 @@ import type {
 	DescriptorHandler,
 } from "../state/descriptor/DescriptorHandler.js";
 import type { Disconnect } from "../util/Disconnect.js";
+import type { DescriptorOption } from "../state/index.js";
 
 type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
 type SourceCallback<T = unknown> = (source: Source<T>) => void;
@@ -31,10 +32,7 @@ export class AgentState<TEntity> {
 	private readonly descriptorHandlers = new Map<AnyDescriptorType, AnyDescriptorHandler>();
 
 	private readonly sourceMap = new Map<AnySourceType, Set<Source>>();
-	private readonly descriptorMap = new Map<
-		DescriptorType<unknown, unknown>,
-		Set<AnyDescriptor>
-	>();
+	private readonly descriptorMap = new Map<AnyDescriptorType, Set<AnyDescriptor>>();
 
 	private readonly propertyCallbacks = new Map<AnyProperty, Set<PropertyCallback>>();
 	private readonly sourceAddedCallbacks = new Set<SourceCallback>();
@@ -95,10 +93,11 @@ export class AgentState<TEntity> {
 
 	addDescriptor<TDescriptorData, TSourceData>(
 		type: DescriptorType<TDescriptorData, TSourceData>,
-		data: TDescriptorData
+		data: TDescriptorData,
+		options?: DescriptorOption
 	): Descriptor<TDescriptorData, TSourceData> | undefined {
 		// TODO: Handle duplicate policy and priority
-		return this.createDescriptor(type, data);
+		return this.createDescriptor(type, data, options);
 	}
 
 	registerDescriptorHandler<TDescriptorData, TSourceData>(
@@ -153,7 +152,8 @@ export class AgentState<TEntity> {
 
 	private createDescriptor<TDescriptorData, TSourceData>(
 		type: DescriptorType<TDescriptorData, TSourceData>,
-		data: TDescriptorData
+		data: TDescriptorData,
+		options?: DescriptorOption
 	): Descriptor<TDescriptorData, TSourceData> | undefined {
 		const handler = this.descriptorHandlers.get(type);
 		if (!handler)
@@ -185,9 +185,12 @@ export class AgentState<TEntity> {
 		);
 		if (!binding) return undefined;
 
+		const provenance = options?.provenance ?? { domain: "local", order: this.sourceCounter };
+
 		const descriptor = new DescriptorInstance<TDescriptorData, TSourceData>(
 			this.sourceCounter++,
 			type,
+			provenance,
 			binding as DescriptorBinding<TDescriptorData, TSourceData>,
 			data
 		);

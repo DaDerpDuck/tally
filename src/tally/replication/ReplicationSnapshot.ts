@@ -1,5 +1,8 @@
 import type { AgentState } from "../core/AgentState.js";
-import { type ReplicatedDescriptor, serializeDescriptor } from "./descriptor/ReplicatedDescriptor.js";
+import {
+	type ReplicatedDescriptor,
+	serializeDescriptor,
+} from "./descriptor/ReplicatedDescriptor.js";
 import { type ReplicatedSource, serializeSource } from "./source/ReplicatedSource.js";
 
 export interface ReplicationSnapshot {
@@ -21,6 +24,7 @@ export function createReplicationSnapshot(agent: AgentState<unknown>): Replicati
 		descriptors: agent
 			.getDescriptors()
 			.values()
+			.filter((descriptor) => descriptor.provenance.domain === "local")
 			.map((descriptor) => serializeDescriptor(descriptor))
 			.toArray(),
 	};

@@ -1,6 +1,6 @@
 import type { Disconnect } from "../../util/Disconnect.js";
+import type { StateProvenance } from "../Provenance.js";
 import type { Source } from "./Source.js";
-import type { SourceProvenance } from "./SourceOption.js";
 import type { SourceType } from "./SourceType.js";
 
 export class SourceInstance<TData> implements Source<TData> {
@@ -11,7 +11,7 @@ export class SourceInstance<TData> implements Source<TData> {
 		public readonly id: number,
 		public readonly type: SourceType<TData>,
 		public readonly priority: number,
-		public readonly provenance: SourceProvenance,
+		public readonly provenance: StateProvenance,
 		private data: TData
 	) {}
 
