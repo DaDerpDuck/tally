@@ -1,8 +1,8 @@
+import type { DescriptorId } from "../../replication/descriptor/ReplicatedDescriptor.js";
 import type { Source } from "../source/Source.js";
 import type { Descriptor } from "./Descriptor.js";
 import type { DescriptorBinding } from "./DescriptorBinding.js";
 import type { DescriptorType } from "./DescriptorType.js";
-import type { DescriptorId } from "./ReplicatedDescriptor.js";
 
 type Disconnect = () => void;
 

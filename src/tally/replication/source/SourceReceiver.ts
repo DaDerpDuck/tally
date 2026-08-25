@@ -1,10 +1,12 @@
-import type { AgentState } from "../core/AgentState.js";
-import type { Source } from "../source/Source.js";
-import type { AnySourceType, SourceType } from "../source/SourceType.js";
-import type { ReplicatedSource, ReplicationEvent, ReplicationValue, SourceId } from "./index.js";
-import type { ReplicationReceiver } from "./ReplicationReceiver.js";
-import type { ReplicationSnapshot } from "./ReplicationSnapshot.js";
+import type { AgentState } from "../../core/AgentState.js";
+import type { ReplicationEvent } from "../ReplicationEvent.js";
+import type { ReplicationReceiver } from "../ReplicationReceiver.js";
+import type { ReplicationSnapshot } from "../ReplicationSnapshot.js";
+import type { ReplicationValue } from "../ReplicationValue.js";
+import type { ReplicatedSource, SourceId } from "./ReplicatedSource.js";
 import type { SourceReplicationEvent } from "./SourceReplicationEvent.js";
+import type { AnySourceType, SourceType } from "../../state/source/SourceType.js";
+import type { Source } from "../../state/source/Source.js";
 
 export class SourceReceiver implements ReplicationReceiver {
 	private readonly replicatedSources = new Map<number, Source>();

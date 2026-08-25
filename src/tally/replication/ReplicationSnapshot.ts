@@ -1,9 +1,6 @@
 import type { AgentState } from "../core/AgentState.js";
-import {
-	serializeDescriptor,
-	type ReplicatedDescriptor,
-} from "../descriptor/ReplicatedDescriptor.js";
-import { serializeSource, type ReplicatedSource } from "./ReplicatedSource.js";
+import { type ReplicatedDescriptor, serializeDescriptor } from "./descriptor/ReplicatedDescriptor.js";
+import { type ReplicatedSource, serializeSource } from "./source/ReplicatedSource.js";
 
 export interface ReplicationSnapshot {
 	readonly sources: readonly ReplicatedSource[];

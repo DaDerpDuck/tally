@@ -1,4 +1,4 @@
-import type { AgentState } from "../core/AgentState.js";
+import type { AgentState } from "../../core/AgentState.js";
 import type { Source } from "../source/Source.js";
 import type { SourceOption } from "../source/SourceOption.js";
 import type { SourceType } from "../source/SourceType.js";

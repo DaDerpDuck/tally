@@ -1,5 +1,5 @@
-import type { Registrable, Registry } from "../core/Registrable.js";
 import type { Modifier } from "../modifier/Modifier.js";
+import type { Registrable, Registry } from "../state/Registrable.js";
 
 export interface PropertyDefinition<T> {
 	readonly name: string;
@@ -26,7 +26,6 @@ export class BaseProperty<T> implements Registrable {
 		return this.definition.equals?.(a, b) ?? this.defaultEquals(a, b);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	protected defaultResolve(base: T, modifiers: readonly Modifier<T>[]): T {
 		return base;
 	}

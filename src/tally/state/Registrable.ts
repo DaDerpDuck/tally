@@ -1,6 +1,6 @@
-import type { AnyDescriptorType } from "../descriptor/DescriptorType.js";
+import type { AnyDescriptorType } from "../state/descriptor/DescriptorType.js";
 import type { AnyProperty } from "../property/Property.js";
-import type { AnySourceType } from "../source/SourceType.js";
+import type { AnySourceType } from "../state/source/SourceType.js";
 
 export interface Registry {
 	readonly sources: Map<string, AnySourceType>;

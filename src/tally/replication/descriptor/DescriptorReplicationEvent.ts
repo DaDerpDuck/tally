@@ -1,4 +1,4 @@
-import type { ReplicationValue } from "../replication/ReplicationValue.js";
+import type { ReplicationValue } from "../ReplicationValue.js";
 import type { ReplicatedDescriptor, DescriptorId } from "./ReplicatedDescriptor.js";
 
 export type DescriptorReplicationEvent =

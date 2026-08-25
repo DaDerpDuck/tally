@@ -1,12 +1,12 @@
-import type { AgentState } from "../core/AgentState.js";
-import type { ReplicationReceiver } from "../replication/ReplicationReceiver.js";
-import type { ReplicationEvent } from "../replication/ReplicationEvent.js";
-import type { ReplicationSnapshot } from "../replication/ReplicationSnapshot.js";
-import type { ReplicationValue } from "../replication/ReplicationValue.js";
-import type { AnyDescriptor } from "./Descriptor.js";
+import type { AgentState } from "../../core/AgentState.js";
+import type { ReplicationReceiver } from "../../replication/ReplicationReceiver.js";
+import type { ReplicationEvent } from "../../replication/ReplicationEvent.js";
+import type { ReplicationSnapshot } from "../../replication/ReplicationSnapshot.js";
+import type { ReplicationValue } from "../../replication/ReplicationValue.js";
+import type { AnyDescriptor } from "../../state/descriptor/Descriptor.js";
 import type { DescriptorReplicationEvent } from "./DescriptorReplicationEvent.js";
-import type { AnyDescriptorType, DescriptorType } from "./DescriptorType.js";
-import type { DescriptorId, ReplicatedDescriptor } from "./ReplicatedDescriptor.js";
+import type { ReplicatedDescriptor, DescriptorId } from "./ReplicatedDescriptor.js";
+import type { AnyDescriptorType, DescriptorType } from "../../state/descriptor/DescriptorType.js";
 
 export class DescriptorReceiver implements ReplicationReceiver {
 	private readonly replicatedDescriptors = new Map<number, AnyDescriptor>();

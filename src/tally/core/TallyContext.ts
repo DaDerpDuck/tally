@@ -1,14 +1,17 @@
-import type { AnyDescriptor, Descriptor } from "../descriptor/Descriptor.js";
-import type { AnyDescriptorHandler, DescriptorHandler } from "../descriptor/DescriptorHandler.js";
-import type { AnyDescriptorType, DescriptorType } from "../descriptor/DescriptorType.js";
-import { serializeDescriptor } from "../descriptor/ReplicatedDescriptor.js";
+import type { AnyDescriptor } from "../state/descriptor/Descriptor.js";
+import type {
+	AnyDescriptorHandler,
+	DescriptorHandler,
+} from "../state/descriptor/DescriptorHandler.js";
+import type { AnyDescriptorType, DescriptorType } from "../state/descriptor/DescriptorType.js";
 import type { AnyProperty } from "../property/Property.js";
-import { serializeSource } from "../replication/ReplicatedSource.js";
 import type { ReplicationEvent } from "../replication/ReplicationEvent.js";
-import type { Source } from "../source/Source.js";
-import type { AnySourceType } from "../source/SourceType.js";
+import type { Source } from "../state/source/Source.js";
+import type { AnySourceType } from "../state/source/SourceType.js";
 import { AgentState } from "./AgentState.js";
-import type { Registrable, Registry } from "./Registrable.js";
+import type { Registrable, Registry } from "../state/Registrable.js";
+import { serializeSource } from "../replication/source/ReplicatedSource.js";
+import { serializeDescriptor } from "../replication/index.js";
 
 type ReplicationCallback<TEntity> = (agent: AgentState<TEntity>, event: ReplicationEvent) => void;
 type SourceCallback<TEntity> = (agent: AgentState<TEntity>, source: Source) => void;

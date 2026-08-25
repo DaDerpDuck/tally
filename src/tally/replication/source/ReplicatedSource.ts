@@ -1,5 +1,5 @@
-import type { Source } from "../source/Source.js";
-import type { ReplicationValue } from "./ReplicationValue.js";
+import type { Source } from "../../state/source/Source.js";
+import type { ReplicationValue } from "../ReplicationValue.js";
 
 export type SourceId = number;
 

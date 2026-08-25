@@ -1,8 +1,8 @@
-import type { Registrable, Registry } from "../core/Registrable.js";
 import type {
 	AnyReplicationDefinition,
 	ReplicationDefinition,
-} from "../replication/ReplicationDefinition.js";
+} from "../../replication/ReplicationDefinition.js";
+import type { Registrable, Registry } from "../Registrable.js";
 import type { SourceType } from "../source/SourceType.js";
 
 export interface AnyDescriptorType {

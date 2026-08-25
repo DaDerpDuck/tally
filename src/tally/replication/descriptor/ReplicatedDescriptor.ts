@@ -1,5 +1,5 @@
-import type { ReplicationValue } from "../replication/ReplicationValue.js";
-import type { AnyDescriptor } from "./Descriptor.js";
+import type { ReplicationValue } from "../../replication/ReplicationValue.js";
+import type { AnyDescriptor } from "../../state/descriptor/Descriptor.js";
 
 export type DescriptorId = number;
 
