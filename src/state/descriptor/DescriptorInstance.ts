@@ -1,4 +1,3 @@
-import type { Source } from "../source/Source.js";
 import type { Descriptor } from "./Descriptor.js";
 import type { DescriptorBinding } from "./DescriptorBinding.js";
 import type {
@@ -11,14 +10,13 @@ import type { DescriptorId } from "./ReplicatedDescriptor.js";
 type Disconnect = () => void;
 
 export class DescriptorInstance<
-	TDescriptorType extends DescriptorType<unknown, Source>,
+	TDescriptorType extends DescriptorType<unknown, unknown>,
 > implements Descriptor<TDescriptorType> {
 	private readonly updateCallbacks = new Set<(self: this) => void>();
 	private readonly destroyCallbacks = new Set<(self: this) => void>();
 
 	constructor(
 		public readonly id: DescriptorId,
-		// FIXME: Uncommenting this breaks the typings everywhere
 		public readonly type: TDescriptorType,
 		private readonly binding: DescriptorBinding<TDescriptorType>,
 		private data: ExtractDataFromDescriptor<TDescriptorType>

@@ -4,26 +4,27 @@ import type {
 	ReplicationDefinition,
 } from "../replication/ReplicationDefinition.js";
 import type { Source } from "../source/Source.js";
+import type { SourceType } from "../source/SourceType.js";
 
 export interface AnyDescriptorType {
 	readonly name: string;
 	readonly replication: AnyReplicationDefinition;
 }
 
-export interface DescriptorTypeDefinition<TDescriptorData, TSource extends Source> {
+export interface DescriptorTypeDefinition<TDescriptorData, TSourceData> {
 	readonly name: string;
-	readonly source: TSource;
+	readonly source: SourceType<TSourceData>;
 	readonly replication: ReplicationDefinition<TDescriptorData>;
 }
 
-export class DescriptorType<TDescriptorData, TSource extends Source>
+export class DescriptorType<TDescriptorData, TSourceData>
 	implements AnyDescriptorType, Registrable
 {
 	public readonly name: string;
-	public readonly source: TSource;
+	public readonly source: SourceType<TSourceData>;
 	public readonly replication: ReplicationDefinition<TDescriptorData>;
 
-	constructor(private readonly definition: DescriptorTypeDefinition<TDescriptorData, TSource>) {
+	constructor(private readonly definition: DescriptorTypeDefinition<TDescriptorData, TSourceData>) {
 		this.name = definition.name;
 		this.source = definition.source;
 		this.replication = definition.replication;
@@ -36,7 +37,7 @@ export class DescriptorType<TDescriptorData, TSource extends Source>
 	}
 }
 
-export type ExtractDataFromDescriptor<T extends DescriptorType<unknown, Source>> =
-	T extends DescriptorType<infer U, Source> ? U : never;
-export type ExtractSourceFromDescriptor<T extends DescriptorType<unknown, Source>> =
-	T extends DescriptorType<unknown, infer U> ? U : never;
+export type ExtractDataFromDescriptor<T extends DescriptorType<unknown, unknown>> =
+	T extends DescriptorType<infer U, unknown> ? U : never;
+export type ExtractSourceFromDescriptor<T extends DescriptorType<unknown, unknown>> =
+	T extends DescriptorType<unknown, infer U> ? Source<U> : never;

@@ -12,7 +12,7 @@ export interface AnyDescriptorBinding {
 }
 
 export interface DescriptorBinding<
-	TDescriptorType extends DescriptorType<unknown, Source>,
+	TDescriptorType extends DescriptorType<unknown, unknown>,
 > extends AnyDescriptorBinding {
 	readonly source: ExtractSourceFromDescriptor<TDescriptorType> | undefined;
 	update(data: ExtractDataFromDescriptor<TDescriptorType>): void;
