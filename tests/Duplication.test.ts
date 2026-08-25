@@ -17,7 +17,7 @@ function createSourceFixture(
 		name: "SourceDuplicationSource",
 		priority: 100,
 		contribute: (value) => [Property.add(value)],
-		duplication,
+		...(duplication === undefined ? {} : { duplication }),
 	});
 	const agent = new AgentState(undefined);
 
@@ -39,7 +39,7 @@ function createDescriptorFixture(
 	const DescriptorType = defineDescriptorType<number, number>({
 		name: "DescriptorDuplicationDescriptor",
 		source: SourceType,
-		duplication,
+		...(duplication === undefined ? {} : { duplication }),
 		replication: {
 			serialize: (value) => value,
 			deserialize: (value) => {
