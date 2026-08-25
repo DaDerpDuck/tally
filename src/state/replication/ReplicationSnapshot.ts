@@ -15,7 +15,10 @@ export function createReplicationSnapshot(agent: AgentState<unknown>): Replicati
 		sources: agent
 			.getSources()
 			.values()
-			.filter((source) => source.type.replication !== undefined)
+			.filter(
+				(source) =>
+					source.type.replication !== undefined && source.provenance.domain === "local"
+			)
 			.map((source) => serializeSource(source))
 			.toArray(),
 		descriptors: agent

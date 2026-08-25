@@ -60,7 +60,7 @@ export class AgentState<TEntity> {
 		type: SourceType<TData>,
 		data: TData,
 		options?: SourceOption
-	): Source<TData | undefined> | undefined {
+	): Source<TData> | undefined {
 		switch (type.duplication.policy) {
 			case "allow":
 				return this.createSource(type, data, options);
@@ -94,7 +94,29 @@ export class AgentState<TEntity> {
 			throw new Error(
 				"Attempted to add a descriptor source before a descriptor handler was assigned"
 			);
-		const binding = handler(this, data);
+		const binding = handler(
+			{
+				agent: this,
+				addSource: (type, data, options) => {
+					type Writable<T> = {
+						-readonly [K in keyof T]: T[K];
+					};
+					const writableOptions: Writable<SourceOption> = {
+						priority: type.priority,
+						provenance: {
+							domain: "descriptor",
+							order: this.sourceCounter,
+						},
+					};
+					if (options?.priority !== undefined)
+						writableOptions.priority = options.priority;
+					if (options?.provenance !== undefined)
+						writableOptions.provenance = options.provenance;
+					return this.addSource(type, data, writableOptions);
+				},
+			},
+			data
+		);
 		if (!binding) return undefined;
 
 		const descriptor = new DescriptorInstance<TDescriptorData, TSourceData>(
@@ -131,9 +153,13 @@ export class AgentState<TEntity> {
 		options?: SourceOption
 	): SourceInstance<TData> {
 		const priority = options?.priority ?? type.priority;
+		const provenance = options?.provenance ?? {
+			domain: "local",
+			order: this.sourceCounter,
+		};
 		let handles = this.applyModifiers(type, priority, data);
 
-		const source = new SourceInstance(this.sourceCounter++, type, priority, data);
+		const source = new SourceInstance(this.sourceCounter++, type, priority, provenance, data);
 		this.sourceModifiersMap.set(source, handles);
 		for (const handle of handles) this.dirtyProperties.add(handle.property);
 		this.requestResolve();

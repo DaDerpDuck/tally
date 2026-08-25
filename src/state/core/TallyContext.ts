@@ -52,7 +52,7 @@ export class TallyContext<TEntity> {
 		this.agentConnections.add(
 			agent.onSourceAdded((source) => {
 				this.sourceAddedCallbacks.forEach((callback) => callback(agent, source));
-				if (source.type.replication)
+				if (source.type.replication && source.provenance.domain === "local")
 					this.replicationCallbacks.forEach((callback) =>
 						callback(agent, {
 							target: "source",
@@ -67,7 +67,7 @@ export class TallyContext<TEntity> {
 		this.agentConnections.add(
 			agent.onSourceRemoved((source) => {
 				this.sourceRemovedCallbacks.forEach((callback) => callback(agent, source));
-				if (source.type.replication)
+				if (source.type.replication && source.provenance.domain === "local")
 					this.replicationCallbacks.forEach((callback) =>
 						callback(agent, {
 							target: "source",
@@ -82,7 +82,7 @@ export class TallyContext<TEntity> {
 		this.agentConnections.add(
 			agent.onSourceUpdated((source) => {
 				this.sourceUpdatedCallbacks.forEach((callback) => callback(agent, source));
-				if (source.type.replication)
+				if (source.type.replication && source.provenance.domain === "local")
 					this.replicationCallbacks.forEach((callback) =>
 						callback(agent, {
 							target: "source",
