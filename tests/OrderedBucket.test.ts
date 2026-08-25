@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OrderedBuckets } from "../src";
+import { OrderedBuckets } from "../src/tally/util/OrderedBuckets";
 
 function expectContents(buckets: OrderedBuckets<number>, values: number[]) {
 	expect(buckets.values()).toEqual(values);

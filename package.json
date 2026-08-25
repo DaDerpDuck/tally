@@ -9,6 +9,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "typetest": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
