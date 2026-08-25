@@ -39,13 +39,13 @@ const ValueDescriptor = defineDescriptorType<DescriptorData, DescriptorData>({
 });
 
 function registerHandler(
-	agent: AgentState<undefined>,
+	agent: AgentState<undefined> | TallyContext<undefined>,
 	descriptorType: DescriptorType<DescriptorData, DescriptorData> = ValueDescriptor,
 	sourceType: SourceType<DescriptorData> = DescriptorSource,
 	onDestroy = vi.fn()
 ) {
-	agent.registerDescriptorHandler(descriptorType, (state) => {
-		const source = state.addSource(sourceType, { value: 0 })!;
+	agent.registerDescriptorHandler(descriptorType, (state, data) => {
+		const source = state.addSource(sourceType, { value: data.value })!;
 
 		return {
 			source,
@@ -70,15 +70,15 @@ function createAgentFixture() {
 
 function createReplicationFixture(attachReplication = true) {
 	const serverTally = new TallyContext<undefined>();
+	registerHandler(serverTally);
 	const serverAgent = serverTally.createAgentState(undefined);
 	serverTally.register(ValueDescriptor);
-	registerHandler(serverAgent);
-
+	
 	const clientTally = new TallyContext<undefined>();
+	registerHandler(clientTally);
 	const clientAgent = clientTally.createAgentState(undefined);
 	clientTally.register(ValueDescriptor);
-	registerHandler(clientAgent);
-
+	
 	const receiver = new DescriptorReceiver(clientAgent, (name) =>
 		clientTally.descriptors.get(name)
 	);

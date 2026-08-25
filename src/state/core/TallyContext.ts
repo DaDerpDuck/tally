@@ -1,5 +1,6 @@
 import type { AnyDescriptor, Descriptor } from "../descriptor/Descriptor.js";
-import type { AnyDescriptorType } from "../descriptor/DescriptorType.js";
+import type { AnyDescriptorHandler, DescriptorHandler } from "../descriptor/DescriptorHandler.js";
+import type { AnyDescriptorType, DescriptorType } from "../descriptor/DescriptorType.js";
 import { serializeDescriptor } from "../descriptor/ReplicatedDescriptor.js";
 import type { AnyProperty } from "../property/Property.js";
 import { serializeSource } from "../replication/ReplicatedSource.js";
@@ -20,6 +21,7 @@ export class TallyContext<TEntity> {
 		properties: new Map(),
 		descriptors: new Map(),
 	};
+	private readonly descriptorHandlers = new Map<AnyDescriptorType, AnyDescriptorHandler>();
 
 	private readonly sourceAddedCallbacks = new Set<SourceCallback<TEntity>>();
 	private readonly sourceRemovedCallbacks = new Set<SourceCallback<TEntity>>();
@@ -44,6 +46,9 @@ export class TallyContext<TEntity> {
 
 	createAgentState(entity: TEntity) {
 		const agent = new AgentState(entity);
+		this.descriptorHandlers.forEach((handler, type) =>
+			agent.registerDescriptorHandler(type as DescriptorType<unknown, unknown>, handler)
+		);
 		this.agentConnections.add(
 			agent.onSourceAdded((source) => {
 				this.sourceAddedCallbacks.forEach((callback) => callback(agent, source));
@@ -133,6 +138,13 @@ export class TallyContext<TEntity> {
 	register<T extends Registrable>(definition: T): T {
 		definition.register(this.registry);
 		return definition;
+	}
+
+	registerDescriptorHandler<TDescriptorData, TSourceData>(
+		type: DescriptorType<TDescriptorData, TSourceData>,
+		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
+	) {
+		this.descriptorHandlers.set(type, handler as AnyDescriptorHandler);
 	}
 
 	onSourceAdded(callback: SourceCallback<TEntity>): Disconnect {
