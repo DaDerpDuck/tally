@@ -3,11 +3,10 @@ import {
 	AgentState,
 	defineSourceType,
 	ModifierRegistry,
+	OrderingDomain,
 	type Modifier,
 	type ModifierHandle,
 	type Property,
-	type Source,
-	type SourceType,
 } from "../src";
 
 /**
@@ -22,23 +21,12 @@ import {
  * 3. sequence, ascending within the domain
  * 4. modifierIndex, ascending within one Source contribution
  */
-type OrderingDomain = "authoritative" | "local";
 
 interface ModifierOrder {
 	readonly priority: number;
 	readonly domain: OrderingDomain;
 	readonly sequence: number;
 	readonly modifierIndex: number;
-}
-
-interface SourceOrigin {
-	readonly domain: OrderingDomain;
-	readonly sequence: number;
-}
-
-interface AddSourceOptions {
-	readonly priority?: number;
-	readonly origin?: SourceOrigin;
 }
 
 const TraceProperty: Property<string> = {
@@ -88,9 +76,9 @@ describe("deterministic modifier ordering", () => {
 	it("orders by priority before considering provenance", () => {
 		const registry = new ModifierRegistry();
 
-		addOrderedModifier(registry, "C", order(300, "authoritative", 0));
-		addOrderedModifier(registry, "A", order(100, "local", 999));
-		addOrderedModifier(registry, "B", order(200, "authoritative", 999));
+		addOrderedModifier(registry, "C", order(300, OrderingDomain.authoritative, 0));
+		addOrderedModifier(registry, "A", order(100, OrderingDomain.local, 999));
+		addOrderedModifier(registry, "B", order(200, OrderingDomain.authoritative, 999));
 
 		expect(resolveTrace(registry)).toBe("ABC");
 	});
@@ -99,8 +87,8 @@ describe("deterministic modifier ordering", () => {
 		const registry = new ModifierRegistry();
 
 		// Insert authoritative first specifically so insertion order cannot accidentally satisfy the test.
-		addOrderedModifier(registry, "A", order(100, "authoritative", 50));
-		addOrderedModifier(registry, "L", order(100, "local", 0));
+		addOrderedModifier(registry, "A", order(100, OrderingDomain.authoritative, 50));
+		addOrderedModifier(registry, "L", order(100, OrderingDomain.local, 0));
 
 		expect(resolveTrace(registry)).toBe("AL");
 	});
@@ -108,9 +96,9 @@ describe("deterministic modifier ordering", () => {
 	it("orders modifiers by sequence within the same priority and domain", () => {
 		const registry = new ModifierRegistry();
 
-		addOrderedModifier(registry, "A", order(100, "authoritative", 10));
-		addOrderedModifier(registry, "C", order(100, "authoritative", 30));
-		addOrderedModifier(registry, "B", order(100, "authoritative", 20));
+		addOrderedModifier(registry, "A", order(100, OrderingDomain.authoritative, 10));
+		addOrderedModifier(registry, "C", order(100, OrderingDomain.authoritative, 30));
+		addOrderedModifier(registry, "B", order(100, OrderingDomain.authoritative, 20));
 
 		expect(resolveTrace(registry)).toBe("ABC");
 	});
@@ -118,9 +106,9 @@ describe("deterministic modifier ordering", () => {
 	it("orders modifiers from one Source by contribution index", () => {
 		const registry = new ModifierRegistry();
 
-		addOrderedModifier(registry, "A", order(100, "authoritative", 10, 0));
-		addOrderedModifier(registry, "C", order(100, "authoritative", 10, 2));
-		addOrderedModifier(registry, "B", order(100, "authoritative", 10, 1));
+		addOrderedModifier(registry, "A", order(100, OrderingDomain.authoritative, 10, 0));
+		addOrderedModifier(registry, "C", order(100, OrderingDomain.authoritative, 10, 2));
+		addOrderedModifier(registry, "B", order(100, OrderingDomain.authoritative, 10, 1));
 
 		expect(resolveTrace(registry)).toBe("ABC");
 	});
@@ -129,12 +117,12 @@ describe("deterministic modifier ordering", () => {
 		const registry = new ModifierRegistry();
 
 		// Deliberately scrambled insertion order.
-		addOrderedModifier(registry, "F", order(200, "local", 0));
-		addOrderedModifier(registry, "C", order(100, "authoritative", 20, 0));
-		addOrderedModifier(registry, "A", order(100, "authoritative", 10, 0));
-		addOrderedModifier(registry, "E", order(100, "local", 0, 0));
-		addOrderedModifier(registry, "D", order(100, "authoritative", 20, 1));
-		addOrderedModifier(registry, "B", order(100, "authoritative", 10, 1));
+		addOrderedModifier(registry, "F", order(200, OrderingDomain.local, 0));
+		addOrderedModifier(registry, "C", order(100, OrderingDomain.authoritative, 20, 0));
+		addOrderedModifier(registry, "A", order(100, OrderingDomain.authoritative, 10, 0));
+		addOrderedModifier(registry, "E", order(100, OrderingDomain.local, 0, 0));
+		addOrderedModifier(registry, "D", order(100, OrderingDomain.authoritative, 20, 1));
+		addOrderedModifier(registry, "B", order(100, OrderingDomain.authoritative, 10, 1));
 
 		expect(resolveTrace(registry)).toBe("ABCDEF");
 	});
@@ -144,10 +132,10 @@ describe("deterministic modifier ordering", () => {
 		const second = new ModifierRegistry();
 
 		const entries = [
-			["A", order(100, "authoritative", 0)],
-			["B", order(100, "authoritative", 1)],
-			["C", order(100, "local", 0)],
-			["D", order(200, "authoritative", 0)],
+			["A", order(100, OrderingDomain.authoritative, 0)],
+			["B", order(100, OrderingDomain.authoritative, 1)],
+			["C", order(100, OrderingDomain.local, 0)],
+			["D", order(200, OrderingDomain.authoritative, 0)],
 		] as const;
 
 		for (const [label, modifierOrder] of entries)
@@ -166,10 +154,10 @@ describe("deterministic modifier ordering", () => {
 	it("keeps authoritative and local sequence namespaces independent", () => {
 		const registry = new ModifierRegistry();
 
-		addOrderedModifier(registry, "L1", order(100, "local", 1));
-		addOrderedModifier(registry, "A1", order(100, "authoritative", 1));
-		addOrderedModifier(registry, "L0", order(100, "local", 0));
-		addOrderedModifier(registry, "A0", order(100, "authoritative", 0));
+		addOrderedModifier(registry, "L1", order(100, OrderingDomain.local, 1));
+		addOrderedModifier(registry, "A1", order(100, OrderingDomain.authoritative, 1));
+		addOrderedModifier(registry, "L0", order(100, OrderingDomain.local, 0));
+		addOrderedModifier(registry, "A0", order(100, OrderingDomain.authoritative, 0));
 
 		expect(resolveTrace(registry)).toBe("A0A1L0L1");
 	});
@@ -181,6 +169,7 @@ interface OrderedSourceData {
 
 const OrderedSource = defineSourceType<OrderedSourceData>({
 	name: "DeterministicOrderedSource",
+	priority: 100,
 	contribute: (data) => [
 		{
 			applyTo(registry, priority) {
@@ -190,33 +179,25 @@ const OrderedSource = defineSourceType<OrderedSourceData>({
 	],
 });
 
-type FutureAddSource = (
-	type: SourceType<OrderedSourceData>,
-	data: OrderedSourceData,
-	options?: AddSourceOptions
-) => Source<OrderedSourceData> | undefined;
-
-/**
- * Adapter for the planned addSource(type, data, options?) signature. The current implementation has
- * not adopted this API or provenance yet, so the integration tests below are intentionally red.
- */
-function addOrderedSource(
-	agent: AgentState<unknown>,
-	label: string,
-	origin: SourceOrigin,
-	priority = 100
-) {
-	const addSource = agent.addSource as unknown as FutureAddSource;
-	return addSource.call(agent, OrderedSource, { label }, { priority, origin })!;
-}
-
 describe("deterministic Source ordering integration", () => {
 	it("does not let local creation time override authoritative ordering", () => {
 		const agent = new AgentState({});
 
-		addOrderedSource(agent, "L", { domain: "local", sequence: 0 });
-		addOrderedSource(agent, "B", { domain: "authoritative", sequence: 1 });
-		addOrderedSource(agent, "A", { domain: "authoritative", sequence: 0 });
+		agent.addSource(
+			OrderedSource,
+			{ label: "L" },
+			{ provenance: { domain: "local", order: 0 } }
+		);
+		agent.addSource(
+			OrderedSource,
+			{ label: "B" },
+			{ provenance: { domain: "replicated", order: 1 } }
+		);
+		agent.addSource(
+			OrderedSource,
+			{ label: "A" },
+			{ provenance: { domain: "replicated", order: 0 } }
+		);
 
 		expect(agent.get(TraceProperty)).toBe("ABL");
 	});
@@ -224,11 +205,16 @@ describe("deterministic Source ordering integration", () => {
 	it("keeps a Source in the same ordering position after it updates", () => {
 		const agent = new AgentState({});
 
-		const first = addOrderedSource(agent, "A", {
-			domain: "authoritative",
-			sequence: 0,
-		});
-		addOrderedSource(agent, "B", { domain: "authoritative", sequence: 1 });
+		const first = agent.addSource(
+			OrderedSource,
+			{ label: "A" },
+			{ provenance: { domain: "replicated", order: 0 } }
+		)!;
+		agent.addSource(
+			OrderedSource,
+			{ label: "B" },
+			{ provenance: { domain: "replicated", order: 1 } }
+		);
 
 		expect(agent.get(TraceProperty)).toBe("AB");
 
@@ -242,13 +228,37 @@ describe("deterministic Source ordering integration", () => {
 		const firstAgent = new AgentState({});
 		const secondAgent = new AgentState({});
 
-		addOrderedSource(firstAgent, "A", { domain: "authoritative", sequence: 0 });
-		addOrderedSource(firstAgent, "B", { domain: "authoritative", sequence: 1 });
-		addOrderedSource(firstAgent, "C", { domain: "authoritative", sequence: 2 });
+		firstAgent.addSource(
+			OrderedSource,
+			{ label: "A" },
+			{ provenance: { domain: "replicated", order: 0 } }
+		);
+		firstAgent.addSource(
+			OrderedSource,
+			{ label: "B" },
+			{ provenance: { domain: "replicated", order: 1 } }
+		);
+		firstAgent.addSource(
+			OrderedSource,
+			{ label: "C" },
+			{ provenance: { domain: "replicated", order: 2 } }
+		);
 
-		addOrderedSource(secondAgent, "C", { domain: "authoritative", sequence: 2 });
-		addOrderedSource(secondAgent, "A", { domain: "authoritative", sequence: 0 });
-		addOrderedSource(secondAgent, "B", { domain: "authoritative", sequence: 1 });
+		secondAgent.addSource(
+			OrderedSource,
+			{ label: "C" },
+			{ provenance: { domain: "replicated", order: 2 } }
+		);
+		secondAgent.addSource(
+			OrderedSource,
+			{ label: "A" },
+			{ provenance: { domain: "replicated", order: 0 } }
+		);
+		secondAgent.addSource(
+			OrderedSource,
+			{ label: "B" },
+			{ provenance: { domain: "replicated", order: 1 } }
+		);
 
 		expect(firstAgent.get(TraceProperty)).toBe("ABC");
 		expect(secondAgent.get(TraceProperty)).toBe("ABC");
