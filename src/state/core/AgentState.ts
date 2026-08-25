@@ -8,6 +8,7 @@ import type { AnyDescriptorBinding, DescriptorBinding } from "../descriptor/Desc
 import { DescriptorInstance } from "../descriptor/DescriptorInstance.js";
 import type { AnyDescriptor, Descriptor } from "../descriptor/Descriptor.js";
 import type { SourceOption } from "../source/SourceOption.js";
+import type { AnyDescriptorHandler, DescriptorHandler } from "../descriptor/DescriptorHandler.js";
 
 type Disconnect = () => void;
 type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
@@ -21,10 +22,7 @@ export class AgentState<TEntity> {
 
 	private readonly modifierRegistry = new ModifierRegistry();
 	private readonly sourceModifiersMap = new Map<Source, ModifierHandle[]>();
-	private readonly descriptorHandlers = new Map<
-		AnyDescriptorType,
-		(agent: AgentState<unknown>) => AnyDescriptorBinding
-	>();
+	private readonly descriptorHandlers = new Map<AnyDescriptorType, AnyDescriptorHandler>();
 
 	private readonly sourceMap = new Map<AnySourceType, Set<Source>>();
 	private readonly descriptorMap = new Map<
@@ -96,8 +94,8 @@ export class AgentState<TEntity> {
 			throw new Error(
 				"Attempted to add a descriptor source before a descriptor handler was assigned"
 			);
-		const binding = handler(this);
-		if (!binding.source) return undefined;
+		const binding = handler(this, data);
+		if (!binding) return undefined;
 
 		const descriptor = new DescriptorInstance<TDescriptorData, TSourceData>(
 			this.sourceCounter++,
@@ -122,9 +120,9 @@ export class AgentState<TEntity> {
 
 	registerDescriptorHandler<TDescriptorData, TSourceData>(
 		type: DescriptorType<TDescriptorData, TSourceData>,
-		handler: (agent: AgentState<unknown>) => DescriptorBinding<TDescriptorData, TSourceData>
+		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
 	) {
-		this.descriptorHandlers.set(type, handler);
+		this.descriptorHandlers.set(type, handler as AnyDescriptorHandler);
 	}
 
 	private createSource<TData>(

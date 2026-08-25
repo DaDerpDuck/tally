@@ -18,10 +18,7 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 		public readonly type: DescriptorType<TDescriptorData, TSourceData>,
 		private readonly binding: DescriptorBinding<TDescriptorData, TSourceData>,
 		private data: TDescriptorData
-	) {
-		if (!this.binding.source) throw new Error("Binding has no source");
-		this.binding.update(data);
-	}
+	) {}
 
 	set(data: TDescriptorData) {
 		this.data = data;
