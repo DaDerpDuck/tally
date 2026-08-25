@@ -12,11 +12,11 @@ import { AgentState } from "./AgentState.js";
 import type { Registrable, Registry } from "../state/Registrable.js";
 import { serializeSource } from "../replication/source/ReplicatedSource.js";
 import { serializeDescriptor } from "../replication/index.js";
+import type { Disconnect } from "../util/Disconnect.js";
 
 type ReplicationCallback<TEntity> = (agent: AgentState<TEntity>, event: ReplicationEvent) => void;
 type SourceCallback<TEntity> = (agent: AgentState<TEntity>, source: Source) => void;
 type DescriptorCallback<TEntity> = (agent: AgentState<TEntity>, descriptor: AnyDescriptor) => void;
-type Disconnect = () => void;
 
 export class TallyContext<TEntity> {
 	private readonly registry: Registry = {

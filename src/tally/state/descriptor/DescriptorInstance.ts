@@ -1,10 +1,9 @@
 import type { DescriptorId } from "../../replication/descriptor/ReplicatedDescriptor.js";
+import type { Disconnect } from "../../util/Disconnect.js";
 import type { Source } from "../source/Source.js";
 import type { Descriptor } from "./Descriptor.js";
 import type { DescriptorBinding } from "./DescriptorBinding.js";
 import type { DescriptorType } from "./DescriptorType.js";
-
-type Disconnect = () => void;
 
 export class DescriptorInstance<TDescriptorData, TSourceData> implements Descriptor<
 	TDescriptorData,

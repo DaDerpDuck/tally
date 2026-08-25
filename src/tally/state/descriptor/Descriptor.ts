@@ -1,7 +1,6 @@
+import type { Disconnect } from "../../util/Disconnect.js";
 import type { Source } from "../source/Source.js";
 import type { DescriptorType } from "./DescriptorType.js";
-
-type Disconnect = () => void;
 
 export interface AnyDescriptor {
 	readonly id: number;

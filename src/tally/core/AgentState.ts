@@ -4,13 +4,19 @@ import type { Source } from "../state/source/Source.js";
 import { SourceType, type AnySourceType } from "../state/source/SourceType.js";
 import { SourceInstance } from "../state/source/SourceInstance.js";
 import { DescriptorType, type AnyDescriptorType } from "../state/descriptor/DescriptorType.js";
-import type { AnyDescriptorBinding, DescriptorBinding } from "../state/descriptor/DescriptorBinding.js";
+import type {
+	AnyDescriptorBinding,
+	DescriptorBinding,
+} from "../state/descriptor/DescriptorBinding.js";
 import { DescriptorInstance } from "../state/descriptor/DescriptorInstance.js";
 import type { AnyDescriptor, Descriptor } from "../state/descriptor/Descriptor.js";
 import type { SourceOption } from "../state/source/SourceOption.js";
-import type { AnyDescriptorHandler, DescriptorHandler } from "../state/descriptor/DescriptorHandler.js";
+import type {
+	AnyDescriptorHandler,
+	DescriptorHandler,
+} from "../state/descriptor/DescriptorHandler.js";
+import type { Disconnect } from "../util/Disconnect.js";
 
-type Disconnect = () => void;
 type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
 type SourceCallback<T = unknown> = (source: Source<T>) => void;
 type DescriptorCallback<TDescriptorData = unknown, TSourceData = unknown> = (
