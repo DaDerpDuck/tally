@@ -41,9 +41,7 @@ export class SourceInstance<TData> implements Source<TData> {
 	}
 
 	destroy(): void {
-		for (const callback of this.destroyCallbacks) {
-			callback(this);
-		}
+		this.destroyCallbacks.forEach((callback) => callback(this));
 		this.updateCallbacks.clear();
 		this.destroyCallbacks.clear();
 	}

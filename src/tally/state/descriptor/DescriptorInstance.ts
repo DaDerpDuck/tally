@@ -52,5 +52,7 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 	destroy() {
 		this.binding.destroy();
 		this.destroyCallbacks.forEach((callback) => callback(this));
+		this.updateCallbacks.clear();
+		this.destroyCallbacks.clear();
 	}
 }
