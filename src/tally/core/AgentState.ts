@@ -96,7 +96,6 @@ export class AgentState<TEntity> {
 		data: TDescriptorData,
 		options?: DescriptorOption
 	): Descriptor<TDescriptorData, TSourceData> | undefined {
-		// TODO: Handle priority
 		switch (type.duplication.policy) {
 			case "allow":
 				return this.createDescriptor(type, data, options);

@@ -21,13 +21,11 @@ const Value = defineNumberProperty({ name: "DescriptorValue", defaultValue: 0 })
 
 const DescriptorSource = defineSourceType<DescriptorData>({
 	name: "DescriptorSource",
-	priority: 100,
 	contribute: (data) => [Value.add(data.value)],
 });
 
 const ValueDescriptor = defineDescriptorType<DescriptorData, DescriptorData>({
 	name: "ValueDescriptor",
-	priority: 100,
 	source: DescriptorSource,
 	replication: {
 		serialize: (data) => data.value,
@@ -202,7 +200,6 @@ describe("descriptor lifecycle", () => {
 		const { agent } = createAgentFixture();
 		const OtherDescriptor = defineDescriptorType<DescriptorData, DescriptorData>({
 			name: "OtherDescriptor",
-			priority: 100,
 			source: DescriptorSource,
 			replication: ValueDescriptor.replication,
 		});
@@ -337,7 +334,6 @@ describe("descriptor replication", () => {
 describe("descriptor replication ownership", () => {
 	const ReplicatedDescriptorSource = defineSourceType<DescriptorData>({
 		name: "ReplicatedDescriptorSource",
-		priority: 100,
 		contribute: (data) => [Value.add(data.value)],
 		replication: {
 			serialize: (data) => data.value,
@@ -351,7 +347,6 @@ describe("descriptor replication ownership", () => {
 
 	const ReplicatedSourceDescriptor = new DescriptorType<DescriptorData, DescriptorData>({
 		name: "ReplicatedSourceDescriptor",
-		priority: 100,
 		source: ReplicatedDescriptorSource,
 		replication: ValueDescriptor.replication,
 	});

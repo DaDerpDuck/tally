@@ -9,6 +9,7 @@ import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
 
 export interface SourceTypeDefinition<TData> extends StateTypeDefinition {
+	readonly priority: number;
 	readonly duplication?: DuplicatePolicy<Source<TData>, TData>;
 	contribute(data: TData): SourceContribution;
 	readonly replication?: ReplicationDefinition<TData>;
