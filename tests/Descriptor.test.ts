@@ -21,6 +21,7 @@ const Value = defineNumberProperty({ name: "DescriptorValue", defaultValue: 0 })
 
 const DescriptorSource = defineSourceType<DescriptorData>({
 	name: "DescriptorSource",
+	priority: 100,
 	contribute: (data) => [Value.add(data.value)],
 });
 
@@ -334,6 +335,7 @@ describe("descriptor replication", () => {
 describe("descriptor replication ownership", () => {
 	const ReplicatedDescriptorSource = defineSourceType<DescriptorData>({
 		name: "ReplicatedDescriptorSource",
+		priority: 100,
 		contribute: (data) => [Value.add(data.value)],
 		replication: {
 			serialize: (data) => data.value,
