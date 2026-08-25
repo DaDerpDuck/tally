@@ -183,6 +183,7 @@ export class AgentState<TEntity> {
 			throw new Error(
 				"Attempted to add a descriptor source before a descriptor handler was assigned"
 			);
+		const descriptorOrder = options?.provenance?.order ?? this.sourceCounter;
 		const binding = handler(
 			{
 				agent: this,
@@ -194,7 +195,7 @@ export class AgentState<TEntity> {
 						priority: type.source.priority,
 						provenance: {
 							domain: "descriptor",
-							order: this.sourceCounter,
+							order: descriptorOrder,
 						},
 					};
 					if (options?.priority !== undefined)
