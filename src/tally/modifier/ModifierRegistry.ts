@@ -2,27 +2,37 @@ import { OrderedBuckets } from "../util/OrderedBuckets.js";
 import type { AnyProperty, Property } from "../property/Property.js";
 import type { Modifier } from "./Modifier.js";
 import type { ModifierCollection } from "./ModifierContribution.js";
+import { SortedArray } from "../util/SortedArray.js";
+import type { ModifierOrder } from "./ModifierOrder.js";
 
 export interface ModifierHandle {
 	readonly property: AnyProperty;
-	readonly handle: unknown;
+	readonly handle: {
+		readonly modifier: unknown;
+		readonly order: ModifierOrder;
+	};
 }
 
 export class ModifierRegistry implements ModifierCollection {
-	private readonly map = new Map<unknown, OrderedBuckets<unknown>>();
+	private readonly map = new Map<unknown, SortedArray<unknown, ModifierOrder>>();
 
-	add<T>(property: Property<T>, modifier: Modifier<T>, priority: number): ModifierHandle {
+	add<T>(property: Property<T>, modifier: Modifier<T>, order: ModifierOrder): ModifierHandle {
 		if (modifier.property !== property) throw new Error("Modifier does not belong to Property");
-		const buckets = this.map.get(property);
-		if (buckets) {
+		const sarray = this.map.get(property);
+		if (sarray) {
 			return {
 				property: property,
-				handle: buckets.insert(modifier, priority),
+				handle: { modifier: sarray.insert(modifier, order), order },
 			};
 		} else {
-			const newBuckets = new OrderedBuckets();
-			const handle = newBuckets.insert(modifier, priority);
-			this.map.set(property, newBuckets);
+			const newSarray = new SortedArray<unknown, ModifierOrder>((a, b) => {
+				if (a.priority !== b.priority) return a.priority - b.priority;
+				if (a.domain !== b.domain) return a.domain - b.domain;
+				if (a.sequence !== b.sequence) return a.sequence - b.sequence;
+				return a.modifierIndex - b.modifierIndex;
+			});
+			const handle = { modifier: newSarray.insert(modifier, order), order };
+			this.map.set(property, newSarray);
 			return {
 				property: property,
 				handle,
@@ -35,17 +45,17 @@ export class ModifierRegistry implements ModifierCollection {
 	}
 
 	*iterator<T>(property: Property<T>): Generator<Modifier<T>> {
-		const buckets = this.map.get(property);
-		if (!buckets) return;
-		for (const entry of buckets.iterateAscending()) yield entry.value as Modifier<T>;
+		const sarray = this.map.get(property);
+		if (!sarray) return;
+		for (const entry of sarray.iterateAscending()) yield entry as Modifier<T>;
 	}
 
 	delete(handle: ModifierHandle): boolean {
 		const property = handle.property;
-		const buckets = this.map.get(property);
-		if (!buckets) return false;
-		const deleted = buckets.delete(handle.handle as never);
-		if (buckets.size() === 0) this.map.delete(property);
+		const sarray = this.map.get(property);
+		if (!sarray) return false;
+		const deleted = sarray.delete(handle.handle.modifier, handle.handle.order);
+		if (sarray.size() === 0) this.map.delete(property);
 		return deleted;
 	}
 

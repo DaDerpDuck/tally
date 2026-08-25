@@ -16,7 +16,8 @@ import type {
 	DescriptorHandler,
 } from "../state/descriptor/DescriptorHandler.js";
 import type { Disconnect } from "../util/Disconnect.js";
-import type { DescriptorOption } from "../state/index.js";
+import type { DescriptorOption, StateProvenance } from "../state/index.js";
+import { OrderingDomain } from "../modifier/OrderingDomain.js";
 
 type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
 type SourceCallback<T = unknown> = (source: Source<T>) => void;
@@ -139,7 +140,7 @@ export class AgentState<TEntity> {
 			domain: "local",
 			order: this.sourceCounter,
 		};
-		let handles = this.applyModifiers(type, priority, data);
+		let handles = this.applyModifiers(type, priority, provenance, data);
 
 		const source = new SourceInstance(this.sourceCounter++, type, priority, provenance, data);
 		this.sourceModifiersMap.set(source, handles);
@@ -151,7 +152,7 @@ export class AgentState<TEntity> {
 		source.onUpdate(() => {
 			for (const handle of handles) this.dirtyProperties.add(handle.property);
 			this.clearModifierHandles(handles);
-			handles = this.applyModifiers(type, priority, source.get());
+			handles = this.applyModifiers(type, priority, source.provenance, source.get());
 			this.sourceModifiersMap.set(source, handles);
 			for (const handle of handles) this.dirtyProperties.add(handle.property);
 			this.requestResolve();
@@ -234,11 +235,20 @@ export class AgentState<TEntity> {
 	private applyModifiers<TData>(
 		type: SourceType<TData>,
 		priority: number,
+		provenance: StateProvenance,
 		data: TData
 	): ModifierHandle[] {
-		return type
-			.contribute(data)
-			.map((modifier) => modifier.applyTo(this.modifierRegistry, priority));
+		return type.contribute(data).map((modifier, index) =>
+			modifier.applyTo(this.modifierRegistry, {
+				priority,
+				domain:
+					provenance.domain === "local"
+						? OrderingDomain.local
+						: OrderingDomain.authoritative,
+				sequence: provenance.order,
+				modifierIndex: index,
+			})
+		);
 	}
 
 	private clearModifierHandles(handles: ModifierHandle[]) {
