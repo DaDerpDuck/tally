@@ -9,9 +9,7 @@ import {
 	type Source,
 } from "../src/index.js";
 
-function createSourceFixture(
-	duplication?: DuplicatePolicy<Source<number>, number>
-) {
+function createSourceFixture(duplication?: DuplicatePolicy<Source<number>, number>) {
 	const Property = defineNumberProperty({ name: "SourceDuplicationProperty", defaultValue: 0 });
 	const SourceType = defineSourceType<number>({
 		name: "SourceDuplicationSource",
@@ -46,7 +44,7 @@ function createDescriptorFixture(
 				if (typeof value !== "number") throw new Error("Expected a number");
 				return value;
 			},
-		}
+		},
 	});
 	const agent = new AgentState(undefined);
 	const bindingDestroyed = vi.fn();

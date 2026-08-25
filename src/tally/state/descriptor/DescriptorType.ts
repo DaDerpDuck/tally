@@ -12,7 +12,10 @@ export interface DescriptorTypeDefinition<
 	TDescriptorData,
 	TSourceData,
 > extends StateTypeDefinition {
-	readonly duplication?: DuplicatePolicy<Descriptor<TDescriptorData, TSourceData>, TDescriptorData>;
+	readonly duplication?: DuplicatePolicy<
+		Descriptor<TDescriptorData, TSourceData>,
+		TDescriptorData
+	>;
 	readonly source: SourceType<TSourceData>;
 	readonly replication: ReplicationDefinition<TDescriptorData>;
 }
@@ -34,7 +37,9 @@ export class DescriptorType<TDescriptorData, TSourceData>
 	public readonly replication: ReplicationDefinition<TDescriptorData>;
 	public readonly source: SourceType<TSourceData>;
 
-	constructor(private readonly definition: DescriptorTypeDefinition<TDescriptorData, TSourceData>) {
+	constructor(
+		private readonly definition: DescriptorTypeDefinition<TDescriptorData, TSourceData>
+	) {
 		this.name = definition.name;
 		this.duplication = definition.duplication ?? { policy: "allow" };
 		this.source = definition.source;

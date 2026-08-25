@@ -1,15 +1,10 @@
 import { describe, expect, it } from "vitest";
-import {
-	AgentState,
-	defineDescriptorType,
-	defineNumberProperty,
-	defineSourceType,
-} from "../src";
+import { AgentState, defineDescriptorType, defineNumberProperty, defineSourceType } from "../src";
 
 type OrderedData = {
 	readonly operation: "add" | "multiply";
 	readonly value: number;
-}
+};
 
 const OrderedProperty = defineNumberProperty({
 	name: "DescriptorOrderingProperty",

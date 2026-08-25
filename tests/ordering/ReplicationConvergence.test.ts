@@ -87,7 +87,9 @@ function createClient() {
 	return { agent, descriptorReceiver, sourceReceiver, tally };
 }
 
-function populateAuthoritativeState(agent: ReturnType<TallyContext<undefined>["createAgentState"]>) {
+function populateAuthoritativeState(
+	agent: ReturnType<TallyContext<undefined>["createAgentState"]>
+) {
 	agent.addSource(OrderedSource, { operation: "add", value: 1 });
 	agent.addDescriptor(OrderedDescriptor, { operation: "multiply", value: 10 });
 	agent.addSource(OrderedSource, { operation: "add", value: 2 });
