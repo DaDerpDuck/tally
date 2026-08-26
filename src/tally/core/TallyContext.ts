@@ -44,7 +44,7 @@ export class TallyContext<TEntity> {
 	private readonly descriptorRemovedCallbacks = new Set<DescriptorCallback<TEntity>>();
 	private readonly descriptorUpdatedCallbacks = new Set<DescriptorCallback<TEntity>>();
 	private readonly replicationCallbacks = new Set<ReplicationCallback<TEntity>>();
-	private readonly agentConnections = new Set<Disconnect>();
+	private readonly agentConnections = new Map<AgentState<TEntity>, Set<Disconnect>>();
 
 	get sources(): ReadonlyMap<string, AnySourceType> {
 		return this.registry.sources;
@@ -67,7 +67,8 @@ export class TallyContext<TEntity> {
 		this.descriptorHandlers.forEach((handler, type) =>
 			agent.registerDescriptorHandler(type as DescriptorType<unknown, unknown>, handler)
 		);
-		this.agentConnections.add(
+		const disconnectSet = this.agentConnections.getOrInsert(agent, new Set());
+		disconnectSet.add(
 			agent.onSourceAdded((source) => {
 				this.sourceAddedCallbacks.forEach((callback) => callback(agent, source));
 				if (source.type.replication && source.provenance.domain === "local")
@@ -79,7 +80,7 @@ export class TallyContext<TEntity> {
 					);
 			})
 		);
-		this.agentConnections.add(
+		disconnectSet.add(
 			agent.onSourceRemoved((source) => {
 				this.sourceRemovedCallbacks.forEach((callback) => callback(agent, source));
 				if (source.type.replication && source.provenance.domain === "local")
@@ -91,7 +92,7 @@ export class TallyContext<TEntity> {
 					);
 			})
 		);
-		this.agentConnections.add(
+		disconnectSet.add(
 			agent.onSourceUpdated((source) => {
 				this.sourceUpdatedCallbacks.forEach((callback) => callback(agent, source));
 				if (source.type.replication && source.provenance.domain === "local")
@@ -107,7 +108,7 @@ export class TallyContext<TEntity> {
 					);
 			})
 		);
-		this.agentConnections.add(
+		disconnectSet.add(
 			agent.onDescriptorAdded((descriptor) => {
 				this.descriptorAddedCallbacks.forEach((callback) => callback(agent, descriptor));
 				if (descriptor.provenance.domain === "local")
@@ -119,7 +120,7 @@ export class TallyContext<TEntity> {
 					);
 			})
 		);
-		this.agentConnections.add(
+		disconnectSet.add(
 			agent.onDescriptorRemoved((descriptor) => {
 				this.descriptorRemovedCallbacks.forEach((callback) => callback(agent, descriptor));
 				if (descriptor.provenance.domain === "local")
@@ -131,7 +132,7 @@ export class TallyContext<TEntity> {
 					);
 			})
 		);
-		this.agentConnections.add(
+		disconnectSet.add(
 			agent.onDescriptorUpdated((descriptor) => {
 				this.descriptorUpdatedCallbacks.forEach((callback) => callback(agent, descriptor));
 				if (descriptor.provenance.domain === "local")
@@ -145,6 +146,13 @@ export class TallyContext<TEntity> {
 							},
 						})
 					);
+			})
+		);
+		disconnectSet.add(
+			agent.onDestroy(() => {
+				// The agent should already disconnect its callbacks
+				// this.agentConnections.get(agent)?.forEach((disconnect) => disconnect());
+				this.agentConnections.delete(agent);
 			})
 		);
 		return agent;
@@ -219,7 +227,10 @@ export class TallyContext<TEntity> {
 	 * Disconnects all callbacks. Does not destroy created agents.
 	 */
 	destroy() {
-		this.agentConnections.forEach((disconnect) => disconnect());
+		this.agentConnections.forEach((disconnectSet) =>
+			disconnectSet.forEach((disconnect) => disconnect())
+		);
+		this.agentConnections.clear();
 		this.sourceAddedCallbacks.clear();
 		this.sourceRemovedCallbacks.clear();
 		this.sourceUpdatedCallbacks.clear();

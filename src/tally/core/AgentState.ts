@@ -22,6 +22,7 @@ type SourceCallback<T = unknown> = (source: Source<T>) => void;
 type DescriptorCallback<TDescriptorData = unknown, TSourceData = unknown> = (
 	descriptor: Descriptor<TDescriptorData, TSourceData>
 ) => void;
+type DestroyCallback = () => void;
 
 /**
  * Holds the runtime Tally state for a single entity.
@@ -46,6 +47,7 @@ export class AgentState<TEntity> {
 	private readonly descriptorAddedCallbacks = new Set<DescriptorCallback>();
 	private readonly descriptorRemovedCallbacks = new Set<DescriptorCallback>();
 	private readonly descriptorUpdatedCallbacks = new Set<DescriptorCallback>();
+	private readonly destroyCallbacks = new Set<DestroyCallback>();
 
 	private readonly resolvedProperties = new Map<AnyProperty, unknown>();
 	private readonly dirtyProperties = new Set<AnyProperty>();
@@ -408,6 +410,11 @@ export class AgentState<TEntity> {
 		return () => this.descriptorUpdatedCallbacks.delete(callback);
 	}
 
+	onDestroy(callback: DestroyCallback): Disconnect {
+		this.destroyCallbacks.add(callback);
+		return () => this.destroyCallbacks.delete(callback);
+	}
+
 	destroyAllSources() {
 		this.sourceModifiersMap.forEach((_, source) => source.destroy());
 		this.sourceModifiersMap.clear();
@@ -430,6 +437,7 @@ export class AgentState<TEntity> {
 	 * if you desire.
 	 */
 	destroy() {
+		this.destroyCallbacks.forEach((callback) => callback());
 		this.destroyAllDescriptors();
 		this.destroyAllSources();
 		this.propertyCallbacks.clear();
@@ -439,6 +447,7 @@ export class AgentState<TEntity> {
 		this.descriptorAddedCallbacks.clear();
 		this.descriptorRemovedCallbacks.clear();
 		this.descriptorUpdatedCallbacks.clear();
+		this.destroyCallbacks.clear();
 	}
 
 	private requestResolve() {
