@@ -228,7 +228,7 @@ describe("optional Descriptor replication regressions", () => {
 				},
 			])
 		).toThrow("Failed to apply 1 replication event(s)");
-		expect(agent.getDescriptors(LocalDescriptor)).toHaveLength(0);
+		expect(agent.getDescriptors(LocalDescriptor).size).toBe(0);
 	});
 });
 
@@ -288,7 +288,7 @@ describe("lifecycle regressions", () => {
 		descriptor.destroy();
 
 		expect(bindingDestroyed).toHaveBeenCalledTimes(1);
-		expect(agent.getDescriptors(DescriptorType)).toHaveLength(0);
+		expect(agent.getDescriptors(DescriptorType).size).toBe(0);
 	});
 
 	it("clears AgentState Descriptor callbacks when destroyed", () => {
