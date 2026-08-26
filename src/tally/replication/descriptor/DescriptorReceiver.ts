@@ -86,7 +86,7 @@ export class DescriptorReceiver implements ReplicationReceiver {
 			throw new Error("Attempted to add an existing replicated descriptor");
 		const descriptorType = this.resolveType(replicatedDescriptor.type);
 		if (!descriptorType)
-			throw new Error("Attempted to add a non-existant replicated descriptor");
+			throw new Error("Attempted to add a nonexistent replicated descriptor");
 		if (!descriptorType.replication)
 			throw new Error(
 				"Attempted to add a replicated descriptor without a replication definition"

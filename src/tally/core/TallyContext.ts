@@ -27,7 +27,7 @@ type DescriptorCallback<TEntity> = (agent: AgentState<TEntity>, descriptor: AnyD
  * AgentStates, and forwards replication events emitted by those AgentStates.
  *
  * DescriptorHandlers should be registered before creating AgentStates so that
- * newly created agents receive the expected handler Ccnfiguration.
+ * newly created agents receive the expected handler configuration.
  */
 export class TallyContext<TEntity> {
 	private readonly registry: Registry = {

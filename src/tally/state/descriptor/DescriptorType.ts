@@ -13,7 +13,7 @@ export interface DescriptorTypeDefinition<
 	TSourceData,
 > extends StateTypeDefinition<TDescriptorData> {
 	/**
-	 * Specifies the behavior when a Source is added to an AgentState with an
+	 * Specifies the behavior when a Descriptor is added to an AgentState with an
 	 * existing same type.
 	 *
 	 * Defaults to "allow" behavior.

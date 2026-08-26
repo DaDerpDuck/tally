@@ -81,7 +81,7 @@ export class SourceReceiver implements ReplicationReceiver {
 		if (this.replicatedSources.has(replicatedSource.id))
 			throw new Error("Attempted to add an existing replicated source");
 		const sourceType = this.resolveType(replicatedSource.type);
-		if (!sourceType) throw new Error("Attempted to add a non-existant replicated source");
+		if (!sourceType) throw new Error("Attempted to add a nonexistent replicated source");
 		if (!sourceType.replication)
 			throw new Error(
 				"Attempted to add a replicated source without a replication definition"
