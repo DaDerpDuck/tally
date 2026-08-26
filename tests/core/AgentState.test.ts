@@ -177,6 +177,59 @@ describe("agent state", () => {
 		expect(updated).toHaveBeenCalledTimes(1);
 	});
 
+	it("throws when mutating a destroyed source", () => {
+		const agent = new AgentState(undefined);
+		const source = agent.addSource(PoisonSource, { intensity: 5 })!;
+
+		source.destroy();
+
+		expect(() => source.set({ intensity: 10 })).toThrow();
+		expect(source.get()).toEqual({ intensity: 5 });
+	});
+
+	it("allows inert source callbacks after destruction", () => {
+		const agent = new AgentState(undefined);
+		const source = agent.addSource(PoisonSource, { intensity: 5 })!;
+		source.destroy();
+
+		const updated = vi.fn();
+		const destroyed = vi.fn();
+		const disconnectUpdate = source.onUpdate(updated);
+		const disconnectDestroy = source.onDestroy(destroyed);
+
+		expect(() => source.destroy()).not.toThrow();
+		expect(updated).not.toHaveBeenCalled();
+		expect(destroyed).not.toHaveBeenCalled();
+		expect(() => disconnectUpdate()).not.toThrow();
+		expect(() => disconnectDestroy()).not.toThrow();
+	});
+
+	it("rejects AgentState mutations after destruction while keeping reads and callbacks safe", () => {
+		const agent = new AgentState(undefined);
+		agent.addSource(PoisonSource, { intensity: 5 });
+		agent.destroy();
+
+		expect(agent.get(Poison)).toBe(0);
+		expect(agent.getSources()).toEqual(new Set());
+		expect(agent.hasSource(PoisonSource)).toBe(false);
+
+		const added = vi.fn();
+		const changed = vi.fn();
+		const destroyed = vi.fn();
+		const disconnectAdded = agent.onSourceAdded(added);
+		const disconnectChanged = agent.onPropertyChanged(Poison, changed);
+		const disconnectDestroyed = agent.onDestroy(destroyed);
+
+		expect(() => agent.addSource(PoisonSource, { intensity: 10 })).toThrow();
+		expect(() => agent.destroy()).not.toThrow();
+		expect(added).not.toHaveBeenCalled();
+		expect(changed).not.toHaveBeenCalled();
+		expect(destroyed).not.toHaveBeenCalled();
+		expect(() => disconnectAdded()).not.toThrow();
+		expect(() => disconnectChanged()).not.toThrow();
+		expect(() => disconnectDestroyed()).not.toThrow();
+	});
+
 	it("has property observation on source add", () => {
 		const agent = new AgentState(undefined);
 		const callback = vi.fn();
