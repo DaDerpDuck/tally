@@ -42,7 +42,7 @@ export class BaseProperty<T> implements Registrable {
 		return this.defaultResolve(base, modifiers);
 	}
 
-	equals(a: T, b: T): boolean {
+	valueEquals(a: T, b: T): boolean {
 		return this.definition.equals?.(a, b) ?? this.defaultEquals(a, b);
 	}
 

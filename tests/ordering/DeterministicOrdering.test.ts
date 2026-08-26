@@ -10,7 +10,7 @@ import { OrderingDomain } from "../../src/tally/modifier/OrderingDomain.js";
 const TraceProperty: Property<string> = {
 	name: "DeterministicTrace",
 	defaultValue: "",
-	equals: (a, b) => a === b,
+	valueEquals: (a, b) => a === b,
 	resolve: (base, modifiers) =>
 		modifiers.reduce((result, modifier) => result + String(modifier.value), base),
 };

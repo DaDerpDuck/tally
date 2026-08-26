@@ -305,7 +305,7 @@ export class AgentState<TEntity> {
 			);
 			const oldResolution = this.get(property);
 			this.resolvedProperties.set(property, newResolution);
-			if (!property.equals(oldResolution, newResolution)) {
+			if (!property.valueEquals(oldResolution, newResolution)) {
 				const callbacks = this.propertyCallbacks.get(property);
 				callbacks?.forEach((callback) => callback(newResolution, oldResolution));
 			}
@@ -328,7 +328,7 @@ export class AgentState<TEntity> {
 
 	/**
 	 * Fires when a property changes to a value different from its previous value.
-	 * Property equality is determined through {@link Property.equals}.
+	 * Property equality is determined through {@link Property.valueEquals}.
 	 *
 	 * During a {@link batch} call, rather than firing for every intermediate property
 	 * change, property resolution is deferred to the end of the batch call.
