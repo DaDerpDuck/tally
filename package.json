@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "A composable, source-driven status effect framework for deriving and replicating gameplay state.",
   "license": "MIT",
-  "author": "DaDerpDuck",
+  "author": "TimScript",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/DaDerpDuck/tally"
