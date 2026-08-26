@@ -30,7 +30,7 @@ export interface SourceTypeDefinition<TData> extends StateTypeDefinition<TData> 
 	/**
 	 * Enables replication and specifies serde logic.
 	 */
-	readonly replication?: ReplicationDefinition<TData>;
+	readonly replication?: ReplicationDefinition<TData> | undefined;
 }
 
 export interface AnySourceType {

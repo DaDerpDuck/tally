@@ -31,13 +31,13 @@ export interface DescriptorTypeDefinition<
 	/**
 	 * Enables replication and specifies serde logic.
 	 */
-	readonly replication: ReplicationDefinition<TDescriptorData>; // TODO: make replication optional
+	readonly replication?: ReplicationDefinition<TDescriptorData> | undefined;
 }
 
 export interface AnyDescriptorType {
 	readonly name: string;
 	readonly duplication: DuplicatePolicy<AnyDescriptor, unknown>;
-	readonly replication: AnyReplicationDefinition;
+	readonly replication?: AnyReplicationDefinition | undefined;
 	dataEquals(a: unknown, b: unknown): boolean;
 }
 
@@ -49,7 +49,7 @@ export class DescriptorType<TDescriptorData, TSourceData>
 		Descriptor<TDescriptorData, TSourceData>,
 		TDescriptorData
 	>;
-	public readonly replication: ReplicationDefinition<TDescriptorData>;
+	public readonly replication?: ReplicationDefinition<TDescriptorData> | undefined;
 	public readonly source: SourceType<TSourceData>;
 
 	constructor(

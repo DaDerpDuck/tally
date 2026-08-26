@@ -111,7 +111,7 @@ export class TallyContext<TEntity> {
 		disconnectSet.add(
 			agent.onDescriptorAdded((descriptor) => {
 				this.descriptorAddedCallbacks.forEach((callback) => callback(agent, descriptor));
-				if (descriptor.provenance.domain === "local")
+				if (descriptor.type.replication && descriptor.provenance.domain === "local")
 					this.replicationCallbacks.forEach((callback) =>
 						callback(agent, {
 							target: "descriptor",
@@ -123,7 +123,7 @@ export class TallyContext<TEntity> {
 		disconnectSet.add(
 			agent.onDescriptorRemoved((descriptor) => {
 				this.descriptorRemovedCallbacks.forEach((callback) => callback(agent, descriptor));
-				if (descriptor.provenance.domain === "local")
+				if (descriptor.type.replication && descriptor.provenance.domain === "local")
 					this.replicationCallbacks.forEach((callback) =>
 						callback(agent, {
 							target: "descriptor",
@@ -135,14 +135,14 @@ export class TallyContext<TEntity> {
 		disconnectSet.add(
 			agent.onDescriptorUpdated((descriptor) => {
 				this.descriptorUpdatedCallbacks.forEach((callback) => callback(agent, descriptor));
-				if (descriptor.provenance.domain === "local")
+				if (descriptor.type.replication && descriptor.provenance.domain === "local")
 					this.replicationCallbacks.forEach((callback) =>
 						callback(agent, {
 							target: "descriptor",
 							event: {
 								kind: "updated",
 								id: descriptor.id,
-								data: descriptor.type.replication.serialize(descriptor.get()),
+								data: descriptor.type.replication!.serialize(descriptor.get()),
 							},
 						})
 					);

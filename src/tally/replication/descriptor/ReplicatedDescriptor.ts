@@ -10,6 +10,8 @@ export interface ReplicatedDescriptor {
 }
 
 export function serializeDescriptor(descriptor: AnyDescriptor): ReplicatedDescriptor {
+	if (!descriptor.type.replication)
+		throw new Error("Cannot serialize a descriptor without a ReplicationDefinition");
 	return {
 		id: descriptor.id,
 		type: descriptor.type.name,

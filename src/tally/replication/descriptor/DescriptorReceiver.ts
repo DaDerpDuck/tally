@@ -87,6 +87,10 @@ export class DescriptorReceiver implements ReplicationReceiver {
 		const descriptorType = this.resolveType(replicatedDescriptor.type);
 		if (!descriptorType)
 			throw new Error("Attempted to add a non-existant replicated descriptor");
+		if (!descriptorType.replication)
+			throw new Error(
+				"Attempted to add a replicated descriptor without a replication definition"
+			);
 
 		const descriptor = this.agent.addDescriptor(
 			descriptorType as DescriptorType<unknown, unknown>,
@@ -109,7 +113,7 @@ export class DescriptorReceiver implements ReplicationReceiver {
 	private updateDescriptor(descriptorId: DescriptorId, data: ReplicationValue) {
 		const descriptor = this.replicatedDescriptors.get(descriptorId);
 		if (!descriptor) return;
-		descriptor.set(descriptor.type.replication.deserialize(data));
+		descriptor.set(descriptor.type.replication!.deserialize(data));
 	}
 
 	private removeDescriptor(descriptorId: DescriptorId) {
