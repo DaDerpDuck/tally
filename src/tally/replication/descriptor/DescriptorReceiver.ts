@@ -112,8 +112,15 @@ export class DescriptorReceiver implements ReplicationReceiver {
 
 	private updateDescriptor(descriptorId: DescriptorId, data: ReplicationValue) {
 		const descriptor = this.replicatedDescriptors.get(descriptorId);
-		if (!descriptor) return;
-		descriptor.set(descriptor.type.replication!.deserialize(data));
+		if (!descriptor)
+			throw new Error(
+				"Attempted to update a replicated descriptor without a locally created source"
+			);
+		if (!descriptor.type.replication)
+			throw new Error(
+				"Attempted to update a replicated descriptor without a ReplicationDefinition"
+			);
+		descriptor.set(descriptor.type.replication.deserialize(data));
 	}
 
 	private removeDescriptor(descriptorId: DescriptorId) {

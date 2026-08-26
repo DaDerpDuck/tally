@@ -110,8 +110,15 @@ export class SourceReceiver implements ReplicationReceiver {
 
 	private updateSource(sourceId: SourceId, data: ReplicationValue) {
 		const source = this.replicatedSources.get(sourceId);
-		if (!source) return;
-		source.set(source.type.replication!.deserialize(data));
+		if (!source)
+			throw new Error(
+				"Attempted to update a replicated source without a locally created source."
+			);
+		if (!source.type.replication)
+			throw new Error(
+				"Attempted to update a replicated source without a ReplicationDefinition"
+			);
+		source.set(source.type.replication.deserialize(data));
 	}
 
 	private removeSource(sourceId: SourceId) {
