@@ -2,32 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
 	AgentState,
 	defineSourceType,
+	ModifierOrder,
 	ModifierRegistry,
 	OrderingDomain,
 	type Modifier,
 	type ModifierHandle,
 	type Property,
 } from "../src";
-
-/**
- * Forward contract for deterministic ordering.
- *
- * These tests intentionally target behavior that does not exist yet. They should remain red until
- * modifier ordering no longer depends on insertion order.
- *
- * Resolution order is lexicographic:
- * 1. priority, ascending
- * 2. domain, authoritative before local
- * 3. sequence, ascending within the domain
- * 4. modifierIndex, ascending within one Source contribution
- */
-
-interface ModifierOrder {
-	readonly priority: number;
-	readonly domain: OrderingDomain;
-	readonly sequence: number;
-	readonly modifierIndex: number;
-}
 
 const TraceProperty: Property<string> = {
 	name: "DeterministicTrace",
