@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
 	BooleanProperty,
 	defineBooleanProperty,
+	defineDescriptorType,
 	defineNumberProperty,
 	defineSourceType,
 	NumberProperty,
@@ -95,6 +96,49 @@ describe("tally context source events", () => {
 		const source = agent.addSource(SourceType, 1)!;
 		source.set(2);
 		source.destroy();
+
+		expect(added).not.toHaveBeenCalled();
+		expect(updated).not.toHaveBeenCalled();
+		expect(removed).not.toHaveBeenCalled();
+	});
+});
+
+describe("tally context descriptor events", () => {
+	it("stops forwarding descriptor events after destruction", () => {
+		const SourceType = defineSourceType<number>({
+			name: "AfterDestroyDescriptorSource",
+			priority: 100,
+			contribute: () => [],
+		});
+		const DescriptorType = defineDescriptorType<number, number>({
+			name: "AfterDestroyDescriptor",
+			source: SourceType,
+		});
+		const tally = new TallyContext<undefined>();
+		tally.registerDescriptorHandler(DescriptorType, (ctx, data) => {
+			const source = ctx.addSource(data)!;
+			return {
+				source,
+				update(next) {
+					source.set(next);
+				},
+				destroy() {
+					source.destroy();
+				},
+			};
+		});
+		const agent = tally.createAgentState(undefined);
+		const added = vi.fn();
+		const updated = vi.fn();
+		const removed = vi.fn();
+		tally.onDescriptorAdded(added);
+		tally.onDescriptorUpdated(updated);
+		tally.onDescriptorRemoved(removed);
+
+		tally.destroy();
+		const descriptor = agent.addDescriptor(DescriptorType, 1)!;
+		descriptor.set(2);
+		descriptor.destroy();
 
 		expect(added).not.toHaveBeenCalled();
 		expect(updated).not.toHaveBeenCalled();
