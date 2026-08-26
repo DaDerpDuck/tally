@@ -25,7 +25,7 @@ Tally is available as an npm package.
 
 ## Quick Start
 
-In this example, a Sprinting source type contributes a multiplier modifier for the MovementSpeed property. The source is added to the agent, where the MovementSpeed's value is then resolved by calling get on the agent. The source then gets destroyed, removing its modifiers, and restoring the MovementSpeed property back to its default value.
+This example defines a `MovementSpeed` Property with a default value of 16. While a `Sprinting` source is active, it contributes a multiplier to that Property. Destroying the Source removes its contribution and restores the resolved value to 16.
 
 ```ts
 const MovementSpeed = defineNumberProperty({
@@ -43,10 +43,7 @@ const Sprinting = defineSourceType<number>({
 
 const agent = new AgentState(player);
 
-const sprint = agent.addSource(
-    Sprinting,
-    1.5
-);
+const sprint = agent.addSource(Sprinting, 1.5);
 
 agent.get(MovementSpeed);
 // 24
@@ -56,7 +53,9 @@ sprint?.destroy();
 agent.get(MovementSpeed);
 // 16
 ```
-The infrastructure that Tally creates is thus:
+
+The basic flow is:
+
 ```
 Source
   ↓ contributes
@@ -80,9 +79,9 @@ const HealthRegen = defineNumberProperty({
 
 ### Sources
 
-A Source represents a current cause of state and is returned by a call to `AgentState:addSource`. It represents the runtime instance of a SourceType.
+A Source is a runtime cause of state attached to an AgentState. Each Source is an instance of a SourceType, which defines the Modifiers that Source contributes.
 
-A SourceType is a definition for the creation of a Source, as shown below:
+A SourceType defines how Source data becomes modifiers:
 
 ```ts
 const Poisoned = defineSourceType<PoisonData>({
@@ -111,7 +110,9 @@ A duplicate policy determines what happens when a source is added when a matchin
 
 ### Descriptors
 
-A Descriptor represents state whose Source must be maintained by runtime-specific behavior. The Descriptor data can be shared or replicated, while its handler decides locally how to realize that state.
+Some Sources cannot be represented by replicated data alone. A proximity-based Source, for example, may depend on an object that exists differently on the server and client.
+
+Descriptors are optional instances that separate what state should exist from how that state is produced in the current runtime. A Descriptor contains the portable data, while a locally registered DescriptorHandler uses that data to create and maintain its Source.
 
 ```
 Descriptor
@@ -123,9 +124,7 @@ Source
 Modifiers
 ```
 
-An example of descriptors being used is a proximity effect, where a status effect scales depending on the proximity to an object.
-
-This creates the DescriptorType which also defines how ProximityData passed to the descriptor is serialized for replication.
+For example, a `ProximityFear` Descriptor can identify what the player should be afraid of without containing server- or client-specific logic for measuring that object's proximity.
 
 ```ts
 const ProximityFear = defineDescriptorType<
@@ -177,7 +176,7 @@ Tally emits replication state/events, but does not own your networking layer. De
 
 Tally does offer Receivers for accepting replication events.
 
-The replication model is thus:
+The replication flow looks like:
 ```
 Server AgentState
       ↓
