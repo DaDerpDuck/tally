@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { defineBooleanProperty, ModifierOrder, ModifierRegistry, OrderingDomain } from "../src";
+import { defineBooleanProperty } from "../src";
+import { ModifierOrder } from "../../src/tally/modifier/ModifierOrder";
+import { ModifierRegistry } from "../../src/tally/modifier/ModifierRegistry";
+import { OrderingDomain } from "../../src/tally/modifier/OrderingDomain";
 
 const Invisibility = defineBooleanProperty({
 	name: "Invisibility",

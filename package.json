@@ -19,7 +19,7 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README", "LICENSE"],
+  "files": ["dist", "README.md", "LICENSE.txt"],
   "scripts": {
     "build": "tsc",
     "typetest": "tsc --noEmit",

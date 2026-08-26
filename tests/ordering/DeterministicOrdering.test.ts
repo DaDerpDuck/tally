@@ -1,14 +1,8 @@
 import { describe, expect, it } from "vitest";
-import {
-	AgentState,
-	defineSourceType,
-	ModifierOrder,
-	ModifierRegistry,
-	OrderingDomain,
-	type Modifier,
-	type ModifierHandle,
-	type Property,
-} from "../src";
+import { AgentState, defineSourceType, type Modifier, type Property } from "../src";
+import { ModifierOrder } from "../../src/tally/modifier/ModifierOrder";
+import { ModifierRegistry, ModifierHandle } from "../../src/tally/modifier/ModifierRegistry";
+import { OrderingDomain } from "../../src/tally/modifier/OrderingDomain";
 
 const TraceProperty: Property<string> = {
 	name: "DeterministicTrace",

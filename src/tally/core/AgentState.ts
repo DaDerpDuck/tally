@@ -16,8 +16,9 @@ import type {
 	DescriptorHandler,
 } from "../state/descriptor/DescriptorHandler.js";
 import type { Disconnect } from "../util/Disconnect.js";
-import type { DescriptorOption, StateProvenance } from "../state/index.js";
 import { OrderingDomain } from "../modifier/OrderingDomain.js";
+import type { DescriptorOption } from "../state/descriptor/DescriptorOption.js";
+import type { StateProvenance } from "../state/Provenance.js";
 
 type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
 type SourceCallback<T = unknown> = (source: Source<T>) => void;

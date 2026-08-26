@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { defineNumberProperty, ModifierOrder, ModifierRegistry, OrderingDomain } from "../src";
+import { defineNumberProperty } from "../src";
+import { ModifierOrder } from "../../src/tally/modifier/ModifierOrder";
+import { ModifierRegistry } from "../../src/tally/modifier/ModifierRegistry";
+import { OrderingDomain } from "../../src/tally/modifier/OrderingDomain";
 
 const MovementSpeed = defineNumberProperty({
 	name: "MovementSpeed",

@@ -9,7 +9,6 @@ import {
 	serializeDescriptor,
 	TallyContext,
 	type ReplicationEvent,
-	type SourceType,
 	defineDescriptorType,
 } from "../src";
 

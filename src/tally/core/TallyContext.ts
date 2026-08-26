@@ -11,8 +11,8 @@ import type { AnySourceType } from "../state/source/SourceType.js";
 import { AgentState } from "./AgentState.js";
 import type { Registrable, Registry } from "../state/Registrable.js";
 import { serializeSource } from "../replication/source/ReplicatedSource.js";
-import { serializeDescriptor } from "../replication/index.js";
 import type { Disconnect } from "../util/Disconnect.js";
+import { serializeDescriptor } from "../replication/descriptor/ReplicatedDescriptor.js";
 
 type ReplicationCallback<TEntity> = (agent: AgentState<TEntity>, event: ReplicationEvent) => void;
 type SourceCallback<TEntity> = (agent: AgentState<TEntity>, source: Source) => void;
