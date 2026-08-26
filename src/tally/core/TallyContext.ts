@@ -255,6 +255,6 @@ export class TallyContext<TEntity> {
 	}
 
 	private assertAlive() {
-		if (this.destroyed) return new Error("TallyContext was destroyed");
+		if (this.destroyed) throw new Error("TallyContext was destroyed");
 	}
 }
