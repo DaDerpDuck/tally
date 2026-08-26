@@ -218,6 +218,9 @@ export class AgentState<TEntity> {
 			sequence: this.sourceCounter,
 		};
 
+		// Reserve id before handler is called.
+		const descriptorId = this.sourceCounter++;
+
 		const binding = handler(
 			{
 				agent: this,
@@ -247,7 +250,7 @@ export class AgentState<TEntity> {
 		if (!binding) return undefined;
 
 		const descriptor = new DescriptorInstance<TDescriptorData, TSourceData>(
-			this.sourceCounter++,
+			descriptorId,
 			type,
 			provenance,
 			binding as DescriptorBinding<TDescriptorData, TSourceData>,
