@@ -146,6 +146,46 @@ describe("tally context descriptor events", () => {
 	});
 });
 
+describe("tally context lifecycle", () => {
+	it("rejects mutations after destruction while keeping reads and callbacks safe", () => {
+		const SourceType = defineSourceType<number>({
+			name: "DestroyedContextSource",
+			priority: 100,
+			contribute: () => [],
+		});
+		const DescriptorType = defineDescriptorType<number, number>({
+			name: "DestroyedContextDescriptor",
+			source: SourceType,
+		});
+		const tally = new TallyContext<undefined>();
+		tally.destroy();
+
+		expect(tally.sources).toEqual(new Map());
+		expect(tally.properties).toEqual(new Map());
+		expect(tally.descriptors).toEqual(new Map());
+
+		const sourceAdded = vi.fn();
+		const descriptorAdded = vi.fn();
+		const replication = vi.fn();
+		const disconnectSource = tally.onSourceAdded(sourceAdded);
+		const disconnectDescriptor = tally.onDescriptorAdded(descriptorAdded);
+		const disconnectReplication = tally.onReplicationEmit(replication);
+
+		expect(() => tally.createAgentState(undefined)).toThrow();
+		expect(() => tally.register(SourceType)).toThrow();
+		expect(() =>
+			tally.registerDescriptorHandler(DescriptorType, () => undefined)
+		).toThrow();
+		expect(() => tally.destroy()).not.toThrow();
+		expect(sourceAdded).not.toHaveBeenCalled();
+		expect(descriptorAdded).not.toHaveBeenCalled();
+		expect(replication).not.toHaveBeenCalled();
+		expect(() => disconnectSource()).not.toThrow();
+		expect(() => disconnectDescriptor()).not.toThrow();
+		expect(() => disconnectReplication()).not.toThrow();
+	});
+});
+
 describe("tally context registry", () => {
 	it("registers properties by name", () => {
 		const tally = new TallyContext();
