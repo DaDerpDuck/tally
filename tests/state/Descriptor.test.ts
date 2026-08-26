@@ -229,6 +229,46 @@ describe("descriptor lifecycle", () => {
 		expect(agent.getDescriptors(ValueDescriptor).size).toBe(0);
 	});
 
+	it("throws when mutating a destroyed descriptor", () => {
+		const { agent } = createAgentFixture();
+		const descriptor = agent.addDescriptor(ValueDescriptor, { value: 5 })!;
+		descriptor.destroy();
+
+		expect(() => descriptor.set({ value: 8 })).toThrow();
+		expect(descriptor.get()).toEqual({ value: 5 });
+	});
+
+	it("allows inert descriptor callbacks after destruction", () => {
+		const { agent } = createAgentFixture();
+		const descriptor = agent.addDescriptor(ValueDescriptor, { value: 5 })!;
+		descriptor.destroy();
+
+		const updated = vi.fn();
+		const destroyed = vi.fn();
+		const disconnectUpdate = descriptor.onUpdate(updated);
+		const disconnectDestroy = descriptor.onDestroy(destroyed);
+
+		expect(() => descriptor.destroy()).not.toThrow();
+		expect(updated).not.toHaveBeenCalled();
+		expect(destroyed).not.toHaveBeenCalled();
+		expect(() => disconnectUpdate()).not.toThrow();
+		expect(() => disconnectDestroy()).not.toThrow();
+	});
+
+	it("rejects descriptor mutations on a destroyed AgentState while keeping callbacks safe", () => {
+		const { agent } = createAgentFixture();
+		agent.destroy();
+
+		expect(agent.getDescriptors()).toEqual(new Set());
+		const added = vi.fn();
+		const disconnectAdded = agent.onDescriptorAdded(added);
+
+		expect(() => agent.addDescriptor(ValueDescriptor, { value: 5 })).toThrow();
+		expect(() => registerHandler(agent)).toThrow();
+		expect(added).not.toHaveBeenCalled();
+		expect(() => disconnectAdded()).not.toThrow();
+	});
+
 	it("keeps multiple descriptors of the same type independent", () => {
 		const { agent } = createAgentFixture();
 		const first = agent.addDescriptor(ValueDescriptor, { value: 1 })!;
