@@ -139,6 +139,44 @@ describe("agent state", () => {
 		expect(agent.get(NumProp)).toBe(222);
 	});
 
+	it("uses Object.is as the default source data equality", () => {
+		const SourceType = defineSourceType<{ value: number }>({
+			name: "DefaultSourceEquality",
+			priority: 100,
+			contribute: () => [],
+		});
+		const agent = new AgentState(undefined);
+		const initial = { value: 1 };
+		const source = agent.addSource(SourceType, initial)!;
+		const updated = vi.fn();
+		source.onUpdate(updated);
+
+		source.set(initial);
+		expect(updated).not.toHaveBeenCalled();
+
+		source.set({ value: 1 });
+		expect(updated).toHaveBeenCalledTimes(1);
+	});
+
+	it("uses custom source data equality to suppress updates", () => {
+		const SourceType = defineSourceType<{ value: number; label: string }>({
+			name: "CustomSourceEquality",
+			priority: 100,
+			contribute: () => [],
+			dataEquals: (a, b) => a.value === b.value,
+		});
+		const agent = new AgentState(undefined);
+		const source = agent.addSource(SourceType, { value: 1, label: "first" })!;
+		const updated = vi.fn();
+		source.onUpdate(updated);
+
+		source.set({ value: 1, label: "second" });
+		expect(updated).not.toHaveBeenCalled();
+
+		source.set({ value: 2, label: "second" });
+		expect(updated).toHaveBeenCalledTimes(1);
+	});
+
 	it("has property observation on source add", () => {
 		const agent = new AgentState(undefined);
 		const callback = vi.fn();
@@ -176,6 +214,32 @@ describe("agent state", () => {
 
 		poisonSource.set({ intensity: 5 });
 		expect(callback).toHaveBeenCalledTimes(1);
+	});
+
+	it("uses property value equality only for change notifications", () => {
+		const Property = defineNumberProperty({
+			name: "ApproximatePropertyEquality",
+			defaultValue: 0,
+			valueEquals: (a, b) => Math.floor(a) === Math.floor(b),
+		});
+		const SourceType = defineSourceType<number>({
+			name: "ApproximatePropertySource",
+			priority: 100,
+			contribute: (value) => [Property.override(value)],
+		});
+		const agent = new AgentState(undefined);
+		const changed = vi.fn();
+		agent.onPropertyChanged(Property, changed);
+		const source = agent.addSource(SourceType, 1.1)!;
+		expect(changed).toHaveBeenCalledTimes(1);
+
+		source.set(1.2);
+		expect(agent.get(Property)).toBe(1.2);
+		expect(changed).toHaveBeenCalledTimes(1);
+
+		source.set(2.1);
+		expect(agent.get(Property)).toBe(2.1);
+		expect(changed).toHaveBeenCalledTimes(2);
 	});
 
 	it("has property observation on source destroy", () => {
