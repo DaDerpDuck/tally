@@ -235,4 +235,14 @@ describe("replication", () => {
 		).toThrow("Failed to apply 1 replication event(s)");
 		expect(clientAgent.getSources().size).toBe(2);
 	});
+
+	it("throws when updating a source that was never reconstructed", () => {
+		const { receiver } = createReplicationFixture(false);
+
+		expect(() =>
+			receiver.apply([
+				{ target: "source", event: { kind: "updated", id: 404, data: null } },
+			])
+		).toThrow("Failed to apply 1 replication event(s)");
+	});
 });
