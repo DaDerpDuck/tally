@@ -436,6 +436,9 @@ export class AgentState<TEntity> {
 		this.sourceAddedCallbacks.clear();
 		this.sourceRemovedCallbacks.clear();
 		this.sourceUpdatedCallbacks.clear();
+		this.descriptorAddedCallbacks.clear();
+		this.descriptorRemovedCallbacks.clear();
+		this.descriptorUpdatedCallbacks.clear();
 	}
 
 	private requestResolve() {
