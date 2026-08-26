@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
 	BooleanProperty,
 	defineBooleanProperty,
+	defineDescriptorType,
 	defineNumberProperty,
 	defineSourceType,
 	NumberProperty,
@@ -99,6 +100,89 @@ describe("tally context source events", () => {
 		expect(added).not.toHaveBeenCalled();
 		expect(updated).not.toHaveBeenCalled();
 		expect(removed).not.toHaveBeenCalled();
+	});
+});
+
+describe("tally context descriptor events", () => {
+	it("stops forwarding descriptor events after destruction", () => {
+		const SourceType = defineSourceType<number>({
+			name: "AfterDestroyDescriptorSource",
+			priority: 100,
+			contribute: () => [],
+		});
+		const DescriptorType = defineDescriptorType<number, number>({
+			name: "AfterDestroyDescriptor",
+			source: SourceType,
+		});
+		const tally = new TallyContext<undefined>();
+		tally.registerDescriptorHandler(DescriptorType, (ctx, data) => {
+			const source = ctx.addSource(data)!;
+			return {
+				source,
+				update(next) {
+					source.set(next);
+				},
+				destroy() {
+					source.destroy();
+				},
+			};
+		});
+		const agent = tally.createAgentState(undefined);
+		const added = vi.fn();
+		const updated = vi.fn();
+		const removed = vi.fn();
+		tally.onDescriptorAdded(added);
+		tally.onDescriptorUpdated(updated);
+		tally.onDescriptorRemoved(removed);
+
+		tally.destroy();
+		const descriptor = agent.addDescriptor(DescriptorType, 1)!;
+		descriptor.set(2);
+		descriptor.destroy();
+
+		expect(added).not.toHaveBeenCalled();
+		expect(updated).not.toHaveBeenCalled();
+		expect(removed).not.toHaveBeenCalled();
+	});
+});
+
+describe("tally context lifecycle", () => {
+	it("rejects mutations after destruction while keeping reads and callbacks safe", () => {
+		const SourceType = defineSourceType<number>({
+			name: "DestroyedContextSource",
+			priority: 100,
+			contribute: () => [],
+		});
+		const DescriptorType = defineDescriptorType<number, number>({
+			name: "DestroyedContextDescriptor",
+			source: SourceType,
+		});
+		const tally = new TallyContext<undefined>();
+		tally.destroy();
+
+		expect(tally.sources).toEqual(new Map());
+		expect(tally.properties).toEqual(new Map());
+		expect(tally.descriptors).toEqual(new Map());
+
+		const sourceAdded = vi.fn();
+		const descriptorAdded = vi.fn();
+		const replication = vi.fn();
+		const disconnectSource = tally.onSourceAdded(sourceAdded);
+		const disconnectDescriptor = tally.onDescriptorAdded(descriptorAdded);
+		const disconnectReplication = tally.onReplicationEmit(replication);
+
+		expect(() => tally.createAgentState(undefined)).toThrow();
+		expect(() => tally.register(SourceType)).toThrow();
+		expect(() =>
+			tally.registerDescriptorHandler(DescriptorType, () => undefined)
+		).toThrow();
+		expect(() => tally.destroy()).not.toThrow();
+		expect(sourceAdded).not.toHaveBeenCalled();
+		expect(descriptorAdded).not.toHaveBeenCalled();
+		expect(replication).not.toHaveBeenCalled();
+		expect(() => disconnectSource()).not.toThrow();
+		expect(() => disconnectDescriptor()).not.toThrow();
+		expect(() => disconnectReplication()).not.toThrow();
 	});
 });
 
