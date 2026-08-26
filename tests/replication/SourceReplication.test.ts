@@ -5,9 +5,9 @@ import {
 	defineSourceType,
 	SourceReceiver,
 	serializeSource,
-	SourceTypeDefinition,
+	type SourceTypeDefinition,
 	TallyContext,
-} from "../src";
+} from "../src/index.js";
 
 interface Player {
 	name: string;
@@ -169,9 +169,9 @@ describe("replication", () => {
 			createReplicationFixture(false);
 
 		const LocalPropertySource = defineSourceType<PropSourceData>({
-			...basicSourceDef,
 			name: "LocalPropertySource",
-			replication: undefined,
+			priority: 100,
+			contribute: (data) => [Property.add(data.value)],
 		});
 		clientTally.register(LocalPropertySource);
 		serverTally.register(LocalPropertySource);

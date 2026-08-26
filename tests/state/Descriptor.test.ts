@@ -10,7 +10,7 @@ import {
 	TallyContext,
 	type ReplicationEvent,
 	defineDescriptorType,
-} from "../src";
+} from "../src/index.js";
 
 interface DescriptorData {
 	value: number;

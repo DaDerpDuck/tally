@@ -5,9 +5,9 @@ import {
 	defineNumberProperty,
 	defineSourceType,
 	NumberProperty,
-	ReplicationEvent,
+	type ReplicationEvent,
 	TallyContext,
-} from "../src";
+} from "../src/index.js";
 
 interface PoisonData {
 	intensity: number;

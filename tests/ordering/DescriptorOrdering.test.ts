@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { AgentState, defineDescriptorType, defineNumberProperty, defineSourceType } from "../src";
+import {
+	AgentState,
+	defineDescriptorType,
+	defineNumberProperty,
+	defineSourceType,
+} from "../src/index.js";
 
 type OrderedData = {
 	readonly operation: "add" | "multiply";

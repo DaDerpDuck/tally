@@ -21,7 +21,7 @@
   },
   "files": ["dist", "README.md", "LICENSE.txt"],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "typetest": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
