@@ -28,6 +28,8 @@ Tally is available as an npm package.
 This example defines a `MovementSpeed` Property with a default value of 16. While a `Sprinting` source is active, it contributes a multiplier to that Property. Destroying the Source removes its contribution and restores the resolved value to 16.
 
 ```ts
+import { defineNumberProperty, defineSourceType, AgentState } from "tally-effects";
+
 const MovementSpeed = defineNumberProperty({
     name: "MovementSpeed",
     defaultValue: 16,
@@ -36,22 +38,18 @@ const MovementSpeed = defineNumberProperty({
 const Sprinting = defineSourceType<number>({
     name: "Sprinting",
     priority: 100,
-    contribute: (multiplier) => [
-        MovementSpeed.multiply(multiplier),
-    ],
+    contribute: (multiplier) => [ MovementSpeed.multiply(multiplier) ],
 });
 
 const agent = new AgentState(player);
 
 const sprint = agent.addSource(Sprinting, 1.5);
 
-agent.get(MovementSpeed);
-// 24
+agent.get(MovementSpeed); // 24
 
 sprint?.destroy();
 
-agent.get(MovementSpeed);
-// 16
+agent.get(MovementSpeed); // 16
 ```
 
 The basic flow is:
