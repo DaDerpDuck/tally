@@ -20,6 +20,9 @@
     }
   },
   "files": ["dist", "README.md", "LICENSE.txt"],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typetest": "tsc --noEmit",

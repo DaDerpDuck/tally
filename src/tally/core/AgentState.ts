@@ -16,6 +16,7 @@ import type { Disconnect } from "../util/Disconnect.js";
 import { OrderingDomain } from "../modifier/OrderingDomain.js";
 import type { DescriptorOption } from "../state/descriptor/DescriptorOption.js";
 import type { StateProvenance } from "../state/Provenance.js";
+import { getOrInsert } from "../util/GetOrInsert.js";
 
 type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
 type SourceCallback<T = unknown> = (source: Source<T>) => void;
@@ -182,7 +183,7 @@ export class AgentState<TEntity> {
 		for (const handle of handles) this.dirtyProperties.add(handle.property);
 		this.requestResolve();
 
-		this.sourceMap.getOrInsert(type, new Set()).add(source);
+		getOrInsert(this.sourceMap, type, new Set()).add(source);
 
 		source.onUpdate(() => {
 			for (const handle of handles) this.dirtyProperties.add(handle.property);
@@ -262,7 +263,7 @@ export class AgentState<TEntity> {
 			binding as DescriptorBinding<TDescriptorData, TSourceData>,
 			data
 		);
-		this.descriptorMap.getOrInsert(type, new Set()).add(descriptor);
+		getOrInsert(this.descriptorMap, type, new Set()).add(descriptor);
 		this.descriptorAddedCallbacks.forEach((callback) => callback(descriptor));
 
 		descriptor.onUpdate(() =>
