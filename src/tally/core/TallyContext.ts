@@ -46,6 +46,8 @@ export class TallyContext<TEntity> {
 	private readonly replicationCallbacks = new Set<ReplicationCallback<TEntity>>();
 	private readonly agentConnections = new Map<AgentState<TEntity>, Set<Disconnect>>();
 
+	private destroyed = false;
+
 	get sources(): ReadonlyMap<string, AnySourceType> {
 		return this.registry.sources;
 	}
@@ -63,6 +65,7 @@ export class TallyContext<TEntity> {
 	 * DescriptorHandlers.
 	 */
 	createAgentState(entity: TEntity) {
+		this.assertAlive();
 		const agent = new AgentState(entity);
 		this.descriptorHandlers.forEach((handler, type) =>
 			agent.registerDescriptorHandler(type as DescriptorType<unknown, unknown>, handler)
@@ -163,6 +166,7 @@ export class TallyContext<TEntity> {
 	 * Objects are addressed through its name.
 	 */
 	register<T extends Registrable>(definition: T): T {
+		this.assertAlive();
 		definition.register(this.registry);
 		return definition;
 	}
@@ -178,35 +182,42 @@ export class TallyContext<TEntity> {
 		type: DescriptorType<TDescriptorData, TSourceData>,
 		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
 	) {
+		this.assertAlive();
 		this.descriptorHandlers.set(type, handler as AnyDescriptorHandler);
 	}
 
 	onSourceAdded(callback: SourceCallback<TEntity>): Disconnect {
+		if (this.destroyed) return () => {};
 		this.sourceAddedCallbacks.add(callback);
 		return () => this.sourceAddedCallbacks.delete(callback);
 	}
 
 	onSourceRemoved(callback: SourceCallback<TEntity>): Disconnect {
+		if (this.destroyed) return () => {};
 		this.sourceRemovedCallbacks.add(callback);
 		return () => this.sourceRemovedCallbacks.delete(callback);
 	}
 
 	onSourceUpdated(callback: SourceCallback<TEntity>): Disconnect {
+		if (this.destroyed) return () => {};
 		this.sourceUpdatedCallbacks.add(callback);
 		return () => this.sourceUpdatedCallbacks.delete(callback);
 	}
 
 	onDescriptorAdded(callback: DescriptorCallback<TEntity>): Disconnect {
+		if (this.destroyed) return () => {};
 		this.descriptorAddedCallbacks.add(callback);
 		return () => this.descriptorAddedCallbacks.delete(callback);
 	}
 
 	onDescriptorRemoved(callback: DescriptorCallback<TEntity>): Disconnect {
+		if (this.destroyed) return () => {};
 		this.descriptorRemovedCallbacks.add(callback);
 		return () => this.descriptorRemovedCallbacks.delete(callback);
 	}
 
 	onDescriptorUpdated(callback: DescriptorCallback<TEntity>): Disconnect {
+		if (this.destroyed) return () => {};
 		this.descriptorUpdatedCallbacks.add(callback);
 		return () => this.descriptorUpdatedCallbacks.delete(callback);
 	}
@@ -219,6 +230,7 @@ export class TallyContext<TEntity> {
 	 * corresponding receiver.
 	 */
 	onReplicationEmit(callback: ReplicationCallback<TEntity>): Disconnect {
+		if (this.destroyed) return () => {};
 		this.replicationCallbacks.add(callback);
 		return () => this.replicationCallbacks.delete(callback);
 	}
@@ -227,6 +239,8 @@ export class TallyContext<TEntity> {
 	 * Disconnects all callbacks. Does not destroy created agents.
 	 */
 	destroy() {
+		if (this.destroyed) return;
+		this.destroyed = true;
 		this.agentConnections.forEach((disconnectSet) =>
 			disconnectSet.forEach((disconnect) => disconnect())
 		);
@@ -238,5 +252,9 @@ export class TallyContext<TEntity> {
 		this.descriptorRemovedCallbacks.clear();
 		this.descriptorUpdatedCallbacks.clear();
 		this.replicationCallbacks.clear();
+	}
+
+	private assertAlive() {
+		if (this.destroyed) return new Error("TallyContext was destroyed");
 	}
 }

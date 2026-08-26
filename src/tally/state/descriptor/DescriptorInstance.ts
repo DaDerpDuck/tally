@@ -12,6 +12,7 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 > {
 	private readonly updateCallbacks = new Set<(self: this) => void>();
 	private readonly destroyCallbacks = new Set<(self: this) => void>();
+	private destroyed = false;
 
 	constructor(
 		public readonly id: DescriptorId,
@@ -22,6 +23,7 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 	) {}
 
 	set(data: TDescriptorData) {
+		this.assertAlive();
 		if (this.type.dataEquals(this.data, data)) return;
 		this.data = data;
 		this.binding.update(data);
@@ -39,6 +41,7 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 	}
 
 	onUpdate(callback: (self: this) => void): Disconnect {
+		if (this.destroyed) return () => {};
 		this.updateCallbacks.add(callback);
 		return () => {
 			this.updateCallbacks.delete(callback);
@@ -46,6 +49,7 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 	}
 
 	onDestroy(callback: (self: this) => void): Disconnect {
+		if (this.destroyed) return () => {};
 		this.destroyCallbacks.add(callback);
 		return () => {
 			this.destroyCallbacks.delete(callback);
@@ -53,9 +57,15 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 	}
 
 	destroy() {
+		if (this.destroyed) return;
+		this.destroyed = true;
 		this.binding.destroy();
 		this.destroyCallbacks.forEach((callback) => callback(this));
 		this.updateCallbacks.clear();
 		this.destroyCallbacks.clear();
+	}
+
+	private assertAlive() {
+		if (this.destroyed) throw new Error("Descriptor has been destroyed");
 	}
 }

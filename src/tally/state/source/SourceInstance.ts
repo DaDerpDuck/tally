@@ -6,6 +6,7 @@ import type { SourceType } from "./SourceType.js";
 export class SourceInstance<TData> implements Source<TData> {
 	private readonly updateCallbacks = new Set<(self: this) => void>();
 	private readonly destroyCallbacks = new Set<(self: this) => void>();
+	private destroyed = false;
 
 	constructor(
 		public readonly id: number,
@@ -16,6 +17,7 @@ export class SourceInstance<TData> implements Source<TData> {
 	) {}
 
 	set(data: TData) {
+		this.assertAlive();
 		if (this.type.dataEquals(this.data, data)) return;
 		this.data = data;
 		for (const callback of this.updateCallbacks) {
@@ -28,6 +30,7 @@ export class SourceInstance<TData> implements Source<TData> {
 	}
 
 	onUpdate(callback: (self: this) => void): Disconnect {
+		if (this.destroyed) return () => {};
 		this.updateCallbacks.add(callback);
 		return () => {
 			this.updateCallbacks.delete(callback);
@@ -35,6 +38,7 @@ export class SourceInstance<TData> implements Source<TData> {
 	}
 
 	onDestroy(callback: (self: this) => void): Disconnect {
+		if (this.destroyed) return () => {};
 		this.destroyCallbacks.add(callback);
 		return () => {
 			this.destroyCallbacks.delete(callback);
@@ -42,8 +46,14 @@ export class SourceInstance<TData> implements Source<TData> {
 	}
 
 	destroy(): void {
+		if (this.destroyed) return;
+		this.destroyed = true;
 		this.destroyCallbacks.forEach((callback) => callback(this));
 		this.updateCallbacks.clear();
 		this.destroyCallbacks.clear();
+	}
+
+	private assertAlive() {
+		if (this.destroyed) throw new Error("Source has been destroyed");
 	}
 }

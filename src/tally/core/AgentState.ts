@@ -54,6 +54,7 @@ export class AgentState<TEntity> {
 
 	private sourceCounter = 0;
 	private mutationDepth = 0;
+	private destroyed = false;
 
 	constructor(public readonly entity: TEntity) {}
 
@@ -81,6 +82,7 @@ export class AgentState<TEntity> {
 		data: TData,
 		options?: SourceOption
 	): Source<TData> | undefined {
+		this.assertAlive();
 		switch (type.duplication.policy) {
 			case "allow":
 				return this.createSource(type, data, options);
@@ -121,6 +123,7 @@ export class AgentState<TEntity> {
 		data: TDescriptorData,
 		options?: DescriptorOption
 	): Descriptor<TDescriptorData, TSourceData> | undefined {
+		this.assertAlive();
 		switch (type.duplication.policy) {
 			case "allow":
 				return this.createDescriptor(type, data, options);
@@ -158,6 +161,7 @@ export class AgentState<TEntity> {
 		type: DescriptorType<TDescriptorData, TSourceData>,
 		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
 	) {
+		this.assertAlive();
 		this.descriptorHandlers.set(type, handler as AnyDescriptorHandler);
 	}
 
@@ -334,6 +338,7 @@ export class AgentState<TEntity> {
 	 * change, property resolution is deferred to the end of the batch call.
 	 */
 	onPropertyChanged<T>(property: Property<T>, callback: PropertyCallback<T>): Disconnect {
+		if (this.destroyed) return () => {};
 		let callbacks = this.propertyCallbacks.get(property);
 		if (callbacks) {
 			callbacks.add(callback as PropertyCallback<unknown>);
@@ -381,36 +386,43 @@ export class AgentState<TEntity> {
 	}
 
 	onSourceAdded(callback: SourceCallback): Disconnect {
+		if (this.destroyed) return () => {};
 		this.sourceAddedCallbacks.add(callback);
 		return () => this.sourceAddedCallbacks.delete(callback);
 	}
 
 	onSourceRemoved(callback: SourceCallback): Disconnect {
+		if (this.destroyed) return () => {};
 		this.sourceRemovedCallbacks.add(callback);
 		return () => this.sourceRemovedCallbacks.delete(callback);
 	}
 
 	onSourceUpdated(callback: SourceCallback): Disconnect {
+		if (this.destroyed) return () => {};
 		this.sourceUpdatedCallbacks.add(callback);
 		return () => this.sourceUpdatedCallbacks.delete(callback);
 	}
 
 	onDescriptorAdded(callback: DescriptorCallback): Disconnect {
+		if (this.destroyed) return () => {};
 		this.descriptorAddedCallbacks.add(callback);
 		return () => this.descriptorAddedCallbacks.delete(callback);
 	}
 
 	onDescriptorRemoved(callback: DescriptorCallback): Disconnect {
+		if (this.destroyed) return () => {};
 		this.descriptorRemovedCallbacks.add(callback);
 		return () => this.descriptorRemovedCallbacks.delete(callback);
 	}
 
 	onDescriptorUpdated(callback: DescriptorCallback): Disconnect {
+		if (this.destroyed) return () => {};
 		this.descriptorUpdatedCallbacks.add(callback);
 		return () => this.descriptorUpdatedCallbacks.delete(callback);
 	}
 
 	onDestroy(callback: DestroyCallback): Disconnect {
+		if (this.destroyed) return () => {};
 		this.destroyCallbacks.add(callback);
 		return () => this.destroyCallbacks.delete(callback);
 	}
@@ -433,10 +445,11 @@ export class AgentState<TEntity> {
 	/**
 	 * Destroys all active Sources and Descriptors, then disconnects all callbacks.
 	 *
-	 * Does not prevent future mutations, so you can reuse a "destroyed" AgentState
-	 * if you desire.
+	 * This operation is terminal and future mutations will throw an error.
 	 */
 	destroy() {
+		if (this.destroyed) return;
+		this.destroyed = true;
 		this.destroyCallbacks.forEach((callback) => callback());
 		this.destroyAllDescriptors();
 		this.destroyAllSources();
@@ -452,6 +465,10 @@ export class AgentState<TEntity> {
 
 	private requestResolve() {
 		if (this.mutationDepth === 0) this.resolveProperties();
+	}
+
+	private assertAlive() {
+		if (this.destroyed) throw new Error("AgentState was destroyed");
 	}
 
 	/**
