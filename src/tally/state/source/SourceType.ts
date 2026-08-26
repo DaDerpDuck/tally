@@ -65,7 +65,7 @@ export class SourceType<TData> implements AnySourceType, Registrable {
 	}
 
 	dataEquals(a: TData, b: TData): boolean {
-		return this.definition.equals?.(a, b) ?? Object.is(a, b);
+		return this.definition.dataEquals?.(a, b) ?? Object.is(a, b);
 	}
 }
 

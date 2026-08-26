@@ -13,7 +13,7 @@ export interface PropertyDefinition<T> {
 	 *
 	 * Used to decide whether property-change callbacks should fire.
 	 */
-	equals?(a: T, b: T): boolean;
+	valueEquals?(a: T, b: T): boolean;
 	/**
 	 * Resolves the final Property value from the base value and ordered Modifiers.
 	 *
@@ -43,7 +43,7 @@ export class BaseProperty<T> implements Registrable {
 	}
 
 	valueEquals(a: T, b: T): boolean {
-		return this.definition.equals?.(a, b) ?? this.defaultEquals(a, b);
+		return this.definition.valueEquals?.(a, b) ?? this.defaultEquals(a, b);
 	}
 
 	protected defaultResolve(base: T, modifiers: readonly Modifier<T>[]): T {

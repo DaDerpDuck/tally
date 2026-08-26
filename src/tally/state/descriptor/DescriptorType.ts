@@ -68,7 +68,7 @@ export class DescriptorType<TDescriptorData, TSourceData>
 	}
 
 	dataEquals(a: TDescriptorData, b: TDescriptorData): boolean {
-		return this.definition.equals?.(a, b) ?? Object.is(a, b);
+		return this.definition.dataEquals?.(a, b) ?? Object.is(a, b);
 	}
 }
 

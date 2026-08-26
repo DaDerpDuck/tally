@@ -212,7 +212,7 @@ describe("tally context replication emission", () => {
 			serialize: (data) => data.value,
 			deserialize: (value: number) => ({ value }),
 		},
-		equals(a, b) {
+		dataEquals(a, b) {
 			return Object.is(a.value, b.value);
 		},
 	});

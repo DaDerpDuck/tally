@@ -5,5 +5,5 @@ export interface StateTypeDefinition<TData> {
 	 *
 	 * Used to decide whether change callbacks should fire.
 	 */
-	equals?(a: TData, b: TData): boolean;
+	dataEquals?(a: TData, b: TData): boolean;
 }
