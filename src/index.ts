@@ -4,7 +4,6 @@ export { TallyContext } from "./tally/core/TallyContext.js";
 
 // Modifiers / custom Property extension
 export type { Modifier, AnyModifier } from "./tally/modifier/Modifier.js";
-export type { ModifierCollection } from "./tally/modifier/ModifierCollection.js";
 export {
 	type ModifierContribution,
 	contributeModifier,
