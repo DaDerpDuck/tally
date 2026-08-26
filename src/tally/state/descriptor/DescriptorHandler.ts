@@ -13,6 +13,17 @@ export type AnyDescriptorHandler = (
 	data: unknown
 ) => AnyDescriptorBinding | undefined;
 
+/**
+ * The handler that is invoked when the associated Descriptor is added. Register a
+ * handler using `TallyContext.registerDescriptorHandler` or
+ * `AgentState.registerDescriptorHandler`.
+ *
+ * Prefer adding sources using the passed context rather than the agent. Provenance
+ * is set using the context's addSource method so that the added Source does not
+ * erroneously replicate.
+ *
+ * @see {@link DescriptorHandlerContext}
+ */
 export type DescriptorHandler<TEntity, TDescriptorData, TSourceData> = (
 	ctx: DescriptorHandlerContext<TEntity, TSourceData>,
 	data: TDescriptorData

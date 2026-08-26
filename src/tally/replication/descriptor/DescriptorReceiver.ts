@@ -8,6 +8,14 @@ import type { DescriptorReplicationEvent } from "./DescriptorReplicationEvent.js
 import type { ReplicatedDescriptor, DescriptorId } from "./ReplicatedDescriptor.js";
 import type { AnyDescriptorType, DescriptorType } from "../../state/descriptor/DescriptorType.js";
 
+/**
+ * Reconstructs replicated Descriptors in an AgentState.
+ *
+ * Descriptor creation invokes the locally registered DescriptorHandler,
+ * which recreates the Descriptor's derived Source.
+ *
+ * @see {@link ReplicationReceiver}
+ */
 export class DescriptorReceiver implements ReplicationReceiver {
 	private readonly replicatedDescriptors = new Map<number, AnyDescriptor>();
 

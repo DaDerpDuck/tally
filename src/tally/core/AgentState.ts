@@ -4,10 +4,7 @@ import type { Source } from "../state/source/Source.js";
 import { SourceType, type AnySourceType } from "../state/source/SourceType.js";
 import { SourceInstance } from "../state/source/SourceInstance.js";
 import { DescriptorType, type AnyDescriptorType } from "../state/descriptor/DescriptorType.js";
-import type {
-	AnyDescriptorBinding,
-	DescriptorBinding,
-} from "../state/descriptor/DescriptorBinding.js";
+import type { DescriptorBinding } from "../state/descriptor/DescriptorBinding.js";
 import { DescriptorInstance } from "../state/descriptor/DescriptorInstance.js";
 import type { AnyDescriptor, Descriptor } from "../state/descriptor/Descriptor.js";
 import type { SourceOption } from "../state/source/SourceOption.js";
@@ -26,6 +23,12 @@ type DescriptorCallback<TDescriptorData = unknown, TSourceData = unknown> = (
 	descriptor: Descriptor<TDescriptorData, TSourceData>
 ) => void;
 
+/**
+ * Holds the runtime Tally state for a single entity.
+ *
+ * AgentState owns Sources, Descriptors, property resolution, and
+ * lifecycle observation for the associated entity.
+ */
 export class AgentState<TEntity> {
 	private static readonly EmptySet: ReadonlySet<unknown> = new Set();
 
@@ -52,6 +55,15 @@ export class AgentState<TEntity> {
 
 	constructor(public readonly entity: TEntity) {}
 
+	/**
+	 * Adds a Source of the given type to this AgentState.
+	 *
+	 * The SourceType's duplication policy is applied before creation.
+	 * The SourceType's default priority is used unless overridden.
+	 *
+	 * @returns The created Source, or `undefined` when rejected by
+	 * the duplication policy.
+	 */
 	addSource<TData extends undefined>(
 		type: SourceType<TData>,
 		data?: TData,
@@ -93,6 +105,15 @@ export class AgentState<TEntity> {
 		}
 	}
 
+	/**
+	 * Adds a Descriptor of the given type to this AgentState. A handler must
+	 * be registered prior to calling this method.
+	 *
+	 * The Descriptor's duplication policy is applied before creation.
+	 *
+	 * @returns The created Descriptor, or `undefined` if the handler
+	 * rejects creation.
+	 */
 	addDescriptor<TDescriptorData, TSourceData>(
 		type: DescriptorType<TDescriptorData, TSourceData>,
 		data: TDescriptorData,
@@ -124,6 +145,13 @@ export class AgentState<TEntity> {
 		}
 	}
 
+	/**
+	 * Registers a local descriptor handler. If an AgentState was created through
+	 * `TallyContext.createAgentState`, then TallyContext will register its registered
+	 * descriptor handlers to this agent during creation.
+	 *
+	 * Can be used to override existing descriptor handlers.
+	 */
 	registerDescriptorHandler<TDescriptorData, TSourceData>(
 		type: DescriptorType<TDescriptorData, TSourceData>,
 		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
@@ -280,13 +308,26 @@ export class AgentState<TEntity> {
 		this.dirtyProperties.clear();
 	}
 
+	/**
+	 * Resolves the current value of the passed Property.
+	 *
+	 * Property values are cached at resolution, so calling this method only performs
+	 * a simply lookup.
+	 *
+	 * Warning: Calling this within a {@link batch} call will get the resolved property
+	 * from when the batch call began. This may result in retrieving stale data.
+	 */
 	get<T>(property: Property<T>): T {
-		if (!this.resolvedProperties.has(property)) {
-			this.resolvedProperties.set(property, property.defaultValue);
-		}
-		return this.resolvedProperties.get(property) as T;
+		return (this.resolvedProperties.get(property) as T) ?? property.defaultValue;
 	}
 
+	/**
+	 * Fires when a property changes to a value different from its previous value.
+	 * Property equality is determined through {@link Property.equals}.
+	 *
+	 * During a {@link batch} call, rather than firing for every intermediate property
+	 * change, property resolution is deferred to the end of the batch call.
+	 */
 	onPropertyChanged<T>(property: Property<T>, callback: PropertyCallback<T>): Disconnect {
 		let callbacks = this.propertyCallbacks.get(property);
 		if (callbacks) {
@@ -305,6 +346,10 @@ export class AgentState<TEntity> {
 		return existingSource !== undefined;
 	}
 
+	/**
+	 * Retrieves all active Sources or all active Sources of a given type if
+	 * one is passed.
+	 */
 	getSources(): ReadonlySet<Source>;
 	getSources<TData>(type: SourceType<TData>): ReadonlySet<Source<TData>>;
 	getSources(type?: SourceType<unknown>): ReadonlySet<Source> {
@@ -312,6 +357,10 @@ export class AgentState<TEntity> {
 		return (this.sourceMap.get(type) ?? AgentState.EmptySet) as ReadonlySet<Source>;
 	}
 
+	/**
+	 * Retrieves all active Descriptors or all active Descriptors of a given type
+	 * if one is passed.
+	 */
 	getDescriptors(): ReadonlySet<AnyDescriptor>;
 	getDescriptors<TDescriptorData, TSourceData>(
 		type: DescriptorType<TDescriptorData, TSourceData>
@@ -371,6 +420,12 @@ export class AgentState<TEntity> {
 		this.descriptorMap.clear();
 	}
 
+	/**
+	 * Destroys all active Sources and Descriptors, then disconnects all callbacks.
+	 *
+	 * Does not prevent future mutations, so you can reuse a "destroyed" AgentState
+	 * if you desire.
+	 */
 	destroy() {
 		this.destroyAllDescriptors();
 		this.destroyAllSources();
@@ -384,6 +439,12 @@ export class AgentState<TEntity> {
 		if (this.mutationDepth === 0) this.resolveProperties();
 	}
 
+	/**
+	 * Defers property resolution until the outermost batch completes. Callbacks
+	 * are only fired once when the resolution completes.
+	 *
+	 * Nested batches are supported.
+	 */
 	batch<T>(callback: () => T): T {
 		this.mutationDepth++;
 

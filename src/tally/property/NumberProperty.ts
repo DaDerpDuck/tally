@@ -2,6 +2,9 @@ import type { Modifier } from "../modifier/Modifier.js";
 import { contributeModifier } from "../modifier/ModifierContribution.js";
 import { BaseProperty, type PropertyDefinition } from "./BaseProperty.js";
 
+/**
+ * A numeric Property supporting additive, multiplicative, and override Modifiers.
+ */
 export class NumberProperty extends BaseProperty<number> {
 	protected override defaultResolve(
 		base: number,
@@ -51,6 +54,12 @@ export class NumberProperty extends BaseProperty<number> {
 	}
 }
 
+/**
+ *
+ * Creates a numeric Property definition.
+ *
+ * @see {@link NumberProperty}
+ */
 export function defineNumberProperty(definition: PropertyDefinition<number>) {
 	return new NumberProperty(definition);
 }

@@ -8,6 +8,11 @@ import type { SourceReplicationEvent } from "./SourceReplicationEvent.js";
 import type { AnySourceType, SourceType } from "../../state/source/SourceType.js";
 import type { Source } from "../../state/source/Source.js";
 
+/**
+ * Reconstructs replicated Sources in an AgentState.
+ *
+ * @see {@link ReplicationReceiver}
+ */
 export class SourceReceiver implements ReplicationReceiver {
 	private readonly replicatedSources = new Map<number, Source>();
 

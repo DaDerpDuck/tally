@@ -34,7 +34,7 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 	}
 
 	getSource(): Source<TSourceData> {
-		return this.binding.source!;
+		return this.binding.source;
 	}
 
 	onUpdate(callback: (self: this) => void): Disconnect {

@@ -16,6 +16,12 @@ export interface AnyDescriptor {
 	destroy(): void;
 }
 
+/**
+ * A runtime instance of a DescriptorType attached to an AgentState.
+ *
+ * Updating Descriptor data through the `set` method calls the update method
+ * on the DescriptorBinding.
+ */
 export interface Descriptor<TDescriptorData, TSourceData> extends AnyDescriptor {
 	readonly id: number;
 	readonly type: DescriptorType<TDescriptorData, TSourceData>;
@@ -23,8 +29,13 @@ export interface Descriptor<TDescriptorData, TSourceData> extends AnyDescriptor 
 
 	getSource(): Source<TSourceData>;
 	set(data: TDescriptorData): void;
+	/** Gets the current data the Descriptor is using. */
 	get(): TDescriptorData;
 	onUpdate(callback: (self: this) => void): Disconnect;
 	onDestroy(callback: (self: this) => void): Disconnect;
+	/**
+	 * Calls the destroy method on the associated DescriptorBinding
+	 * and disconnects all callbacks.
+	 */
 	destroy(): void;
 }

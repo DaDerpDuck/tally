@@ -12,12 +12,26 @@ export interface DescriptorTypeDefinition<
 	TDescriptorData,
 	TSourceData,
 > extends StateTypeDefinition {
+	/**
+	 * Specifies the behavior when a Source is added to an AgentState with an
+	 * existing same type.
+	 *
+	 * Defaults to "allow" behavior.
+	 *
+	 * @see {@link DuplicatePolicy}
+	 */
 	readonly duplication?: DuplicatePolicy<
 		Descriptor<TDescriptorData, TSourceData>,
 		TDescriptorData
 	>;
+	/**
+	 * The SourceType that this Descriptor will be creating.
+	 */
 	readonly source: SourceType<TSourceData>;
-	readonly replication: ReplicationDefinition<TDescriptorData>;
+	/**
+	 * Enables replication and specifies serde logic.
+	 */
+	readonly replication: ReplicationDefinition<TDescriptorData>; // TODO: make replication optional
 }
 
 export interface AnyDescriptorType {
@@ -48,11 +62,19 @@ export class DescriptorType<TDescriptorData, TSourceData>
 
 	register(registry: Registry): void {
 		if (registry.descriptors.has(this.name) && registry.descriptors.get(this.name) !== this)
-			throw new Error(`Duplicate source name: ${this.name}`);
+			throw new Error(`Duplicate descriptor name: ${this.name}`);
 		registry.descriptors.set(this.name, this);
 	}
 }
 
+/**
+ * Defines the data structure and the SourceType this Descriptor creates.
+ *
+ * DescriptorTypes are immutable definitions.
+ *
+ * Before a Descriptor can be created, a handler must be registered first using
+ * `TallyContext.registerDescriptorHandler` or `AgentState.registerDescriptorHandler`.
+ */
 export function defineDescriptorType<TDescriptorData, TSourceData>(
 	definition: DescriptorTypeDefinition<TDescriptorData, TSourceData>
 ) {

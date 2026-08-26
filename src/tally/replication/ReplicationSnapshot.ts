@@ -5,6 +5,10 @@ import {
 } from "./descriptor/ReplicatedDescriptor.js";
 import { type ReplicatedSource, serializeSource } from "./source/ReplicatedSource.js";
 
+/**
+ * Represents a complete authoritative replication state suitable for
+ * initial synchronization or reconciliation.
+ */
 export interface ReplicationSnapshot {
 	readonly sources: readonly ReplicatedSource[];
 	readonly descriptors: readonly ReplicatedDescriptor[];

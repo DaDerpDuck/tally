@@ -2,6 +2,9 @@ import type { Modifier } from "../modifier/Modifier.js";
 import { contributeModifier } from "../modifier/ModifierContribution.js";
 import { BaseProperty, type PropertyDefinition } from "./BaseProperty.js";
 
+/**
+ * A boolean Property whose Modifiers override its current value.
+ */
 export class BooleanProperty extends BaseProperty<boolean> {
 	protected override defaultResolve(
 		base: boolean,
@@ -45,6 +48,12 @@ export class BooleanProperty extends BaseProperty<boolean> {
 	}
 }
 
+/**
+ *
+ * Creates a boolean Property definition.
+ *
+ * @see {@link BooleanProperty}
+ */
 export function defineBooleanProperty(definition: PropertyDefinition<boolean>) {
 	return new BooleanProperty(definition);
 }

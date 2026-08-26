@@ -18,6 +18,17 @@ type ReplicationCallback<TEntity> = (agent: AgentState<TEntity>, event: Replicat
 type SourceCallback<TEntity> = (agent: AgentState<TEntity>, source: Source) => void;
 type DescriptorCallback<TEntity> = (agent: AgentState<TEntity>, descriptor: AnyDescriptor) => void;
 
+/**
+ * Coordinates shared Tally configuration and lifecycle behavior across
+ * multiple AgentStates.
+ *
+ * A TallyContext is an optional object that owns the registries for Properties,
+ * SourceTypes, and DescriptorTypes, stores DescriptorHandlers, creates configured
+ * AgentStates, and forwards replication events emitted by those AgentStates.
+ *
+ * DescriptorHandlers should be registered before creating AgentStates so that
+ * newly created agents receive the expected handler Ccnfiguration.
+ */
 export class TallyContext<TEntity> {
 	private readonly registry: Registry = {
 		sources: new Map(),
@@ -47,6 +58,10 @@ export class TallyContext<TEntity> {
 		return this.registry.descriptors;
 	}
 
+	/**
+	 * Creates and configures an AgentState with the TallyContext's stored
+	 * DescriptorHandlers.
+	 */
 	createAgentState(entity: TEntity) {
 		const agent = new AgentState(entity);
 		this.descriptorHandlers.forEach((handler, type) =>
@@ -135,11 +150,22 @@ export class TallyContext<TEntity> {
 		return agent;
 	}
 
+	/**
+	 * Registers a Property, SourceType, or DescriptorType for this TallyContext.
+	 * Objects are addressed through its name.
+	 */
 	register<T extends Registrable>(definition: T): T {
 		definition.register(this.registry);
 		return definition;
 	}
 
+	/**
+	 * Registers a local descriptor handler and configures it on any future
+	 * created AgentStates.
+	 *
+	 * Warning: Register descriptor handlers before creating new AgentStates,
+	 * otherwise old AgentStates will not have the handler.
+	 */
 	registerDescriptorHandler<TDescriptorData, TSourceData>(
 		type: DescriptorType<TDescriptorData, TSourceData>,
 		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
@@ -177,11 +203,21 @@ export class TallyContext<TEntity> {
 		return () => this.descriptorUpdatedCallbacks.delete(callback);
 	}
 
+	/**
+	 * Any emitted replication events from AgentStates created from this TallyContext
+	 * are fired through this callback.
+	 *
+	 * Applications are expected to transport the replication event themselves to the
+	 * corresponding receiver.
+	 */
 	onReplicationEmit(callback: ReplicationCallback<TEntity>): Disconnect {
 		this.replicationCallbacks.add(callback);
 		return () => this.replicationCallbacks.delete(callback);
 	}
 
+	/**
+	 * Disconnects all callbacks. Does not destroy created agents.
+	 */
 	destroy() {
 		this.agentConnections.forEach((disconnect) => disconnect());
 		this.sourceAddedCallbacks.clear();

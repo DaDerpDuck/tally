@@ -9,9 +9,27 @@ import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
 
 export interface SourceTypeDefinition<TData> extends StateTypeDefinition {
+	/**
+	 * Defines order of modifier resolution.
+	 * Lower priorities resolve before higher priorities.
+	 */
 	readonly priority: number;
+	/**
+	 * Specifies the behavior when a Source is added to an AgentState with an
+	 * existing same type.
+	 *
+	 * Defaults to "allow" behavior.
+	 *
+	 * @see {@link DuplicatePolicy}
+	 */
 	readonly duplication?: DuplicatePolicy<Source<TData>, TData>;
+	/**
+	 * Returns the modifiers for a given data that is passed to the Source.
+	 */
 	contribute(data: TData): SourceContribution;
+	/**
+	 * Enables replication and specifies serde logic.
+	 */
 	readonly replication?: ReplicationDefinition<TData>;
 }
 
@@ -46,6 +64,11 @@ export class SourceType<TData> implements AnySourceType, Registrable {
 	}
 }
 
+/**
+ * Defines how Source data contributes Modifiers.
+ *
+ * SourceTypes are immutable definitions.
+ */
 export function defineSourceType<TData>(definition: SourceTypeDefinition<TData>) {
 	return new SourceType(definition);
 }
