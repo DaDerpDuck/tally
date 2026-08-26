@@ -212,6 +212,9 @@ describe("tally context replication emission", () => {
 			serialize: (data) => data.value,
 			deserialize: (value: number) => ({ value }),
 		},
+		equals(a, b) {
+			return Object.is(a.value, b.value);
+		},
 	});
 
 	interface Player {
@@ -291,13 +294,12 @@ describe("tally context replication emission", () => {
 		third.set({ value: 8 });
 		first.set({ value: 8 });
 		second.set({ value: 8 });
-		// TODO: Setting equivalent data currently still emits an update.
+		// Should not emit due to equality check
 		second.set({ value: 8 });
 
 		expect(emittedEvents(callback)).toEqual([
 			{ target: "source", event: { kind: "updated", id: 2, data: 8 } },
 			{ target: "source", event: { kind: "updated", id: 0, data: 8 } },
-			{ target: "source", event: { kind: "updated", id: 1, data: 8 } },
 			{ target: "source", event: { kind: "updated", id: 1, data: 8 } },
 		] satisfies ReplicationEvent[]);
 	});

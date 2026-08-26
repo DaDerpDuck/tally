@@ -16,6 +16,7 @@ export class SourceInstance<TData> implements Source<TData> {
 	) {}
 
 	set(data: TData) {
+		if (this.type.dataEquals(this.data, data)) return;
 		this.data = data;
 		for (const callback of this.updateCallbacks) {
 			callback(this);

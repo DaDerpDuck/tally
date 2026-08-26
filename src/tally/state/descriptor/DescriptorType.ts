@@ -11,7 +11,7 @@ import type { AnyDescriptor, Descriptor } from "./Descriptor.js";
 export interface DescriptorTypeDefinition<
 	TDescriptorData,
 	TSourceData,
-> extends StateTypeDefinition {
+> extends StateTypeDefinition<TDescriptorData> {
 	/**
 	 * Specifies the behavior when a Source is added to an AgentState with an
 	 * existing same type.
@@ -38,6 +38,7 @@ export interface AnyDescriptorType {
 	readonly name: string;
 	readonly duplication: DuplicatePolicy<AnyDescriptor, unknown>;
 	readonly replication: AnyReplicationDefinition;
+	dataEquals(a: unknown, b: unknown): boolean;
 }
 
 export class DescriptorType<TDescriptorData, TSourceData>
@@ -64,6 +65,10 @@ export class DescriptorType<TDescriptorData, TSourceData>
 		if (registry.descriptors.has(this.name) && registry.descriptors.get(this.name) !== this)
 			throw new Error(`Duplicate descriptor name: ${this.name}`);
 		registry.descriptors.set(this.name, this);
+	}
+
+	dataEquals(a: TDescriptorData, b: TDescriptorData): boolean {
+		return this.definition.equals?.(a, b) ?? Object.is(a, b);
 	}
 }
 

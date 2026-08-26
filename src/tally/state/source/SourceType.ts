@@ -8,7 +8,7 @@ import type { StateTypeDefinition } from "../StateTypeDefinition.js";
 import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
 
-export interface SourceTypeDefinition<TData> extends StateTypeDefinition {
+export interface SourceTypeDefinition<TData> extends StateTypeDefinition<TData> {
 	/**
 	 * Defines order of modifier resolution.
 	 * Lower priorities resolve before higher priorities.
@@ -38,6 +38,7 @@ export interface AnySourceType {
 	readonly priority: number;
 	readonly duplication: DuplicatePolicy<Source, unknown>;
 	readonly replication?: AnyReplicationDefinition | undefined;
+	dataEquals(a: unknown, b: unknown): boolean;
 }
 
 export class SourceType<TData> implements AnySourceType, Registrable {
@@ -61,6 +62,10 @@ export class SourceType<TData> implements AnySourceType, Registrable {
 		if (registry.sources.has(this.name) && registry.sources.get(this.name) !== this)
 			throw new Error(`Duplicate source name: ${this.name}`);
 		registry.sources.set(this.name, this);
+	}
+
+	dataEquals(a: TData, b: TData): boolean {
+		return this.definition.equals?.(a, b) ?? Object.is(a, b);
 	}
 }
 

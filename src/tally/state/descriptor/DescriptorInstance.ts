@@ -22,6 +22,7 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 	) {}
 
 	set(data: TDescriptorData) {
+		if (this.type.dataEquals(this.data, data)) return;
 		this.data = data;
 		this.binding.update(data);
 		for (const callback of this.updateCallbacks) {
