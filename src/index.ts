@@ -48,6 +48,7 @@ export type { DescriptorOption } from "./tally/state/descriptor/DescriptorOption
 
 // Replication
 export type { ReplicationValue } from "./tally/replication/ReplicationValue.js";
+export type { ReplicationEvent } from "./tally/replication/ReplicationEvent.js";
 export type { ReplicationDefinition } from "./tally/replication/ReplicationDefinition.js";
 export {
 	type ReplicationSnapshot,
