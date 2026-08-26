@@ -28,7 +28,11 @@ export function createReplicationSnapshot(agent: AgentState<unknown>): Replicati
 		descriptors: agent
 			.getDescriptors()
 			.values()
-			.filter((descriptor) => descriptor.provenance.domain === "local")
+			.filter(
+				(descriptor) =>
+					descriptor.type.replication !== undefined &&
+					descriptor.provenance.domain === "local"
+			)
 			.map((descriptor) => serializeDescriptor(descriptor))
 			.toArray(),
 	};

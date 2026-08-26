@@ -240,9 +240,7 @@ describe("replication", () => {
 		const { receiver } = createReplicationFixture(false);
 
 		expect(() =>
-			receiver.apply([
-				{ target: "source", event: { kind: "updated", id: 404, data: null } },
-			])
+			receiver.apply([{ target: "source", event: { kind: "updated", id: 404, data: null } }])
 		).toThrow("Failed to apply 1 replication event(s)");
 	});
 });

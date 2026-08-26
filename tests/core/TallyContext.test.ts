@@ -173,9 +173,7 @@ describe("tally context lifecycle", () => {
 
 		expect(() => tally.createAgentState(undefined)).toThrow();
 		expect(() => tally.register(SourceType)).toThrow();
-		expect(() =>
-			tally.registerDescriptorHandler(DescriptorType, () => undefined)
-		).toThrow();
+		expect(() => tally.registerDescriptorHandler(DescriptorType, () => undefined)).toThrow();
 		expect(() => tally.destroy()).not.toThrow();
 		expect(sourceAdded).not.toHaveBeenCalled();
 		expect(descriptorAdded).not.toHaveBeenCalled();
