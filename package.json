@@ -1,12 +1,24 @@
 {
   "name": "tally-effects",
   "version": "0.0.0",
-  "description": "",
+  "description": "A composable, source-driven status effect framework for deriving and replicating gameplay state.",
   "license": "MIT",
   "author": "DaDerpDuck",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DaDerpDuck/tally"
+  },
+  "bugs": {
+    "url": "https://github.com/DaDerpDuck/tally/issues"
+  },
+  "homepage": "https://github.com/DaDerpDuck/tally#readme",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "files": ["dist", "README", "LICENSE"],
   "scripts": {
     "build": "tsc",
