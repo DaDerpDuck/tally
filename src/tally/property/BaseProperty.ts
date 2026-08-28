@@ -1,5 +1,5 @@
 import type { Modifier } from "../modifier/Modifier.js";
-import type { Registrable, Registry } from "../state/Registrable.js";
+import { registerProperty, type Registrable, type Registry } from "../state/Registrable.js";
 import type { Property } from "./Property.js";
 
 /**
@@ -58,8 +58,6 @@ export class BaseProperty<T, TModifier extends Modifier<T> = Modifier<T>>
 	}
 
 	register(registry: Registry): void {
-		if (registry.properties.has(this.name) && registry.properties.get(this.name) !== this)
-			throw new Error(`Duplicate property name: ${this.name}`);
-		registry.properties.set(this.name, this);
+		registerProperty(registry, this);
 	}
 }

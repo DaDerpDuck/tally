@@ -2,6 +2,9 @@
 export { AgentState } from "./tally/core/AgentState.js";
 export { TallyContext } from "./tally/core/TallyContext.js";
 
+// Registry
+export { type Registry, type Registrable, registerProperty } from "./tally/state/Registrable.js";
+
 // Modifiers / custom Property extension
 export type { Modifier, AnyModifier } from "./tally/modifier/Modifier.js";
 export {

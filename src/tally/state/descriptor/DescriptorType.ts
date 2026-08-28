@@ -3,7 +3,7 @@ import type {
 	ReplicationDefinition,
 } from "../../replication/ReplicationDefinition.js";
 import type { DuplicatePolicy } from "../DuplicatePolicy.js";
-import type { Registrable, Registry } from "../Registrable.js";
+import { registerNamed, type Registrable, type Registry } from "../Registrable.js";
 import type { SourceType } from "../source/SourceType.js";
 import type { StateTypeDefinition } from "../StateTypeDefinition.js";
 import type { AnyDescriptor, Descriptor } from "./Descriptor.js";
@@ -62,9 +62,7 @@ export class DescriptorType<TDescriptorData, TSourceData>
 	}
 
 	register(registry: Registry): void {
-		if (registry.descriptors.has(this.name) && registry.descriptors.get(this.name) !== this)
-			throw new Error(`Duplicate descriptor name: ${this.name}`);
-		registry.descriptors.set(this.name, this);
+		registerNamed(registry.descriptors, this, "descriptor");
 	}
 
 	dataEquals(a: TDescriptorData, b: TDescriptorData): boolean {

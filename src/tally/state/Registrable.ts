@@ -1,5 +1,5 @@
 import type { AnyDescriptorType } from "../state/descriptor/DescriptorType.js";
-import type { AnyProperty } from "../property/Property.js";
+import type { AnyProperty, Property } from "../property/Property.js";
 import type { AnySourceType } from "../state/source/SourceType.js";
 
 export interface Registry {
@@ -10,4 +10,21 @@ export interface Registry {
 
 export interface Registrable {
 	register(registry: Registry): void;
+}
+
+export function registerNamed<T extends { readonly name: string }>(
+	registry: Map<string, T>,
+	value: T,
+	kind: string
+) {
+	const existing = registry.get(value.name);
+
+	if (existing !== undefined && existing !== value)
+		throw new Error(`Duplicate ${kind} name: ${value.name}`);
+
+	registry.set(value.name, value);
+}
+
+export function registerProperty(registry: Registry, property: AnyProperty) {
+	return registerNamed(registry.properties, property, "property");
 }

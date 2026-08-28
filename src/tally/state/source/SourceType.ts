@@ -3,7 +3,7 @@ import type {
 	ReplicationDefinition,
 } from "../../replication/ReplicationDefinition.js";
 import type { DuplicatePolicy } from "../DuplicatePolicy.js";
-import type { Registrable, Registry } from "../Registrable.js";
+import { registerNamed, type Registrable, type Registry } from "../Registrable.js";
 import type { StateTypeDefinition } from "../StateTypeDefinition.js";
 import type { Source } from "./Source.js";
 import type { SourceContribution } from "./SourceContribution.js";
@@ -59,9 +59,7 @@ export class SourceType<TData> implements AnySourceType, Registrable {
 	}
 
 	register(registry: Registry): void {
-		if (registry.sources.has(this.name) && registry.sources.get(this.name) !== this)
-			throw new Error(`Duplicate source name: ${this.name}`);
-		registry.sources.set(this.name, this);
+		registerNamed(registry.sources, this, "source");
 	}
 
 	dataEquals(a: TData, b: TData): boolean {
