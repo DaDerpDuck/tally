@@ -1,5 +1,6 @@
 import type { Modifier } from "../modifier/Modifier.js";
 import type { Registrable, Registry } from "../state/Registrable.js";
+import type { Property } from "./Property.js";
 
 /**
  * Defines a Property's default value, equality behavior, and resolution logic.
@@ -28,7 +29,9 @@ export interface PropertyDefinition<T> {
  * Subclasses may override default resolution and equality behavior while still
  * allowing those behaviors to be replaced through {@link PropertyDefinition}.
  */
-export class BaseProperty<T> implements Registrable {
+export class BaseProperty<T, TModifier extends Modifier<T> = Modifier<T>>
+	implements Property<T, TModifier>, Registrable
+{
 	public readonly name: string;
 	public readonly defaultValue: T;
 
@@ -37,7 +40,7 @@ export class BaseProperty<T> implements Registrable {
 		this.defaultValue = definition.defaultValue;
 	}
 
-	resolve(base: T, modifiers: readonly Modifier<T>[]): T {
+	resolve(base: T, modifiers: readonly TModifier[]): T {
 		if ("resolve" in this.definition) return this.definition.resolve(base, modifiers);
 		return this.defaultResolve(base, modifiers);
 	}
@@ -46,7 +49,7 @@ export class BaseProperty<T> implements Registrable {
 		return this.definition.valueEquals?.(a, b) ?? this.defaultEquals(a, b);
 	}
 
-	protected defaultResolve(base: T, modifiers: readonly Modifier<T>[]): T {
+	protected defaultResolve(base: T, modifiers: readonly TModifier[]): T {
 		return base;
 	}
 

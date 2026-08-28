@@ -5,7 +5,9 @@ import type { ModifierHandle } from "./ModifierRegistry.js";
 
 export interface ModifierCollection {
 	add<T>(property: Property<T>, modifier: Modifier<T>, order: ModifierOrder): ModifierHandle;
-	get<T>(property: Property<T>): readonly Modifier<T>[];
-	iterator<T>(property: Property<T>): Generator<Modifier<T>>;
+	get<T, TModifier extends Modifier<T>>(property: Property<T, TModifier>): readonly TModifier[];
+	iterator<T, TModifier extends Modifier<T>>(
+		property: Property<T, TModifier>
+	): Generator<TModifier>;
 	delete(handle: unknown): boolean;
 }

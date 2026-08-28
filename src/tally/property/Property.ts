@@ -17,9 +17,9 @@ export interface AnyProperty {
  * Properties do not store per-agent state themselves and are reusable definitions.
  * Each AgentState resolves and caches its own value for a Property.
  */
-export interface Property<T> extends AnyProperty {
+export interface Property<T, TModifier extends Modifier<T> = Modifier<T>> extends AnyProperty {
 	readonly name: string;
 	readonly defaultValue: T;
 	valueEquals(a: T, b: T): boolean;
-	resolve(base: T, modifiers: readonly Modifier<T>[]): T;
+	resolve(base: T, modifiers: readonly TModifier[]): T;
 }

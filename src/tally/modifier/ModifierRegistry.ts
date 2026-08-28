@@ -39,14 +39,16 @@ export class ModifierRegistry implements ModifierCollection {
 		}
 	}
 
-	get<T>(property: Property<T>): readonly Modifier<T>[] {
-		return (this.map.get(property)?.values() ?? []) as readonly Modifier<T>[];
+	get<T, TModifier extends Modifier<T>>(property: Property<T, TModifier>): readonly TModifier[] {
+		return (this.map.get(property)?.values() ?? []) as readonly TModifier[];
 	}
 
-	*iterator<T>(property: Property<T>): Generator<Modifier<T>> {
+	*iterator<T, TModifier extends Modifier<T>>(
+		property: Property<T, TModifier>
+	): Generator<TModifier> {
 		const sarray = this.map.get(property);
 		if (!sarray) return;
-		for (const entry of sarray.iterateAscending()) yield entry as Modifier<T>;
+		for (const entry of sarray.iterateAscending()) yield entry as TModifier;
 	}
 
 	delete(handle: ModifierHandle): boolean {
