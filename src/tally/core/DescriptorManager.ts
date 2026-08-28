@@ -1,0 +1,182 @@
+import type { AnyDescriptor, Descriptor } from "../state/descriptor/Descriptor.js";
+import type { DescriptorBinding } from "../state/descriptor/DescriptorBinding.js";
+import type {
+	AnyDescriptorHandler,
+	DescriptorHandler,
+} from "../state/descriptor/DescriptorHandler.js";
+import { DescriptorInstance } from "../state/descriptor/DescriptorInstance.js";
+import type { DescriptorOption } from "../state/descriptor/DescriptorOption.js";
+import type { AnyDescriptorType, DescriptorType } from "../state/descriptor/DescriptorType.js";
+import type { SourceOption } from "../state/source/SourceOption.js";
+import type { Disconnect } from "../util/Disconnect.js";
+import { getOrInsert } from "../util/GetOrInsert.js";
+import type { IdCounter } from "../util/IdCounter.js";
+import type { AgentState } from "./AgentState.js";
+import type { SourceManager } from "./SourceManager.js";
+
+export type DescriptorCallback<TDescriptorData = unknown, TSourceData = unknown> = (
+	descriptor: Descriptor<TDescriptorData, TSourceData>
+) => void;
+
+export class DescriptorManager<TEntity> {
+	private static readonly EmptySet: ReadonlySet<unknown> = new Set();
+
+	private readonly descriptorHandlers = new Map<AnyDescriptorType, AnyDescriptorHandler>();
+	private readonly descriptorMap = new Map<AnyDescriptorType, Set<AnyDescriptor>>();
+
+	private readonly descriptorAddedCallbacks = new Set<DescriptorCallback>();
+	private readonly descriptorRemovedCallbacks = new Set<DescriptorCallback>();
+	private readonly descriptorUpdatedCallbacks = new Set<DescriptorCallback>();
+
+	constructor(
+		private readonly counter: IdCounter,
+		private readonly sources: SourceManager
+	) {}
+
+	addDescriptor<TDescriptorData, TSourceData>(
+		agent: AgentState<TEntity>,
+		type: DescriptorType<TDescriptorData, TSourceData>,
+		data: TDescriptorData,
+		options?: DescriptorOption
+	): Descriptor<TDescriptorData, TSourceData> | undefined {
+		switch (type.duplication.policy) {
+			case "allow":
+				return this.createDescriptor(agent, type, data, options);
+			case "ignore": {
+				const existingDescriptor = this.descriptorMap.get(type)?.values().next().value;
+				if (existingDescriptor) return undefined;
+				return this.createDescriptor(agent, type, data, options);
+			}
+			case "replace": {
+				return this.sources.batch(() => {
+					const existingDescriptor = this.descriptorMap.get(type)?.values().next().value;
+					existingDescriptor?.destroy();
+					return this.createDescriptor(agent, type, data, options);
+				});
+			}
+			case "reconcile": {
+				const existingDescriptor = this.descriptorMap.get(type)?.values().next().value;
+				if (!existingDescriptor) return this.createDescriptor(agent, type, data, options);
+				if (existingDescriptor.type.duplication.policy !== "reconcile")
+					throw new Error("Duplicate policy was changed");
+				existingDescriptor.type.duplication.reconcile(existingDescriptor, data);
+				return undefined;
+			}
+		}
+	}
+
+	registerDescriptorHandler<TDescriptorData, TSourceData>(
+		type: DescriptorType<TDescriptorData, TSourceData>,
+		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
+	) {
+		this.descriptorHandlers.set(type, handler as AnyDescriptorHandler);
+	}
+
+	getDescriptors(
+		type?: DescriptorType<unknown, unknown>
+	): ReadonlySet<Descriptor<unknown, unknown>> {
+		if (type === undefined)
+			return new Set(this.descriptorMap.values().flatMap((x) => x.values().toArray()));
+		return (this.descriptorMap.get(type) ?? DescriptorManager.EmptySet) as ReadonlySet<
+			Descriptor<unknown, unknown>
+		>;
+	}
+
+	onDescriptorAdded(callback: DescriptorCallback): Disconnect {
+		this.descriptorAddedCallbacks.add(callback);
+		return () => this.descriptorAddedCallbacks.delete(callback);
+	}
+
+	onDescriptorRemoved(callback: DescriptorCallback): Disconnect {
+		this.descriptorRemovedCallbacks.add(callback);
+		return () => this.descriptorRemovedCallbacks.delete(callback);
+	}
+
+	onDescriptorUpdated(callback: DescriptorCallback): Disconnect {
+		this.descriptorUpdatedCallbacks.add(callback);
+		return () => this.descriptorUpdatedCallbacks.delete(callback);
+	}
+
+	destroyAllDescriptors() {
+		this.descriptorMap
+			.values()
+			.forEach((descriptors) => descriptors.forEach((x) => x.destroy()));
+		this.descriptorMap.clear();
+	}
+
+	disconnectAll() {
+		this.descriptorAddedCallbacks.clear();
+		this.descriptorRemovedCallbacks.clear();
+		this.descriptorUpdatedCallbacks.clear();
+	}
+
+	private createDescriptor<TDescriptorData, TSourceData>(
+		agent: AgentState<TEntity>,
+		type: DescriptorType<TDescriptorData, TSourceData>,
+		data: TDescriptorData,
+		options?: DescriptorOption
+	): Descriptor<TDescriptorData, TSourceData> | undefined {
+		const handler = this.descriptorHandlers.get(type);
+		if (!handler)
+			throw new Error(
+				"Attempted to add a descriptor source before a descriptor handler was assigned"
+			);
+
+		// Reserve id before handler is called.
+		const descriptorId = this.counter.next();
+
+		const provenance = options?.provenance ?? {
+			domain: "local",
+			sequence: descriptorId,
+		};
+
+		const binding = handler(
+			{
+				agent,
+				addSource: (data, options) => {
+					type Writable<T> = {
+						-readonly [K in keyof T]: T[K];
+					};
+					const writableOptions: Writable<SourceOption> = {
+						priority: type.source.priority,
+						provenance: {
+							domain:
+								provenance.domain === "local"
+									? "descriptor-local"
+									: "descriptor-replicated",
+							sequence: provenance.sequence,
+						},
+					};
+					if (options?.priority !== undefined)
+						writableOptions.priority = options.priority;
+					if (options?.provenance !== undefined)
+						writableOptions.provenance = options.provenance;
+					return this.sources.addSource(type.source, data, writableOptions);
+				},
+			},
+			data
+		);
+		if (!binding) return undefined;
+
+		const descriptor = new DescriptorInstance<TDescriptorData, TSourceData>(
+			descriptorId,
+			type,
+			provenance,
+			binding as DescriptorBinding<TDescriptorData, TSourceData>,
+			data
+		);
+		getOrInsert(this.descriptorMap, type, new Set()).add(descriptor);
+		this.descriptorAddedCallbacks.forEach((callback) => callback(descriptor));
+
+		descriptor.onUpdate(() =>
+			this.descriptorUpdatedCallbacks.forEach((callback) => callback(descriptor))
+		);
+
+		descriptor.onDestroy(() => {
+			this.descriptorMap.get(type)?.delete(descriptor);
+			this.descriptorRemovedCallbacks.forEach((callback) => callback(descriptor));
+		});
+
+		return descriptor;
+	}
+}

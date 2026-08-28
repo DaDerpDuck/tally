@@ -13,17 +13,12 @@ import type {
 	DescriptorHandler,
 } from "../state/descriptor/DescriptorHandler.js";
 import type { Disconnect } from "../util/Disconnect.js";
-import { OrderingDomain } from "../modifier/OrderingDomain.js";
 import type { DescriptorOption } from "../state/descriptor/DescriptorOption.js";
-import type { StateProvenance } from "../state/Provenance.js";
-import { getOrInsert } from "../util/GetOrInsert.js";
+import { SourceManager, type PropertyCallback, type SourceCallback } from "./SourceManager.js";
+import { DescriptorManager, type DescriptorCallback } from "./DescriptorManager.js";
+import { IdCounter } from "../util/IdCounter.js";
 
-type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
-type SourceCallback<T = unknown> = (source: Source<T>) => void;
-type DescriptorCallback<TDescriptorData = unknown, TSourceData = unknown> = (
-	descriptor: Descriptor<TDescriptorData, TSourceData>
-) => void;
-type DestroyCallback = () => void;
+export type DestroyCallback = () => void;
 
 /**
  * Holds the runtime Tally state for a single entity.
@@ -32,29 +27,13 @@ type DestroyCallback = () => void;
  * lifecycle observation for the associated entity.
  */
 export class AgentState<TEntity> {
-	private static readonly EmptySet: ReadonlySet<unknown> = new Set();
+	private readonly counter = new IdCounter();
 
-	private readonly modifierRegistry = new ModifierRegistry();
-	private readonly sourceModifiersMap = new Map<Source, ModifierHandle[]>();
-	private readonly descriptorHandlers = new Map<AnyDescriptorType, AnyDescriptorHandler>();
+	private readonly sources = new SourceManager(this.counter);
+	private readonly descriptors = new DescriptorManager(this.counter, this.sources);
 
-	private readonly sourceMap = new Map<AnySourceType, Set<Source>>();
-	private readonly descriptorMap = new Map<AnyDescriptorType, Set<AnyDescriptor>>();
-
-	private readonly propertyCallbacks = new Map<AnyProperty, Set<PropertyCallback>>();
-	private readonly sourceAddedCallbacks = new Set<SourceCallback>();
-	private readonly sourceRemovedCallbacks = new Set<SourceCallback>();
-	private readonly sourceUpdatedCallbacks = new Set<SourceCallback>();
-	private readonly descriptorAddedCallbacks = new Set<DescriptorCallback>();
-	private readonly descriptorRemovedCallbacks = new Set<DescriptorCallback>();
-	private readonly descriptorUpdatedCallbacks = new Set<DescriptorCallback>();
 	private readonly destroyCallbacks = new Set<DestroyCallback>();
 
-	private readonly resolvedProperties = new Map<AnyProperty, unknown>();
-	private readonly dirtyProperties = new Set<AnyProperty>();
-
-	private sourceCounter = 0;
-	private mutationDepth = 0;
 	private destroyed = false;
 
 	constructor(public readonly entity: TEntity) {}
@@ -84,30 +63,7 @@ export class AgentState<TEntity> {
 		options?: SourceOption
 	): Source<TData> | undefined {
 		this.assertAlive();
-		switch (type.duplication.policy) {
-			case "allow":
-				return this.createSource(type, data, options);
-			case "ignore": {
-				const existingSource = this.sourceMap.get(type)?.values().next().value;
-				if (existingSource) return undefined;
-				return this.createSource(type, data, options);
-			}
-			case "replace": {
-				return this.batch(() => {
-					const existingSource = this.sourceMap.get(type)?.values().next().value;
-					existingSource?.destroy();
-					return this.createSource(type, data, options);
-				});
-			}
-			case "reconcile": {
-				const existingSource = this.sourceMap.get(type)?.values().next().value;
-				if (!existingSource) return this.createSource(type, data, options);
-				if (existingSource.type.duplication.policy !== "reconcile")
-					throw new Error("Duplicate policy was changed");
-				existingSource.type.duplication.reconcile(existingSource, data);
-				return undefined;
-			}
-		}
+		return this.sources.addSource(type, data, options);
 	}
 
 	/**
@@ -125,30 +81,7 @@ export class AgentState<TEntity> {
 		options?: DescriptorOption
 	): Descriptor<TDescriptorData, TSourceData> | undefined {
 		this.assertAlive();
-		switch (type.duplication.policy) {
-			case "allow":
-				return this.createDescriptor(type, data, options);
-			case "ignore": {
-				const existingDescriptor = this.descriptorMap.get(type)?.values().next().value;
-				if (existingDescriptor) return undefined;
-				return this.createDescriptor(type, data, options);
-			}
-			case "replace": {
-				return this.batch(() => {
-					const existingDescriptor = this.descriptorMap.get(type)?.values().next().value;
-					existingDescriptor?.destroy();
-					return this.createDescriptor(type, data, options);
-				});
-			}
-			case "reconcile": {
-				const existingDescriptor = this.descriptorMap.get(type)?.values().next().value;
-				if (!existingDescriptor) return this.createDescriptor(type, data, options);
-				if (existingDescriptor.type.duplication.policy !== "reconcile")
-					throw new Error("Duplicate policy was changed");
-				existingDescriptor.type.duplication.reconcile(existingDescriptor, data);
-				return undefined;
-			}
-		}
+		return this.descriptors.addDescriptor(this, type, data, options);
 	}
 
 	/**
@@ -163,159 +96,7 @@ export class AgentState<TEntity> {
 		handler: DescriptorHandler<TEntity, TDescriptorData, TSourceData>
 	) {
 		this.assertAlive();
-		this.descriptorHandlers.set(type, handler as AnyDescriptorHandler);
-	}
-
-	private createSource<TData>(
-		type: SourceType<TData>,
-		data: TData,
-		options?: SourceOption
-	): SourceInstance<TData> {
-		const priority = options?.priority ?? type.priority;
-		const provenance = options?.provenance ?? {
-			domain: "local",
-			sequence: this.sourceCounter,
-		};
-		let handles = this.applyModifiers(type, priority, provenance, data);
-
-		const source = new SourceInstance(this.sourceCounter++, type, priority, provenance, data);
-		this.sourceModifiersMap.set(source, handles);
-		for (const handle of handles) this.dirtyProperties.add(handle.property);
-		this.requestResolve();
-
-		getOrInsert(this.sourceMap, type, new Set()).add(source);
-
-		source.onUpdate(() => {
-			for (const handle of handles) this.dirtyProperties.add(handle.property);
-			this.clearModifierHandles(handles);
-			handles = this.applyModifiers(type, priority, source.provenance, source.get());
-			this.sourceModifiersMap.set(source, handles);
-			for (const handle of handles) this.dirtyProperties.add(handle.property);
-			this.requestResolve();
-			this.sourceUpdatedCallbacks.forEach((callback) => callback(source));
-		});
-
-		source.onDestroy(() => {
-			for (const handle of handles) this.dirtyProperties.add(handle.property);
-			this.clearModifierHandles(handles);
-			this.sourceModifiersMap.delete(source);
-			this.sourceMap.get(source.type)?.delete(source);
-			this.requestResolve();
-			this.sourceRemovedCallbacks.forEach((callback) => callback(source));
-		});
-
-		this.sourceAddedCallbacks.forEach((callback) => callback(source));
-
-		return source;
-	}
-
-	private createDescriptor<TDescriptorData, TSourceData>(
-		type: DescriptorType<TDescriptorData, TSourceData>,
-		data: TDescriptorData,
-		options?: DescriptorOption
-	): Descriptor<TDescriptorData, TSourceData> | undefined {
-		const handler = this.descriptorHandlers.get(type);
-		if (!handler)
-			throw new Error(
-				"Attempted to add a descriptor source before a descriptor handler was assigned"
-			);
-
-		const provenance = options?.provenance ?? {
-			domain: "local",
-			sequence: this.sourceCounter,
-		};
-
-		// Reserve id before handler is called.
-		const descriptorId = this.sourceCounter++;
-
-		const binding = handler(
-			{
-				agent: this,
-				addSource: (data, options) => {
-					type Writable<T> = {
-						-readonly [K in keyof T]: T[K];
-					};
-					const writableOptions: Writable<SourceOption> = {
-						priority: type.source.priority,
-						provenance: {
-							domain:
-								provenance.domain === "local"
-									? "descriptor-local"
-									: "descriptor-replicated",
-							sequence: provenance.sequence,
-						},
-					};
-					if (options?.priority !== undefined)
-						writableOptions.priority = options.priority;
-					if (options?.provenance !== undefined)
-						writableOptions.provenance = options.provenance;
-					return this.addSource(type.source, data, writableOptions);
-				},
-			},
-			data
-		);
-		if (!binding) return undefined;
-
-		const descriptor = new DescriptorInstance<TDescriptorData, TSourceData>(
-			descriptorId,
-			type,
-			provenance,
-			binding as DescriptorBinding<TDescriptorData, TSourceData>,
-			data
-		);
-		getOrInsert(this.descriptorMap, type, new Set()).add(descriptor);
-		this.descriptorAddedCallbacks.forEach((callback) => callback(descriptor));
-
-		descriptor.onUpdate(() =>
-			this.descriptorUpdatedCallbacks.forEach((callback) => callback(descriptor))
-		);
-
-		descriptor.onDestroy(() => {
-			this.descriptorMap.get(type)?.delete(descriptor);
-			this.descriptorRemovedCallbacks.forEach((callback) => callback(descriptor));
-		});
-
-		return descriptor;
-	}
-
-	private applyModifiers<TData>(
-		type: SourceType<TData>,
-		priority: number,
-		provenance: StateProvenance,
-		data: TData
-	): ModifierHandle[] {
-		return type.contribute(data).map((modifier, index) =>
-			modifier.applyTo(this.modifierRegistry, {
-				priority,
-				domain:
-					provenance.domain === "local" || provenance.domain === "descriptor-local"
-						? OrderingDomain.local
-						: OrderingDomain.authoritative,
-				sequence: provenance.sequence,
-				modifierIndex: index,
-			})
-		);
-	}
-
-	private clearModifierHandles(handles: ModifierHandle[]) {
-		for (const handle of handles) this.modifierRegistry.delete(handle);
-		handles.length = 0;
-	}
-
-	private resolveProperties() {
-		for (const property of this.dirtyProperties) {
-			const newResolution = property.resolve(
-				property.defaultValue,
-				this.modifierRegistry.get(property)
-			);
-			const oldResolution = this.get(property);
-			this.resolvedProperties.set(property, newResolution);
-			if (!property.valueEquals(oldResolution, newResolution)) {
-				const callbacks = this.propertyCallbacks.get(property);
-				callbacks?.forEach((callback) => callback(newResolution, oldResolution));
-			}
-		}
-		this.dirtyProperties.clear();
+		return this.descriptors.registerDescriptorHandler(type, handler);
 	}
 
 	/**
@@ -328,7 +109,7 @@ export class AgentState<TEntity> {
 	 * from when the batch call began. This may result in retrieving stale data.
 	 */
 	get<T>(property: Property<T>): T {
-		return (this.resolvedProperties.get(property) as T) ?? property.defaultValue;
+		return this.sources.get(property);
 	}
 
 	/**
@@ -340,21 +121,11 @@ export class AgentState<TEntity> {
 	 */
 	onPropertyChanged<T>(property: Property<T>, callback: PropertyCallback<T>): Disconnect {
 		if (this.destroyed) return () => {};
-		let callbacks = this.propertyCallbacks.get(property);
-		if (callbacks) {
-			callbacks.add(callback as PropertyCallback<unknown>);
-		} else {
-			callbacks = new Set();
-			this.propertyCallbacks.set(property, callbacks);
-			callbacks.add(callback as PropertyCallback<unknown>);
-		}
-
-		return () => callbacks.delete(callback as PropertyCallback<unknown>);
+		return this.sources.onPropertyChanged(property, callback);
 	}
 
 	hasSource(type: SourceType<unknown>): boolean {
-		const existingSource = this.sourceMap.get(type)?.values().next().value;
-		return existingSource !== undefined;
+		return this.sources.hasSource(type);
 	}
 
 	/**
@@ -364,8 +135,7 @@ export class AgentState<TEntity> {
 	getSources(): ReadonlySet<Source>;
 	getSources<TData>(type: SourceType<TData>): ReadonlySet<Source<TData>>;
 	getSources(type?: SourceType<unknown>): ReadonlySet<Source> {
-		if (type === undefined) return new Set(this.sourceModifiersMap.keys());
-		return (this.sourceMap.get(type) ?? AgentState.EmptySet) as ReadonlySet<Source>;
+		return this.sources.getSources(type);
 	}
 
 	/**
@@ -379,47 +149,47 @@ export class AgentState<TEntity> {
 	getDescriptors(
 		type?: DescriptorType<unknown, unknown>
 	): ReadonlySet<Descriptor<unknown, unknown>> {
-		if (type === undefined)
-			return new Set(this.descriptorMap.values().flatMap((x) => x.values().toArray()));
-		return (this.descriptorMap.get(type) ?? AgentState.EmptySet) as ReadonlySet<
-			Descriptor<unknown, unknown>
-		>;
+		return this.descriptors.getDescriptors(type);
+	}
+
+	/**
+	 * Defers property resolution until the outermost batch completes. Callbacks
+	 * are only fired once when the resolution completes.
+	 *
+	 * Nested batches are supported.
+	 */
+	batch<T>(callback: () => T): T {
+		return this.sources.batch(callback);
 	}
 
 	onSourceAdded(callback: SourceCallback): Disconnect {
 		if (this.destroyed) return () => {};
-		this.sourceAddedCallbacks.add(callback);
-		return () => this.sourceAddedCallbacks.delete(callback);
+		return this.sources.onSourceAdded(callback);
 	}
 
 	onSourceRemoved(callback: SourceCallback): Disconnect {
 		if (this.destroyed) return () => {};
-		this.sourceRemovedCallbacks.add(callback);
-		return () => this.sourceRemovedCallbacks.delete(callback);
+		return this.sources.onSourceRemoved(callback);
 	}
 
 	onSourceUpdated(callback: SourceCallback): Disconnect {
 		if (this.destroyed) return () => {};
-		this.sourceUpdatedCallbacks.add(callback);
-		return () => this.sourceUpdatedCallbacks.delete(callback);
+		return this.sources.onSourceUpdated(callback);
 	}
 
 	onDescriptorAdded(callback: DescriptorCallback): Disconnect {
 		if (this.destroyed) return () => {};
-		this.descriptorAddedCallbacks.add(callback);
-		return () => this.descriptorAddedCallbacks.delete(callback);
+		return this.descriptors.onDescriptorAdded(callback);
 	}
 
 	onDescriptorRemoved(callback: DescriptorCallback): Disconnect {
 		if (this.destroyed) return () => {};
-		this.descriptorRemovedCallbacks.add(callback);
-		return () => this.descriptorRemovedCallbacks.delete(callback);
+		return this.descriptors.onDescriptorRemoved(callback);
 	}
 
 	onDescriptorUpdated(callback: DescriptorCallback): Disconnect {
 		if (this.destroyed) return () => {};
-		this.descriptorUpdatedCallbacks.add(callback);
-		return () => this.descriptorUpdatedCallbacks.delete(callback);
+		return this.descriptors.onDescriptorUpdated(callback);
 	}
 
 	onDestroy(callback: DestroyCallback): Disconnect {
@@ -429,18 +199,11 @@ export class AgentState<TEntity> {
 	}
 
 	destroyAllSources() {
-		this.sourceModifiersMap.forEach((_, source) => source.destroy());
-		this.sourceModifiersMap.clear();
-		this.modifierRegistry.clear();
-		this.resolvedProperties.clear();
-		this.dirtyProperties.clear();
+		this.sources.destroyAllSources();
 	}
 
 	destroyAllDescriptors() {
-		this.descriptorMap
-			.values()
-			.forEach((descriptors) => descriptors.forEach((x) => x.destroy()));
-		this.descriptorMap.clear();
+		this.descriptors.destroyAllDescriptors();
 	}
 
 	/**
@@ -452,40 +215,14 @@ export class AgentState<TEntity> {
 		if (this.destroyed) return;
 		this.destroyed = true;
 		this.destroyCallbacks.forEach((callback) => callback());
-		this.destroyAllDescriptors();
+		this.sources.disconnectAll();
+		this.descriptors.disconnectAll();
 		this.destroyAllSources();
-		this.propertyCallbacks.clear();
-		this.sourceAddedCallbacks.clear();
-		this.sourceRemovedCallbacks.clear();
-		this.sourceUpdatedCallbacks.clear();
-		this.descriptorAddedCallbacks.clear();
-		this.descriptorRemovedCallbacks.clear();
-		this.descriptorUpdatedCallbacks.clear();
+		this.destroyAllDescriptors();
 		this.destroyCallbacks.clear();
-	}
-
-	private requestResolve() {
-		if (this.mutationDepth === 0) this.resolveProperties();
 	}
 
 	private assertAlive() {
 		if (this.destroyed) throw new Error("AgentState was destroyed");
-	}
-
-	/**
-	 * Defers property resolution until the outermost batch completes. Callbacks
-	 * are only fired once when the resolution completes.
-	 *
-	 * Nested batches are supported.
-	 */
-	batch<T>(callback: () => T): T {
-		this.mutationDepth++;
-
-		try {
-			return callback();
-		} finally {
-			this.mutationDepth--;
-			if (this.mutationDepth === 0) this.resolveProperties();
-		}
 	}
 }
