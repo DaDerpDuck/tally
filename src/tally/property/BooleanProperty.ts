@@ -1,32 +1,40 @@
 import { contributeModifier } from "../modifier/ModifierContribution.js";
-import { BaseProperty, type PropertyDefinition } from "./BaseProperty.js";
+import {
+	resolvePropertyDefinition,
+	type PropertyDefinition,
+	type ResolvedPropertyDefinition,
+} from "./PropertyDefinition.js";
 import type { Property } from "./Property.js";
+import { registerProperty, type Registrable, type Registry } from "../state/Registrable.js";
+import type { Modifier } from "../modifier/Modifier.js";
 
-type BooleanModifier = {
-	readonly property: Property<boolean>;
+export interface BooleanModifier extends Modifier<boolean> {
 	readonly operation: "override";
 	readonly value: boolean;
-};
+}
 
 /**
  * A boolean Property whose Modifiers override its current value.
  */
-export class BooleanProperty extends BaseProperty<boolean, BooleanModifier> {
-	protected override defaultResolve(
-		base: boolean,
-		modifiers: readonly BooleanModifier[]
-	): boolean {
-		let final = base;
+export class BooleanProperty implements Property<boolean, BooleanModifier>, Registrable {
+	readonly name: string;
+	readonly defaultValue: boolean;
 
-		for (const modifier of modifiers) {
-			switch (modifier.operation) {
-				case "override":
-					final = modifier.value;
-					break;
-			}
-		}
+	constructor(private readonly definition: ResolvedPropertyDefinition<boolean, BooleanModifier>) {
+		this.name = definition.name;
+		this.defaultValue = definition.defaultValue;
+	}
 
-		return final;
+	valueEquals(a: boolean, b: boolean): boolean {
+		return this.definition.valueEquals(a, b);
+	}
+
+	resolve(base: boolean, modifiers: readonly BooleanModifier[]): boolean {
+		return this.definition.resolve(base, modifiers);
+	}
+
+	register(registry: Registry): void {
+		return registerProperty(registry, this);
 	}
 
 	enable() {
@@ -54,6 +62,20 @@ export class BooleanProperty extends BaseProperty<boolean, BooleanModifier> {
 	}
 }
 
+function defaultBooleanResolve(base: boolean, modifiers: readonly BooleanModifier[]): boolean {
+	let final = base;
+
+	for (const modifier of modifiers) {
+		switch (modifier.operation) {
+			case "override":
+				final = modifier.value;
+				break;
+		}
+	}
+
+	return final;
+}
+
 /**
  *
  * Creates a boolean Property definition.
@@ -61,5 +83,10 @@ export class BooleanProperty extends BaseProperty<boolean, BooleanModifier> {
  * @see {@link BooleanProperty}
  */
 export function defineBooleanProperty(definition: PropertyDefinition<boolean>) {
-	return new BooleanProperty(definition);
+	return new BooleanProperty(
+		resolvePropertyDefinition(definition, {
+			resolve: defaultBooleanResolve,
+			valueEquals: Object.is,
+		})
+	);
 }

@@ -14,9 +14,22 @@ export {
 
 // Property
 export type { Property, AnyProperty } from "./tally/property/Property.js";
-export { BaseProperty, type PropertyDefinition } from "./tally/property/BaseProperty.js";
-export { BooleanProperty, defineBooleanProperty } from "./tally/property/BooleanProperty.js";
-export { NumberProperty, defineNumberProperty } from "./tally/property/NumberProperty.js";
+export {
+	type PropertyDefinition,
+	type ResolvedPropertyDefinition,
+	type DefaultPropertyDefinition,
+	resolvePropertyDefinition,
+} from "./tally/property/PropertyDefinition.js";
+export {
+	type BooleanModifier,
+	BooleanProperty,
+	defineBooleanProperty,
+} from "./tally/property/BooleanProperty.js";
+export {
+	type NumberModifier,
+	NumberProperty,
+	defineNumberProperty,
+} from "./tally/property/NumberProperty.js";
 
 // State behavior
 export type { DuplicatePolicy } from "./tally/state/DuplicatePolicy.js";
