@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AgentState, defineSourceType, type Modifier, type Property } from "../src/index.js";
 import type { ModifierOrder } from "../../src/tally/modifier/ModifierOrder.js";
-import {
-	ModifierRegistry,
-	type ModifierHandle,
-} from "../../src/tally/modifier/ModifierRegistry.js";
+import { ModifierRegistry } from "../../src/tally/modifier/ModifierRegistry.js";
 import { OrderingDomain } from "../../src/tally/modifier/OrderingDomain.js";
 
 const TraceProperty: Property<string> = {
@@ -23,18 +20,8 @@ function traceModifier(label: string): Modifier<string> {
 	};
 }
 
-/**
- * Adapter for the planned ModifierRegistry API. Keeping this cast here lets this branch remain
- * test-only while still expressing the future ordering contract.
- */
 function addOrderedModifier(registry: ModifierRegistry, label: string, order: ModifierOrder) {
-	const add = registry.add as unknown as (
-		property: Property<string>,
-		modifier: Modifier<string>,
-		order: ModifierOrder
-	) => ModifierHandle;
-
-	return add.call(registry, TraceProperty, traceModifier(label), order);
+	return registry.add(TraceProperty, traceModifier(label), order);
 }
 
 function resolveTrace(registry: ModifierRegistry) {
