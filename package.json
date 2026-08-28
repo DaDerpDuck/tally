@@ -27,6 +27,21 @@
   "engines": {
     "node": ">=22"
   },
+  "keywords": [
+    "status-effects",
+    "effects",
+    "gameplay-effects",
+    "state-management",
+    "modifiers",
+    "attributes",
+    "stats",
+    "buffs",
+    "debuffs",
+    "typescript",
+    "game-development",
+    "gameplay",
+    "replication"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typetest": "tsc --noEmit",
