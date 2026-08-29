@@ -1,22 +1,15 @@
-import { ModifierRegistry, type ModifierHandle } from "../modifier/ModifierRegistry.js";
-import { type AnyProperty, type Property } from "../property/Property.js";
-import type { Source } from "../state/source/Source.js";
-import { SourceType, type AnySourceType } from "../state/source/SourceType.js";
-import { SourceInstance } from "../state/source/SourceInstance.js";
-import { DescriptorType, type AnyDescriptorType } from "../state/descriptor/DescriptorType.js";
-import type { DescriptorBinding } from "../state/descriptor/DescriptorBinding.js";
-import { DescriptorInstance } from "../state/descriptor/DescriptorInstance.js";
+import { type Property } from "../property/Property.js";
 import type { AnyDescriptor, Descriptor } from "../state/descriptor/Descriptor.js";
-import type { SourceOption } from "../state/source/SourceOption.js";
-import type {
-	AnyDescriptorHandler,
-	DescriptorHandler,
-} from "../state/descriptor/DescriptorHandler.js";
-import type { Disconnect } from "../util/Disconnect.js";
+import type { DescriptorHandler } from "../state/descriptor/DescriptorHandler.js";
 import type { DescriptorOption } from "../state/descriptor/DescriptorOption.js";
-import { SourceManager, type PropertyCallback, type SourceCallback } from "./SourceManager.js";
-import { DescriptorManager, type DescriptorCallback } from "./DescriptorManager.js";
+import { DescriptorType } from "../state/descriptor/DescriptorType.js";
+import type { Source } from "../state/source/Source.js";
+import type { SourceOption } from "../state/source/SourceOption.js";
+import { SourceType } from "../state/source/SourceType.js";
+import type { Disconnect } from "../util/Disconnect.js";
 import { IdCounter } from "../util/IdCounter.js";
+import { DescriptorManager, type DescriptorCallback } from "./DescriptorManager.js";
+import { SourceManager, type PropertyCallback, type SourceCallback } from "./SourceManager.js";
 
 export type DestroyCallback = () => void;
 

@@ -3,8 +3,8 @@ import {
 	createReplicationSnapshot,
 	defineNumberProperty,
 	defineSourceType,
-	SourceReceiver,
 	serializeSource,
+	SourceReceiver,
 	type SourceTypeDefinition,
 	TallyContext,
 } from "../src/index.js";

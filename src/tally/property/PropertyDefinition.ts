@@ -1,6 +1,4 @@
 import type { Modifier } from "../modifier/Modifier.js";
-import { registerProperty, type Registrable, type Registry } from "../state/Registrable.js";
-import type { Property } from "./Property.js";
 
 /**
  * Defines a Property's default value, equality behavior, and resolution logic.

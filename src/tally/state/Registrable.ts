@@ -1,5 +1,5 @@
+import type { AnyProperty } from "../property/Property.js";
 import type { AnyDescriptorType } from "../state/descriptor/DescriptorType.js";
-import type { AnyProperty, Property } from "../property/Property.js";
 import type { AnySourceType } from "../state/source/SourceType.js";
 
 export interface Registry {

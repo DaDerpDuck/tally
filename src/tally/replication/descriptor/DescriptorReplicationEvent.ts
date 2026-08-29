@@ -1,5 +1,5 @@
 import type { ReplicationValue } from "../ReplicationValue.js";
-import type { ReplicatedDescriptor, DescriptorId } from "./ReplicatedDescriptor.js";
+import type { DescriptorId, ReplicatedDescriptor } from "./ReplicatedDescriptor.js";
 
 export type DescriptorReplicationEvent =
 	| { readonly kind: "added"; readonly descriptor: ReplicatedDescriptor }

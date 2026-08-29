@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { defineNumberProperty } from "../src/index.js";
 import { type ModifierOrder } from "../../src/tally/modifier/ModifierOrder.js";
 import { ModifierRegistry } from "../../src/tally/modifier/ModifierRegistry.js";
 import { OrderingDomain } from "../../src/tally/modifier/OrderingDomain.js";
+import { defineNumberProperty } from "../src/index.js";
 
 const MovementSpeed = defineNumberProperty({
 	name: "MovementSpeed",

@@ -1,12 +1,12 @@
+import type { Modifier } from "../modifier/Modifier.js";
 import { contributeModifier } from "../modifier/ModifierContribution.js";
+import { registerProperty, type Registrable, type Registry } from "../state/Registrable.js";
+import type { Property } from "./Property.js";
 import {
 	resolvePropertyDefinition,
 	type PropertyDefinition,
 	type ResolvedPropertyDefinition,
 } from "./PropertyDefinition.js";
-import type { Property } from "./Property.js";
-import { registerProperty, type Registrable, type Registry } from "../state/Registrable.js";
-import type { Modifier } from "../modifier/Modifier.js";
 
 export interface NumberModifier extends Modifier<number> {
 	readonly operation: "add" | "multiply" | "override";

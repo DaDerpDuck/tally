@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import {
 	AgentState,
 	createReplicationSnapshot,
-	DescriptorReceiver,
-	DescriptorType,
+	defineDescriptorType,
 	defineNumberProperty,
 	defineSourceType,
+	DescriptorReceiver,
+	DescriptorType,
 	serializeDescriptor,
 	TallyContext,
 	type ReplicationEvent,
-	defineDescriptorType,
 } from "../src/index.js";
 
 interface DescriptorData {

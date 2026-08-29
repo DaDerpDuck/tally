@@ -1,5 +1,5 @@
-import type { ReplicatedSource, SourceId } from "./ReplicatedSource.js";
 import type { ReplicationValue } from "../ReplicationValue.js";
+import type { ReplicatedSource, SourceId } from "./ReplicatedSource.js";
 
 export type SourceReplicationEvent =
 	| { readonly kind: "added"; readonly source: ReplicatedSource }
