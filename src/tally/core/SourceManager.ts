@@ -64,7 +64,9 @@ export class SourceManager {
 	}
 
 	get<T>(property: Property<T>): T {
-		return (this.resolvedProperties.get(property) as T) ?? property.defaultValue;
+		if (this.resolvedProperties.has(property))
+			return this.resolvedProperties.get(property) as T;
+		return property.defaultValue;
 	}
 
 	hasSource(type: SourceType<unknown>): boolean {
