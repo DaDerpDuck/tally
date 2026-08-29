@@ -82,7 +82,7 @@ function defaultBooleanResolve(base: boolean, modifiers: readonly BooleanModifie
  *
  * @see {@link BooleanProperty}
  */
-export function defineBooleanProperty(definition: PropertyDefinition<boolean>) {
+export function defineBooleanProperty(definition: PropertyDefinition<boolean, BooleanModifier>) {
 	return new BooleanProperty(
 		resolvePropertyDefinition(definition, {
 			resolve: defaultBooleanResolve,
