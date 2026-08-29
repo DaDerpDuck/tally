@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+  queue: max
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22, 24, 26]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typetest
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Pack
+        run: npm pack --dry-run
+
+      - name: Verify tag matches package version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "package.json version is $PACKAGE_VERSION but tag is $GITHUB_REF_NAME"
+            exit 1
+          fi
+  
+  publish:
+    runs-on: ubuntu-latest
+    needs: verify
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+          
+      - name: Install dependencies
+        run: npm ci
+          
+      - name: Build
+        run: npm run build
+
+      - name: Publish to npm
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version >/dev/null 2>&1; then
+            echo "$PACKAGE_NAME@$PACKAGE_VERSION is already published; skipping."
+          else
+            npm publish
+          fi
+
+      - name: Create GitHub release
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "GitHub release $GITHUB_REF_NAME already exists; skipping."
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --verify-tag \
+              --title "$GITHUB_REF_NAME" \
+              --notes "See CHANGELOG.md for release details."
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
