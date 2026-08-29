@@ -1,4 +1,4 @@
-# Tally
+# Tally Effects
 
 A composable, source-driven status effect framework for deriving and replicating gameplay state.
 
