@@ -1,21 +1,48 @@
-/**
- * Specifies the behavior when a state is added to an AgentState with an
- * existing same type.
- *
- * Defaults to "allow" behavior if left unspecified in the state's definition.
- *
- * | Policy        | Definition                                             |
- * | ------------- | ------------------------------------------------------ |
- * | `"allow"`     | Adds the state regardless of existing duplicate types. |
- * | `"ignore"`    | Rejects creation of the state.                         |
- * | `"replace"`   | Destroys the existing state and adds a new state.      |
- * | `"reconcile"` | The `reconcile` method in the policy is called to merge the data. |
- */
+import type { DuplicatePolicyOption } from "./DuplicatePolicyOption.js";
+import { isDuplicationGroupMember, type DuplicationGroupMember } from "./DuplicationGroupMember.js";
+
 export type DuplicatePolicy<TExisting, TData> =
-	| {
-			readonly policy: "allow" | "ignore" | "replace";
-	  }
-	| {
-			readonly policy: "reconcile";
-			reconcile(existing: TExisting, incoming: TData): void;
-	  };
+	GroupDuplicatePolicy<TData> | LocalDuplicatePolicy<TExisting, TData>;
+
+export type GroupDuplicatePolicy<TData> = {
+	readonly kind: "group";
+	readonly policy: DuplicationGroupMember<TData>;
+};
+
+export type LocalDuplicatePolicy<TExisting, TData> = {
+	readonly kind: "local";
+	readonly policy:
+		| {
+				readonly action: "allow" | "ignore" | "replace";
+		  }
+		| {
+				readonly action: "reconcile";
+				reconcile(existing: TExisting, incoming: TData): void;
+		  };
+};
+
+export function createDuplicatePolicy<TExisting, TData>(
+	option: DuplicatePolicyOption<TExisting, TData>
+): DuplicatePolicy<TExisting, TData> {
+	if (isDuplicationGroupMember(option)) {
+		return {
+			kind: "group",
+			policy: option,
+		};
+	} else if ("policy" in option) {
+		if (option.policy === "reconcile")
+			return {
+				kind: "local",
+				policy: {
+					action: option.policy,
+					reconcile: option.reconcile,
+				},
+			};
+		else
+			return {
+				kind: "local",
+				policy: { action: option.policy },
+			};
+	}
+	throw new Error("Failed to create duplicate policy due to invalid option");
+}

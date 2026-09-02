@@ -1,6 +1,7 @@
 import { ModifierRegistry, type ModifierHandle } from "../modifier/ModifierRegistry.js";
 import { OrderingDomain } from "../modifier/OrderingDomain.js";
 import type { AnyProperty, Property } from "../property/Property.js";
+import type { DuplicationIndex } from "../state/duplication/DuplicationIndex.js";
 import type { StateProvenance } from "../state/Provenance.js";
 import type { Source } from "../state/source/Source.js";
 import { SourceInstance } from "../state/source/SourceInstance.js";
@@ -30,36 +31,31 @@ export class SourceManager {
 
 	private mutationDepth = 0;
 
-	constructor(private readonly counter: IdCounter) {}
+	constructor(
+		private readonly counter: IdCounter,
+		private readonly duplicationIndex: DuplicationIndex
+	) {}
 
 	addSource<TData>(
 		type: SourceType<TData>,
 		data: TData,
 		options?: SourceOption
 	): Source<TData> | undefined {
-		switch (type.duplication.policy) {
-			case "allow":
+		const domain = type.duplication.kind === "group" ? type.duplication : type;
+		const decision = this.duplicationIndex.decide(type.duplication, domain, options?.key);
+
+		if (decision.action === "add") {
+			return this.batch(() => {
+				decision.evict?.destroy();
 				return this.createSource(type, data, options);
-			case "ignore": {
-				const existingSource = this.sourceMap.get(type)?.values().next().value;
-				if (existingSource) return undefined;
-				return this.createSource(type, data, options);
-			}
-			case "replace": {
-				return this.batch(() => {
-					const existingSource = this.sourceMap.get(type)?.values().next().value;
-					existingSource?.destroy();
-					return this.createSource(type, data, options);
-				});
-			}
-			case "reconcile": {
-				const existingSource = this.sourceMap.get(type)?.values().next().value;
-				if (!existingSource) return this.createSource(type, data, options);
-				if (existingSource.type.duplication.policy !== "reconcile")
-					throw new Error("Duplicate policy was changed");
-				existingSource.type.duplication.reconcile(existingSource, data);
-				return undefined;
-			}
+			});
+		} else if (decision.action === "ignore") {
+			return undefined;
+		} else if (decision.action === "reconcile") {
+			if (type.duplication.kind !== "local" || type.duplication.policy.action !== "reconcile")
+				throw new Error("Invalid action paired with duplication policy");
+			type.duplication.policy.reconcile(decision.target, data);
+			return undefined;
 		}
 	}
 
@@ -152,6 +148,8 @@ export class SourceManager {
 		this.requestResolve();
 
 		getOrInsert(this.sourceMap, type, new Set()).add(source);
+		const domain = source.duplication.kind === "group" ? source.duplication : source.type;
+		this.duplicationIndex.add(domain, source);
 
 		source.onUpdate(() => {
 			for (const handle of handles) this.dirtyProperties.add(handle.property);
@@ -164,6 +162,7 @@ export class SourceManager {
 		});
 
 		source.onDestroy(() => {
+			this.duplicationIndex.delete(domain, source);
 			for (const handle of handles) this.dirtyProperties.add(handle.property);
 			this.clearModifierHandles(handles);
 			this.sourceModifiersMap.delete(source);

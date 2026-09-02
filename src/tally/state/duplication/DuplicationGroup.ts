@@ -1,3 +1,9 @@
+import {
+	type DuplicationGroupMember,
+	DuplicationGroupMemberInstance,
+	type DuplicationGroupMemberOptions,
+} from "./DuplicationGroupMember.js";
+
 const DuplicationGroupSymbol: unique symbol = Symbol("duplicationGroup");
 export function isDuplicationGroup(o: object): o is DuplicationGroup {
 	return DuplicationGroupSymbol in o;
@@ -20,16 +26,13 @@ export type DuplicationGroupDefinition =
 			readonly selector: "oldest" | "newest" | "lowest" | "highest";
 	  };
 
-export class DuplicationGroup<T = unknown> {
+export class DuplicationGroup {
 	private readonly [DuplicationGroupSymbol] = true;
 	readonly policy: "ignore" | "replace";
 	readonly maxStack: number;
 	readonly selector: "lowest" | "highest";
 
-	constructor(
-		private readonly definition: DuplicationGroupDefinition,
-		private ranker = (data: T, index: number) => index
-	) {
+	constructor(private readonly definition: DuplicationGroupDefinition) {
 		this.policy = definition.policy;
 		this.maxStack = definition.maxStack ?? 1;
 
@@ -39,13 +42,11 @@ export class DuplicationGroup<T = unknown> {
 		else this.selector = definition.selector;
 	}
 
-	rank(data: T, index: number): number {
-		return this.ranker(data, index);
-	}
-
-	// Somehow, doing this makes data resolve to the right type inside a SourceTypeDefinition
-	byRank<V extends T>(callback: (data: V, index: number) => number): DuplicationGroup<V> {
-		return new DuplicationGroup(this.definition, callback);
+	member<T>(options: Partial<DuplicationGroupMemberOptions<T>> = {}): DuplicationGroupMember<T> {
+		const _options: DuplicationGroupMemberOptions<T> = {
+			ranker: options.ranker ?? ((_, index) => index),
+		};
+		return new DuplicationGroupMemberInstance(this, _options);
 	}
 }
 

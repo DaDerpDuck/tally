@@ -1,5 +1,6 @@
 import type { DescriptorId } from "../../replication/descriptor/ReplicatedDescriptor.js";
 import type { Disconnect } from "../../util/Disconnect.js";
+import type { DuplicatePolicy } from "../duplication/DuplicatePolicy.js";
 import type { StateProvenance } from "../Provenance.js";
 import type { Source } from "../source/Source.js";
 import type { Descriptor } from "./Descriptor.js";
@@ -10,6 +11,11 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 	TDescriptorData,
 	TSourceData
 > {
+	public readonly duplication: DuplicatePolicy<
+		Descriptor<TDescriptorData, TSourceData>,
+		TDescriptorData
+	>;
+
 	private readonly updateCallbacks = new Set<(self: this) => void>();
 	private readonly destroyCallbacks = new Set<(self: this) => void>();
 	private destroyed = false;
@@ -20,7 +26,9 @@ export class DescriptorInstance<TDescriptorData, TSourceData> implements Descrip
 		public readonly provenance: StateProvenance,
 		private readonly binding: DescriptorBinding<TDescriptorData, TSourceData>,
 		private data: TDescriptorData
-	) {}
+	) {
+		this.duplication = type.duplication;
+	}
 
 	set(data: TDescriptorData) {
 		this.assertAlive();

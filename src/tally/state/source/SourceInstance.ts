@@ -1,9 +1,12 @@
 import type { Disconnect } from "../../util/Disconnect.js";
+import type { DuplicatePolicy } from "../duplication/DuplicatePolicy.js";
 import type { StateProvenance } from "../Provenance.js";
 import type { Source } from "./Source.js";
 import type { SourceType } from "./SourceType.js";
 
 export class SourceInstance<TData> implements Source<TData> {
+	public readonly duplication: DuplicatePolicy<Source<TData>, TData>;
+
 	private readonly updateCallbacks = new Set<(self: this) => void>();
 	private readonly destroyCallbacks = new Set<(self: this) => void>();
 	private destroyed = false;
@@ -14,7 +17,9 @@ export class SourceInstance<TData> implements Source<TData> {
 		public readonly priority: number,
 		public readonly provenance: StateProvenance,
 		private data: TData
-	) {}
+	) {
+		this.duplication = type.duplication;
+	}
 
 	set(data: TData) {
 		this.assertAlive();

@@ -2,8 +2,8 @@ import type {
 	AnyReplicationDefinition,
 	ReplicationDefinition,
 } from "../../replication/ReplicationDefinition.js";
-import type { DuplicatePolicy } from "../duplication/DuplicatePolicy.js";
-import type { DuplicationGroup } from "../duplication/DuplicationGroup.js";
+import { createDuplicatePolicy, type DuplicatePolicy } from "../duplication/DuplicatePolicy.js";
+import type { DuplicatePolicyOption } from "../duplication/DuplicatePolicyOption.js";
 import { registerNamed, type Registrable, type Registry } from "../Registrable.js";
 import type { StateTypeDefinition } from "../StateTypeDefinition.js";
 import type { Source } from "./Source.js";
@@ -21,9 +21,9 @@ export interface SourceTypeDefinition<TData> extends StateTypeDefinition<TData> 
 	 *
 	 * Defaults to "allow" behavior.
 	 *
-	 * @see {@link DuplicatePolicy}
+	 * @see {@link DuplicatePolicyOption}
 	 */
-	readonly duplication?: DuplicatePolicy<Source<TData>, TData> | DuplicationGroup<TData>;
+	readonly duplication?: DuplicatePolicyOption<Source<TData>, TData>;
 	/**
 	 * Returns the modifiers for a given data that is passed to the Source.
 	 */
@@ -45,14 +45,13 @@ export interface AnySourceType {
 export class SourceType<TData> implements AnySourceType, Registrable {
 	public readonly name: string;
 	public readonly priority: number;
-	// TODO: Offload AgentState's duplication resolver into a separate class
 	public readonly duplication: DuplicatePolicy<Source<TData>, TData>;
 	public readonly replication?: ReplicationDefinition<TData> | undefined;
 
 	constructor(private readonly definition: SourceTypeDefinition<TData>) {
 		this.name = definition.name;
 		this.priority = definition.priority;
-		this.duplication = definition.duplication ?? { policy: "allow" };
+		this.duplication = createDuplicatePolicy(definition.duplication ?? { policy: "allow" });
 		this.replication = definition.replication;
 	}
 

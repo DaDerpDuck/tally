@@ -1,8 +1,9 @@
 import type {
-    AnyReplicationDefinition,
-    ReplicationDefinition,
+	AnyReplicationDefinition,
+	ReplicationDefinition,
 } from "../../replication/ReplicationDefinition.js";
-import type { DuplicatePolicy } from "../duplication/DuplicatePolicy.js";
+import { createDuplicatePolicy, type DuplicatePolicy } from "../duplication/DuplicatePolicy.js";
+import type { DuplicatePolicyOption } from "../duplication/DuplicatePolicyOption.js";
 import { registerNamed, type Registrable, type Registry } from "../Registrable.js";
 import type { SourceType } from "../source/SourceType.js";
 import type { StateTypeDefinition } from "../StateTypeDefinition.js";
@@ -18,9 +19,9 @@ export interface DescriptorTypeDefinition<
 	 *
 	 * Defaults to "allow" behavior.
 	 *
-	 * @see {@link DuplicatePolicy}
+	 * @see {@link DuplicatePolicyOption}
 	 */
-	readonly duplication?: DuplicatePolicy<
+	readonly duplication?: DuplicatePolicyOption<
 		Descriptor<TDescriptorData, TSourceData>,
 		TDescriptorData
 	>;
@@ -56,7 +57,7 @@ export class DescriptorType<TDescriptorData, TSourceData>
 		private readonly definition: DescriptorTypeDefinition<TDescriptorData, TSourceData>
 	) {
 		this.name = definition.name;
-		this.duplication = definition.duplication ?? { policy: "allow" };
+		this.duplication = createDuplicatePolicy(definition.duplication ?? { policy: "allow" });
 		this.source = definition.source;
 		this.replication = definition.replication;
 	}
