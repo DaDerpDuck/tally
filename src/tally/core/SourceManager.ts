@@ -45,7 +45,7 @@ export class SourceManager {
 
 		if (decision.action === "add") {
 			return this.batch(() => {
-				decision.evict?.destroy();
+				decision.evict.forEach((evict) => evict.destroy());
 				return this.createSource(type, data, options);
 			});
 		} else if (decision.action === "ignore") {

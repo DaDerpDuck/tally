@@ -1,5 +1,4 @@
 import type { Disconnect } from "../../util/Disconnect.js";
-import type { ResolvedDuplicatePolicy } from "./DuplicatePolicy.js";
 import type {
 	AnyDuplicableType,
 	DuplicableType,
@@ -8,11 +7,11 @@ import type {
 import { DuplicationIndex } from "./DuplicationIndex.js";
 
 export type DuplicationDecision<TInstance extends DuplicationCandidate<TData>, TData> =
-	| { action: "add"; evict: TInstance | undefined }
-	| { action: "ignore" }
+	| { readonly action: "add"; evict: readonly DuplicationCandidate[] }
+	| { readonly action: "ignore" }
 	| {
-			action: "reconcile";
-			target: TInstance;
+			readonly action: "reconcile";
+			readonly target: TInstance;
 			reconcile(existing: TInstance, incoming: TData): void;
 	  };
 
@@ -26,19 +25,18 @@ export class DuplicationResolver {
 		key?: unknown
 	): DuplicationDecision<TInstance, TData> {
 		const policy = type.duplication;
-		if (policy.kind === "allow") return { action: "add", evict: undefined };
+		if (policy.kind === "allow") return { action: "add", evict: [] };
 
 		const domain = this.domainOf(type);
 		const conflicts = this.index.get(domain, key);
 		if (policy.kind === "ignore") {
 			if (conflicts.length > 0) return { action: "ignore" };
-			else return { action: "add", evict: undefined };
+			else return { action: "add", evict: [] };
 		}
 
 		if (policy.kind === "replace") {
-			if (conflicts.length > 0)
-				return { action: "add", evict: conflicts[0]!.candidate as TInstance };
-			return { action: "add", evict: undefined };
+			if (conflicts.length > 0) return { action: "add", evict: conflicts.map((entry) => entry.candidate) };
+			return { action: "add", evict: [] };
 		}
 
 		if (policy.kind === "reconcile") {
@@ -48,18 +46,17 @@ export class DuplicationResolver {
 					target: conflicts[0]!.candidate as TInstance,
 					reconcile: policy.reconcile,
 				};
-			else return { action: "add", evict: undefined };
+			else return { action: "add", evict: [] };
 		}
 
 		if (policy.kind === "group") {
 			if (policy.group.policy === "ignore") {
 				if (conflicts.length >= policy.group.maxStack) return { action: "ignore" };
-				else return { action: "add", evict: undefined };
+				else return { action: "add", evict: [] };
 			}
 			if (policy.group.policy === "replace") {
 				if (policy.group.maxStack <= 0) return { action: "ignore" };
-				if (conflicts.length < policy.group.maxStack)
-					return { action: "add", evict: undefined };
+				if (conflicts.length < policy.group.maxStack) return { action: "add", evict: [] };
 
 				const selector = policy.group.selector;
 				let rank = conflicts[0]!.score();
@@ -85,7 +82,9 @@ export class DuplicationResolver {
 					}
 				}
 
-				return { action: "add", evict: selectedCandidate!.candidate as TInstance };
+				// TODO: Trim bucket size if needed, but I think we can run on the assumption that
+				// buckets won't ever exceed max stack
+				return { action: "add", evict: [selectedCandidate!.candidate] };
 			}
 		}
 

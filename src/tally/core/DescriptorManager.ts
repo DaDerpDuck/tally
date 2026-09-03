@@ -45,7 +45,7 @@ export class DescriptorManager<TEntity> {
 
 		if (decision.action === "add") {
 			return this.sources.batch(() => {
-				decision.evict?.destroy();
+				decision.evict.forEach((evict) => evict.destroy());
 				return this.createDescriptor(agent, type, data, options);
 			});
 		} else if (decision.action === "ignore") {
