@@ -84,8 +84,7 @@ export class DuplicationResolver {
 					}
 				}
 
-				// TODO: Remove index parameter from rank function
-				if (policy.replaceIf(rank, policy.rank(data, -1))) {
+				if (policy.replaceIf(rank, policy.rank(data))) {
 					// TODO: Trim bucket size if needed, but I think we can run on the assumption that
 					// buckets won't ever exceed max stack
 					return { action: "add", evict: [selectedCandidate!.candidate] };
@@ -108,7 +107,7 @@ export class DuplicationResolver {
 		let replaceIf: (existingRank: number, incomingRank: number) => boolean;
 		if (type.duplication.kind === "group") {
 			const rank = type.duplication.rank;
-			score = () => rank(instance.get(), order);
+			score = () => rank(instance.get());
 			replaceIf = type.duplication.replaceIf;
 		} else {
 			score = () => order;

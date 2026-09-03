@@ -16,13 +16,13 @@ export type DuplicationGroupDefinition =
 	  };
 
 interface DuplicationGroupOptions<T> {
-	rank(data: T, index: number): number;
+	rank(data: T): number;
 	replaceIf(existingRank: number, incomingRank: number): boolean;
 }
 
 export interface DuplicationGroupMember<T> {
 	readonly group: DuplicationGroup<T>;
-	rank(data: T, index: number): number;
+	rank(data: T): number;
 	replaceIf(existingRank: number, incomingRank: number): boolean;
 }
 
@@ -43,7 +43,7 @@ export class DuplicationGroup<T> {
 
 	member(options: Partial<DuplicationGroupOptions<T>> = {}): DuplicationGroupMember<T> {
 		const _options: DuplicationGroupOptions<T> = {
-			rank: options.rank ?? ((_, index) => index),
+			rank: options.rank ?? (() => 0),
 			replaceIf: options.replaceIf ?? (() => true),
 		};
 		return {

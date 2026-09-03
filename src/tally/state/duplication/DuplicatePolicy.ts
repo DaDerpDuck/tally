@@ -31,7 +31,7 @@ export type ResolvedDuplicatePolicy<TExisting, TData> =
 	| {
 			readonly kind: "group";
 			readonly group: DuplicationGroup<TData>;
-			rank(data: TData, index: number): number;
+			rank(data: TData): number;
 			replaceIf(existingRank: number, incomingRank: number): boolean;
 	  };
 
