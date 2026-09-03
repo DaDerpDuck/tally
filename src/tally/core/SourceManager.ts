@@ -41,7 +41,7 @@ export class SourceManager {
 		data: TData,
 		options?: SourceOption
 	): Source<TData> | undefined {
-		const decision = this.duplicationResolver.decide(type, options?.key);
+		const decision = this.duplicationResolver.decide(type, data, options?.key);
 
 		if (decision.action === "add") {
 			return this.batch(() => {

@@ -22,6 +22,7 @@ export class DuplicationResolver {
 
 	decide<TInstance extends DuplicationCandidate<TData>, TData>(
 		type: DuplicableType<TInstance, TData>,
+		data: TData,
 		key?: unknown
 	): DuplicationDecision<TInstance, TData> {
 		const policy = type.duplication;
@@ -35,7 +36,8 @@ export class DuplicationResolver {
 		}
 
 		if (policy.kind === "replace") {
-			if (conflicts.length > 0) return { action: "add", evict: conflicts.map((entry) => entry.candidate) };
+			if (conflicts.length > 0)
+				return { action: "add", evict: conflicts.map((entry) => entry.candidate) };
 			return { action: "add", evict: [] };
 		}
 
@@ -82,9 +84,14 @@ export class DuplicationResolver {
 					}
 				}
 
-				// TODO: Trim bucket size if needed, but I think we can run on the assumption that
-				// buckets won't ever exceed max stack
-				return { action: "add", evict: [selectedCandidate!.candidate] };
+				// TODO: Remove index parameter from rank function
+				if (policy.replaceIf(rank, policy.rank(data, -1))) {
+					// TODO: Trim bucket size if needed, but I think we can run on the assumption that
+					// buckets won't ever exceed max stack
+					return { action: "add", evict: [selectedCandidate!.candidate] };
+				} else {
+					return { action: "ignore" };
+				}
 			}
 		}
 
@@ -98,15 +105,21 @@ export class DuplicationResolver {
 	): Disconnect {
 		const order = this.order++;
 		let score: () => number;
+		let replaceIf: (existingRank: number, incomingRank: number) => boolean;
 		if (type.duplication.kind === "group") {
 			const rank = type.duplication.rank;
 			score = () => rank(instance.get(), order);
-		} else score = () => order;
+			replaceIf = type.duplication.replaceIf;
+		} else {
+			score = () => order;
+			replaceIf = () => true;
+		}
 
 		return this.index.add(this.domainOf(type), key, {
 			candidate: instance,
-			order: order,
+			order,
 			score,
+			replaceIf,
 		});
 	}
 

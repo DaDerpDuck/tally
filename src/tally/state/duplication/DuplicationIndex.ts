@@ -8,6 +8,7 @@ export interface DuplicationEntry {
 	readonly candidate: DuplicationCandidate;
 	readonly order: number;
 	readonly score: () => number;
+	readonly replaceIf: (existingRank: number, incomingRank: number) => boolean;
 }
 
 export class DuplicationIndex {

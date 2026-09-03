@@ -17,11 +17,13 @@ export type DuplicationGroupDefinition =
 
 interface DuplicationGroupOptions<T> {
 	rank(data: T, index: number): number;
+	replaceIf(existingRank: number, incomingRank: number): boolean;
 }
 
 export interface DuplicationGroupMember<T> {
 	readonly group: DuplicationGroup<T>;
 	rank(data: T, index: number): number;
+	replaceIf(existingRank: number, incomingRank: number): boolean;
 }
 
 export class DuplicationGroup<T> {
@@ -42,10 +44,12 @@ export class DuplicationGroup<T> {
 	member(options: Partial<DuplicationGroupOptions<T>> = {}): DuplicationGroupMember<T> {
 		const _options: DuplicationGroupOptions<T> = {
 			rank: options.rank ?? ((_, index) => index),
+			replaceIf: options.replaceIf ?? (() => true),
 		};
 		return {
 			group: this,
 			rank: _options.rank,
+			replaceIf: _options.replaceIf,
 		};
 	}
 }

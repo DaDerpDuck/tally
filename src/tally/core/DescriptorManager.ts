@@ -41,7 +41,7 @@ export class DescriptorManager<TEntity> {
 		data: TDescriptorData,
 		options?: DescriptorOption
 	): Descriptor<TDescriptorData, TSourceData> | undefined {
-		const decision = this.duplicationResolver.decide(type, options?.key);
+		const decision = this.duplicationResolver.decide(type, data, options?.key);
 
 		if (decision.action === "add") {
 			return this.sources.batch(() => {
