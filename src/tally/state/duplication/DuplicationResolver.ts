@@ -22,12 +22,13 @@ export class DuplicationResolver {
 	constructor(private readonly index: DuplicationIndex) {}
 
 	decide<TInstance extends DuplicationCandidate<TData>, TData>(
-		policy: ResolvedDuplicatePolicy<TInstance, TData>,
-		domain: object,
+		type: DuplicableType<TInstance, TData>,
 		key?: unknown
 	): DuplicationDecision<TInstance, TData> {
+		const policy = type.duplication;
 		if (policy.kind === "allow") return { action: "add", evict: undefined };
 
+		const domain = this.domainOf(type);
 		const conflicts = this.index.get(domain, key);
 		if (policy.kind === "ignore") {
 			if (conflicts.length > 0) return { action: "ignore" };
