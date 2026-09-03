@@ -21,12 +21,12 @@ interface DuplicationGroupOptions<T> {
 }
 
 export interface DuplicationGroupMember<T> {
-	readonly group: DuplicationGroup<T>;
+	readonly group: DuplicationGroup;
 	rank(data: T): number;
 	replaceIf(existingRank: number, incomingRank: number): boolean;
 }
 
-export class DuplicationGroup<T> {
+export class DuplicationGroup {
 	readonly policy: "ignore" | "replace";
 	readonly maxStack: number;
 	readonly selector: "lowest" | "highest";
@@ -41,7 +41,7 @@ export class DuplicationGroup<T> {
 		else this.selector = definition.selector;
 	}
 
-	member(options: Partial<DuplicationGroupOptions<T>> = {}): DuplicationGroupMember<T> {
+	member<T>(options: Partial<DuplicationGroupOptions<T>> = {}): DuplicationGroupMember<T> {
 		const _options: DuplicationGroupOptions<T> = {
 			rank: options.rank ?? (() => 0),
 			replaceIf: options.replaceIf ?? (() => true),

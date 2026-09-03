@@ -30,7 +30,7 @@ export type ResolvedDuplicatePolicy<TExisting, TData> =
 	| { readonly kind: "reconcile"; reconcile(existing: TExisting, incoming: TData): void }
 	| {
 			readonly kind: "group";
-			readonly group: DuplicationGroup<TData>;
+			readonly group: DuplicationGroup;
 			rank(data: TData): number;
 			replaceIf(existingRank: number, incomingRank: number): boolean;
 	  };

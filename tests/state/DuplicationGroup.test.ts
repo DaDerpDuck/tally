@@ -10,7 +10,7 @@ import {
 
 describe("DuplicationGroup domains", () => {
 	it("shares conflicts between member types while isolating different keys", () => {
-		const group = new DuplicationGroup<number>({ policy: "ignore", maxStack: 1 });
+		const group = new DuplicationGroup({ policy: "ignore", maxStack: 1 });
 		const FirstType = defineSourceType<number>({
 			name: "FirstGroupedSource",
 			priority: 100,
@@ -45,7 +45,7 @@ describe("DuplicationGroup domains", () => {
 			readonly toxicity: number;
 		}
 
-		const group = new DuplicationGroup<unknown>({
+		const group = new DuplicationGroup({
 			policy: "replace",
 			maxStack: 2,
 			selector: "lowest",
@@ -91,7 +91,7 @@ describe("DuplicationGroup domains", () => {
 
 describe("DuplicationGroup replacement selection", () => {
 	it("replaces the oldest candidate by default", () => {
-		const group = new DuplicationGroup<number>({ policy: "replace" });
+		const group = new DuplicationGroup({ policy: "replace" });
 		const SourceType = defineSourceType<number>({
 			name: "DefaultGroupReplacementSource",
 			priority: 100,
@@ -108,7 +108,7 @@ describe("DuplicationGroup replacement selection", () => {
 	});
 
 	it("replaces the oldest candidate when the stack is full", () => {
-		const group = new DuplicationGroup<number>({
+		const group = new DuplicationGroup({
 			policy: "replace",
 			maxStack: 2,
 			selector: "oldest",
@@ -130,7 +130,7 @@ describe("DuplicationGroup replacement selection", () => {
 	});
 
 	it("replaces the newest candidate when the stack is full", () => {
-		const group = new DuplicationGroup<number>({
+		const group = new DuplicationGroup({
 			policy: "replace",
 			maxStack: 2,
 			selector: "newest",
@@ -152,7 +152,7 @@ describe("DuplicationGroup replacement selection", () => {
 	});
 
 	it("replaces the lowest-ranked candidate when the stack is full", () => {
-		const group = new DuplicationGroup<number>({
+		const group = new DuplicationGroup({
 			policy: "replace",
 			maxStack: 2,
 			selector: "lowest",
@@ -174,7 +174,7 @@ describe("DuplicationGroup replacement selection", () => {
 	});
 
 	it("replaces the highest-ranked candidate when the stack is full", () => {
-		const group = new DuplicationGroup<number>({
+		const group = new DuplicationGroup({
 			policy: "replace",
 			maxStack: 2,
 			selector: "highest",
@@ -196,7 +196,7 @@ describe("DuplicationGroup replacement selection", () => {
 	});
 
 	it("evicts the oldest candidate when lowest ranks are tied", () => {
-		const group = new DuplicationGroup<number>({
+		const group = new DuplicationGroup({
 			policy: "replace",
 			maxStack: 2,
 			selector: "lowest",
@@ -218,7 +218,7 @@ describe("DuplicationGroup replacement selection", () => {
 	});
 
 	it("evicts the newest candidate when highest ranks are tied", () => {
-		const group = new DuplicationGroup<number>({
+		const group = new DuplicationGroup({
 			policy: "replace",
 			maxStack: 2,
 			selector: "highest",
@@ -240,7 +240,7 @@ describe("DuplicationGroup replacement selection", () => {
 	});
 
 	it("uses replaceIf to reject weaker candidates and accept stronger candidates", () => {
-		const group = new DuplicationGroup<number>({
+		const group = new DuplicationGroup({
 			policy: "replace",
 			maxStack: 1,
 			selector: "lowest",
@@ -268,7 +268,7 @@ describe("DuplicationGroup replacement selection", () => {
 
 describe("heterogeneous DuplicationGroup lifecycle", () => {
 	it("can evict Sources and Descriptors through the shared candidate contract", () => {
-		const group = new DuplicationGroup<number>({
+		const group = new DuplicationGroup({
 			policy: "replace",
 			maxStack: 1,
 			selector: "newest",
