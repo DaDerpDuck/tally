@@ -61,11 +61,11 @@ export class DuplicationResolver {
 				if (conflicts.length < policy.group.maxStack) return { action: "add", evict: [] };
 
 				const selector = policy.group.selector;
-				let rank = conflicts[0]!.score();
-				let order = conflicts[0]!.order;
-				let selectedCandidate;
+				let selectedCandidate = conflicts[0]!;
+				let rank = selectedCandidate.score();
+				let order = selectedCandidate.order;
 
-				for (let i = 0; i < conflicts.length; i++) {
+				for (let i = 1; i < conflicts.length; i++) {
 					const conflict = conflicts[i]!;
 					const cRank = conflict.score();
 
