@@ -57,24 +57,31 @@ export class DuplicationResolver {
 				else return { action: "add", evict: undefined };
 			}
 			if (policy.group.policy === "replace") {
+				if (policy.group.maxStack <= 0) return { action: "ignore" };
 				if (conflicts.length < policy.group.maxStack)
 					return { action: "add", evict: undefined };
 
 				const selector = policy.group.selector;
-				let rank =
-					selector === "lowest" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+				let rank = conflicts[0]!.score();
+				let order = conflicts[0]!.order;
 				let selectedCandidate;
 
 				for (let i = 0; i < conflicts.length; i++) {
 					const conflict = conflicts[i]!;
 					const cRank = conflict.score();
 
-					if (
-						(selector === "lowest" && cRank < rank) ||
-						(selector === "highest" && cRank >= rank)
-					) {
-						rank = cRank;
-						selectedCandidate = conflict;
+					if (selector === "lowest") {
+						if (cRank < rank || (cRank === rank && conflict.order < order)) {
+							rank = cRank;
+							order = conflict.order;
+							selectedCandidate = conflict;
+						}
+					} else {
+						if (cRank > rank || (cRank === rank && conflict.order >= order)) {
+							rank = cRank;
+							order = conflict.order;
+							selectedCandidate = conflict;
+						}
 					}
 				}
 
