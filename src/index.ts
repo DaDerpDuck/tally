@@ -32,7 +32,7 @@ export {
 } from "./tally/property/PropertyDefinition.js";
 
 // State behavior
-export type { DuplicatePolicyOption as DuplicatePolicy } from "./tally/state/duplication/DuplicatePolicyOption.js";
+export type { DuplicatePolicy } from "./tally/state/duplication/DuplicatePolicy.js";
 export {
 	defineDuplicationGroup,
 	DuplicationGroup,

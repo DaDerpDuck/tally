@@ -1,8 +1,14 @@
-import type { DuplicatePolicy } from "./DuplicatePolicy.js";
+import type { ResolvedDuplicatePolicy } from "./DuplicatePolicy.js";
 
-export interface DuplicationCandidate {
-	readonly duplication: DuplicatePolicy<unknown, unknown>;
-	readonly key?: unknown;
+export interface DuplicationCandidate<TData = unknown> {
+	readonly type: AnyDuplicableType;
+	get(): TData;
+}
 
-	get(): unknown;
+export interface AnyDuplicableType {
+	readonly duplication: ResolvedDuplicatePolicy<unknown, unknown>;
+}
+
+export interface DuplicableType<TInstance, TData> extends AnyDuplicableType {
+	readonly duplication: ResolvedDuplicatePolicy<TInstance, TData>;
 }

@@ -2,8 +2,12 @@ import type {
 	AnyReplicationDefinition,
 	ReplicationDefinition,
 } from "../../replication/ReplicationDefinition.js";
-import { createDuplicatePolicy, type DuplicatePolicy } from "../duplication/DuplicatePolicy.js";
-import type { DuplicatePolicyOption } from "../duplication/DuplicatePolicyOption.js";
+import {
+	resolveDuplicatePolicy,
+	type DuplicatePolicy,
+	type ResolvedDuplicatePolicy,
+} from "../duplication/DuplicatePolicy.js";
+import type { AnyDuplicableType, DuplicableType } from "../duplication/DuplicationCandidate.js";
 import { registerNamed, type Registrable, type Registry } from "../Registrable.js";
 import type { StateTypeDefinition } from "../StateTypeDefinition.js";
 import type { Source } from "./Source.js";
@@ -21,9 +25,9 @@ export interface SourceTypeDefinition<TData> extends StateTypeDefinition<TData> 
 	 *
 	 * Defaults to "allow" behavior.
 	 *
-	 * @see {@link DuplicatePolicyOption}
+	 * @see {@link DuplicatePolicy}
 	 */
-	readonly duplication?: DuplicatePolicyOption<Source<TData>, TData>;
+	readonly duplication?: DuplicatePolicy<Source<TData>, TData>;
 	/**
 	 * Returns the modifiers for a given data that is passed to the Source.
 	 */
@@ -34,24 +38,26 @@ export interface SourceTypeDefinition<TData> extends StateTypeDefinition<TData> 
 	readonly replication?: ReplicationDefinition<TData> | undefined;
 }
 
-export interface AnySourceType {
+export interface AnySourceType extends AnyDuplicableType {
 	readonly name: string;
 	readonly priority: number;
-	readonly duplication: DuplicatePolicy<Source, unknown>;
+	readonly duplication: ResolvedDuplicatePolicy<Source, unknown>;
 	readonly replication?: AnyReplicationDefinition | undefined;
 	dataEquals(a: unknown, b: unknown): boolean;
 }
 
-export class SourceType<TData> implements AnySourceType, Registrable {
+export class SourceType<TData>
+	implements AnySourceType, Registrable, DuplicableType<Source<TData>, TData>
+{
 	public readonly name: string;
 	public readonly priority: number;
-	public readonly duplication: DuplicatePolicy<Source<TData>, TData>;
+	public readonly duplication: ResolvedDuplicatePolicy<Source<TData>, TData>;
 	public readonly replication?: ReplicationDefinition<TData> | undefined;
 
 	constructor(private readonly definition: SourceTypeDefinition<TData>) {
 		this.name = definition.name;
 		this.priority = definition.priority;
-		this.duplication = createDuplicatePolicy(definition.duplication ?? { policy: "allow" });
+		this.duplication = resolveDuplicatePolicy(definition.duplication ?? { policy: "allow" });
 		this.replication = definition.replication;
 	}
 

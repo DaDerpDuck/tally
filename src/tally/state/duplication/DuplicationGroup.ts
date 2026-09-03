@@ -1,14 +1,3 @@
-import {
-	type DuplicationGroupMember,
-	DuplicationGroupMemberInstance,
-	type DuplicationGroupMemberOptions,
-} from "./DuplicationGroupMember.js";
-
-const DuplicationGroupSymbol: unique symbol = Symbol("duplicationGroup");
-export function isDuplicationGroup(o: object): o is DuplicationGroup {
-	return DuplicationGroupSymbol in o;
-}
-
 export type DuplicationGroupDefinition =
 	| {
 			readonly policy: "ignore";
@@ -26,8 +15,16 @@ export type DuplicationGroupDefinition =
 			readonly selector: "oldest" | "newest" | "lowest" | "highest";
 	  };
 
-export class DuplicationGroup {
-	private readonly [DuplicationGroupSymbol] = true;
+interface DuplicationGroupOptions<T> {
+	rank(data: T, index: number): number;
+}
+
+export interface DuplicationGroupMember<T> {
+	readonly group: DuplicationGroup<T>;
+	rank(data: T, index: number): number;
+}
+
+export class DuplicationGroup<T> {
 	readonly policy: "ignore" | "replace";
 	readonly maxStack: number;
 	readonly selector: "lowest" | "highest";
@@ -42,11 +39,14 @@ export class DuplicationGroup {
 		else this.selector = definition.selector;
 	}
 
-	member<T>(options: Partial<DuplicationGroupMemberOptions<T>> = {}): DuplicationGroupMember<T> {
-		const _options: DuplicationGroupMemberOptions<T> = {
-			ranker: options.ranker ?? ((_, index) => index),
+	member(options: Partial<DuplicationGroupOptions<T>> = {}): DuplicationGroupMember<T> {
+		const _options: DuplicationGroupOptions<T> = {
+			rank: options.rank ?? ((_, index) => index),
 		};
-		return new DuplicationGroupMemberInstance(this, _options);
+		return {
+			group: this,
+			rank: _options.rank,
+		};
 	}
 }
 

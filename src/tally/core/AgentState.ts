@@ -4,6 +4,7 @@ import type { DescriptorHandler } from "../state/descriptor/DescriptorHandler.js
 import type { DescriptorOption } from "../state/descriptor/DescriptorOption.js";
 import { DescriptorType } from "../state/descriptor/DescriptorType.js";
 import { DuplicationIndex } from "../state/duplication/DuplicationIndex.js";
+import { DuplicationResolver } from "../state/duplication/DuplicationResolver.js";
 import type { Source } from "../state/source/Source.js";
 import type { SourceOption } from "../state/source/SourceOption.js";
 import { SourceType } from "../state/source/SourceType.js";
@@ -23,11 +24,12 @@ export type DestroyCallback = () => void;
 export class AgentState<TEntity> {
 	private readonly counter = new IdCounter();
 	private readonly duplicationIndex = new DuplicationIndex();
+	private readonly duplicationResolver = new DuplicationResolver(this.duplicationIndex);
 
-	private readonly sources = new SourceManager(this.counter, this.duplicationIndex);
+	private readonly sources = new SourceManager(this.counter, this.duplicationResolver);
 	private readonly descriptors = new DescriptorManager(
 		this.counter,
-		this.duplicationIndex,
+		this.duplicationResolver,
 		this.sources
 	);
 
