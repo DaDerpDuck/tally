@@ -48,6 +48,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typetest": "tsc --noEmit && tsc -p tsconfig.bench.json",
     "bench": "node --import tsx benchmarks/run.ts",
+    "bench:json": "node --import tsx benchmarks/run.ts --output benchmark-results.json",
     "bench:duplication": "node --import tsx benchmarks/run.ts duplication",
     "bench:lifecycle": "node --import tsx benchmarks/run.ts lifecycle",
     "bench:resolution": "node --import tsx benchmarks/run.ts resolution",

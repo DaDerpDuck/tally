@@ -1,4 +1,5 @@
-import { Bench, type BenchOptions } from "tinybench";
+import { arch, cpus, platform } from "os";
+import { Bench, mToNs, type BenchOptions } from "tinybench";
 
 const DEFAULT_OPTIONS = {
 	// Tinybench stores samples while calculating statistics. Fixed counts prevent
@@ -27,15 +28,71 @@ export function createBench(name: string, options?: BenchOptions): Bench {
 	return bench;
 }
 
+export interface BenchmarkTaskReport {
+	name: string;
+	samples: number;
+	latencyMedianNs: number;
+	latencyMeanNs: number;
+	latencyP99Ns: number;
+	rme: number;
+}
+
+export interface BenchmarkSuiteReport {
+	name: string;
+	iterations: number;
+	warmupIterations: number;
+	tasks: BenchmarkTaskReport[];
+}
+
+const reports: BenchmarkSuiteReport[] = [];
+
 export function runBench(bench: Bench): void {
 	bench.runSync();
 
-	const result = bench.tasks[0]?.result;
-	const environment = result
-		? ` (${result.runtime} ${result.runtimeVersion}, ${result.timestampProviderName})`
-		: "";
-	console.log(`\n${bench.name}${environment}`);
+	const tasks = bench.tasks.map((task): BenchmarkTaskReport => {
+		const result = bench.tasks[0]?.result;
+
+		if (result.state !== "completed") {
+			throw new Error(`Benchmark "${task.name}" did not complete`);
+		}
+
+		return {
+			name: task.name,
+			samples: result.latency.samplesCount,
+			latencyMedianNs: mToNs(result.latency.p50),
+			latencyMeanNs: mToNs(result.latency.mean),
+			latencyP99Ns: mToNs(result.latency.p99),
+			rme: result.latency.rme,
+		};
+	});
+
+	reports.push({
+		name: bench.name ?? "Unnamed suite",
+		iterations: bench.iterations,
+		warmupIterations: bench.warmupIterations,
+		tasks,
+	});
+
+	console.log(`\n${bench.name}`);
 	console.table(bench.table());
+}
+
+export function createBenchmarkReport(commit: string) {
+	return {
+		schemaVersion: 1,
+		commit,
+		timestamp: new Date().toISOString(),
+
+		environment: {
+			runtime: "node",
+			runtimeVersion: process.versions.node,
+			platform: platform(),
+			architecture: arch(),
+			cpu: cpus()[0]?.model ?? "unknown",
+		},
+
+		suites: reports,
+	};
 }
 
 export const BENCH_SIZES = [1, 10, 100, 1_000, 10_000] as const;
