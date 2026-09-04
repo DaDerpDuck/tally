@@ -6,8 +6,7 @@ interface Report {
 		name: string;
 		tasks: Array<{
 			name: string;
-			latencyMedianNs: number;
-			rme: number;
+			medianOfMedianNs: number;
 		}>;
 	}>;
 }
@@ -33,11 +32,11 @@ const rows = candidate.suites.flatMap((suite) =>
 
 		if (!previous) return [];
 
-		const change = (task.latencyMedianNs / previous.latencyMedianNs - 1) * 100;
+		const change = (task.medianOfMedianNs / previous.medianOfMedianNs - 1) * 100;
 
 		return [
-			`| ${key} | ${previous.latencyMedianNs.toFixed(0)} | ` +
-				`${task.latencyMedianNs.toFixed(0)} | ` +
+			`| ${key} | ${previous.medianOfMedianNs.toFixed(0)} | ` +
+				`${task.medianOfMedianNs.toFixed(0)} | ` +
 				`${change >= 0 ? "+" : ""}${change.toFixed(1)} |`,
 		];
 	})

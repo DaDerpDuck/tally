@@ -1,14 +1,34 @@
 import { execFileSync } from "child_process";
 import { mkdir, writeFile } from "fs/promises";
 import { dirname, resolve } from "path";
-import { createBenchmarkReport } from "./shared/bench.js";
+import { parseArgs } from "util";
+import { BenchmarkLogLevel, createBenchmarkReport, setBenchmarkLogLevel } from "./shared/bench.js";
 
-const args = process.argv.slice(2);
-const outputIndex = args.indexOf("--output");
+const validLogLevels = new Set<BenchmarkLogLevel>(["silent", "warn", "info"]);
 
-const output = outputIndex === -1 ? undefined : args[outputIndex + 1];
+const { values, positionals } = parseArgs({
+	options: {
+		output: {
+			type: "string",
+		},
+		"log-level": {
+			type: "string",
+			default: "info",
+		},
+	},
+	allowPositionals: true,
+});
 
-if (outputIndex !== -1) args.splice(outputIndex, 2);
+const requestedLogLevel = values["log-level"];
+
+if (
+	typeof requestedLogLevel !== "string" ||
+	!validLogLevels.has(requestedLogLevel as BenchmarkLogLevel)
+) {
+	throw new Error(`Invalid log level "${requestedLogLevel}". Expected silent, warn, or info.`);
+}
+
+setBenchmarkLogLevel(requestedLogLevel as BenchmarkLogLevel);
 
 const suites = {
 	duplication: () => import("./micro/duplication.bench.js"),
@@ -17,7 +37,8 @@ const suites = {
 	replication: () => import("./micro/replication.bench.js"),
 } as const;
 
-const requested = args.length === 0 ? Object.keys(suites) : args;
+const output = values.output;
+const requested = positionals.length === 0 ? Object.keys(suites) : positionals;
 
 for (const suite of requested) {
 	if (!(suite in suites)) {

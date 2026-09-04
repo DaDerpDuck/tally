@@ -1,18 +1,45 @@
 import { arch, cpus, platform } from "os";
-import { Bench, mToNs, type BenchOptions } from "tinybench";
+import { Bench, FnOptions, mToNs, type BenchOptions } from "tinybench";
 
 const DEFAULT_OPTIONS = {
 	// Tinybench stores samples while calculating statistics. Fixed counts prevent
 	// very fast tasks from collecting millions of samples in a timed run.
-	time: 0,
-	iterations: 1_000,
+	time: 50,
+	iterations: 1000,
 	warmup: true,
-	warmupTime: 0,
+	warmupTime: 50,
 	warmupIterations: 100,
 	retainSamples: false,
 	timestampProvider: "auto",
 	throws: true,
 } as const satisfies BenchOptions;
+
+export const HEAVY_BENCH_OPTIONS = {
+	time: 50,
+	iterations: 20,
+	warmupTime: 50,
+	warmupIterations: 5,
+} as const satisfies BenchOptions;
+
+export const BENCH_SIZES = [1, 10, 100, 1_000, 10_000] as const;
+
+export type BenchmarkLogLevel = "silent" | "warn" | "info";
+
+let logLevel: BenchmarkLogLevel = "info";
+
+export function setBenchmarkLogLevel(nextLevel: BenchmarkLogLevel) {
+	logLevel = nextLevel;
+}
+
+function shouldLog(level: Exclude<BenchmarkLogLevel, "silent">) {
+	const priorities = {
+		silent: 0,
+		warn: 1,
+		info: 2,
+	} as const satisfies Record<BenchmarkLogLevel, number>;
+
+	return priorities[logLevel] >= priorities[level];
+}
 
 export function createBench(name: string, options?: BenchOptions): Bench {
 	const bench = new Bench({
@@ -22,10 +49,35 @@ export function createBench(name: string, options?: BenchOptions): Bench {
 	});
 
 	bench.addEventListener("warning", (event) => {
-		console.warn(`[benchmark warning] ${event.task?.name}: ${event.reason}`);
+		if (!shouldLog("warn")) return;
+		console.warn(`[benchmark warning] ${event.task.name}: ${event.reason}`);
 	});
 
 	return bench;
+}
+
+export function addBatchedTask(
+	bench: Bench,
+	name: string,
+	operationsPerSample: number,
+	operation: () => void,
+	options?: FnOptions
+) {
+	return bench.add(
+		name,
+		() => {
+			const startedAt = bench.now();
+
+			for (let i = 0; i < operationsPerSample; i++) {
+				operation();
+			}
+
+			return {
+				overriddenDuration: (bench.now() - startedAt) / operationsPerSample,
+			};
+		},
+		{ async: false, ...options }
+	);
 }
 
 export interface BenchmarkTaskReport {
@@ -73,6 +125,8 @@ export function runBench(bench: Bench): void {
 		tasks,
 	});
 
+	if (!shouldLog("info")) return;
+
 	console.log(`\n${bench.name}`);
 	console.table(bench.table());
 }
@@ -94,12 +148,3 @@ export function createBenchmarkReport(commit: string) {
 		suites: reports,
 	};
 }
-
-export const BENCH_SIZES = [1, 10, 100, 1_000, 10_000] as const;
-
-export const HEAVY_BENCH_OPTIONS = {
-	time: 0,
-	iterations: 128,
-	warmupTime: 0,
-	warmupIterations: 16,
-} as const satisfies BenchOptions;
