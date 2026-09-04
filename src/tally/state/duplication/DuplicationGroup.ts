@@ -1,3 +1,5 @@
+export type DuplicationReplaceSelectors = "oldest" | "newest" | "lowest" | "highest";
+
 export type DuplicationGroupDefinition =
 	| {
 			readonly policy: "ignore";
@@ -12,7 +14,7 @@ export type DuplicationGroupDefinition =
 	| {
 			readonly policy: "replace";
 			readonly maxStack: number;
-			readonly selector: "oldest" | "newest" | "lowest" | "highest";
+			readonly selector: DuplicationReplaceSelectors;
 	  };
 
 interface DuplicationGroupOptions<T> {
@@ -29,16 +31,12 @@ export interface DuplicationGroupMember<T> {
 export class DuplicationGroup {
 	readonly policy: "ignore" | "replace";
 	readonly maxStack: number;
-	readonly selector: "lowest" | "highest";
+	readonly selector: DuplicationReplaceSelectors;
 
 	constructor(private readonly definition: DuplicationGroupDefinition) {
 		this.policy = definition.policy;
 		this.maxStack = definition.maxStack ?? 1;
-
-		if (!definition.selector) this.selector = "lowest";
-		else if (definition.selector === "oldest") this.selector = "lowest";
-		else if (definition.selector === "newest") this.selector = "highest";
-		else this.selector = definition.selector;
+		this.selector = definition.selector || "oldest";
 	}
 
 	member<T>(options: Partial<DuplicationGroupOptions<T>> = {}): DuplicationGroupMember<T> {

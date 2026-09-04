@@ -69,18 +69,17 @@ export class DuplicationResolver {
 					const conflict = conflicts[i]!;
 					const cRank = conflict.score();
 
-					if (selector === "lowest") {
-						if (cRank < rank || (cRank === rank && conflict.order < order)) {
-							rank = cRank;
-							order = conflict.order;
-							selectedCandidate = conflict;
-						}
-					} else {
-						if (cRank > rank || (cRank === rank && conflict.order >= order)) {
-							rank = cRank;
-							order = conflict.order;
-							selectedCandidate = conflict;
-						}
+					if (
+						(selector === "oldest" && conflict.order < order) ||
+						(selector === "newest" && conflict.order >= order) ||
+						(selector === "lowest" &&
+							(cRank < rank || (cRank === rank && conflict.order < order))) ||
+						(selector === "highest" &&
+							(cRank > rank || (cRank === rank && conflict.order >= order)))
+					) {
+						rank = cRank;
+						order = conflict.order;
+						selectedCandidate = conflict;
 					}
 				}
 
