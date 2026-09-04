@@ -1,13 +1,22 @@
-import { Bench, BenchOptions } from "tinybench";
+import { Bench, type BenchOptions } from "tinybench";
+
+const DEFAULT_OPTIONS = {
+	// Tinybench stores samples while calculating statistics. Fixed counts prevent
+	// very fast tasks from collecting millions of samples in a timed run.
+	time: 0,
+	iterations: 1_000,
+	warmup: true,
+	warmupTime: 0,
+	warmupIterations: 100,
+	retainSamples: false,
+	timestampProvider: "auto",
+	throws: true,
+} as const satisfies BenchOptions;
 
 export function createBench(name: string, options?: BenchOptions): Bench {
 	const bench = new Bench({
 		name,
-		time: 1_000,
-		warmup: true,
-		warmupTime: 500,
-		timestampProvider: "auto",
-		throws: true,
+		...DEFAULT_OPTIONS,
 		...options,
 	});
 
@@ -18,11 +27,22 @@ export function createBench(name: string, options?: BenchOptions): Bench {
 	return bench;
 }
 
-export async function runBench(bench: Bench): Promise<void> {
-	await bench.run();
+export function runBench(bench: Bench): void {
+	bench.runSync();
 
-	console.log(`\n${bench.name}`);
+	const result = bench.tasks[0]?.result;
+	const environment = result
+		? ` (${result.runtime} ${result.runtimeVersion}, ${result.timestampProviderName})`
+		: "";
+	console.log(`\n${bench.name}${environment}`);
 	console.table(bench.table());
 }
 
-export const BENCH_SIZES = [1, 10, 100, 1000, 10000] as const;
+export const BENCH_SIZES = [1, 10, 100, 1_000, 10_000] as const;
+
+export const HEAVY_BENCH_OPTIONS = {
+	time: 0,
+	iterations: 128,
+	warmupTime: 0,
+	warmupIterations: 16,
+} as const satisfies BenchOptions;

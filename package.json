@@ -46,14 +46,18 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typetest": "tsc --noEmit",
-    "bench:duplication": "tsx benchmarks/micro/duplication.bench.ts",
+    "typetest": "tsc --noEmit && tsc -p tsconfig.bench.json",
+    "bench": "node --import tsx benchmarks/run.ts",
+    "bench:duplication": "node --import tsx benchmarks/run.ts duplication",
+    "bench:lifecycle": "node --import tsx benchmarks/run.ts lifecycle",
+    "bench:resolution": "node --import tsx benchmarks/run.ts resolution",
+    "bench:replication": "node --import tsx benchmarks/run.ts replication",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"benchmarks/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"benchmarks/**/*.ts\""
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

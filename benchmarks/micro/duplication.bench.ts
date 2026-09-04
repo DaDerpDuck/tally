@@ -1,108 +1,123 @@
-import { AgentState } from "../../src";
-import { BENCH_SIZES, createBench, runBench } from "../shared/bench";
-import { createSourceType } from "../shared/fixtures";
+import { AgentState, type Source } from "../../src/index.js";
+import { createBench, runBench } from "../shared/bench.js";
+import { createSourceType } from "../shared/fixtures.js";
 
-const bench = createBench("Duplication");
+const firstAdmission = createBench("Source duplication: first admission");
 
-const allowSourceType = createSourceType({
-	duplication: {
-		policy: "allow",
-	},
-});
-
-for (const size of BENCH_SIZES) {
+for (const policy of ["allow", "ignore", "replace"] as const) {
+	const type = createSourceType({ duplication: { policy } });
 	const agent = new AgentState(undefined);
+	let added: Source<undefined> | undefined;
 
-	bench.add(
-		`allow / ${size} sources`,
+	firstAdmission.add(
+		policy,
 		() => {
-			for (let i = 0; i < size; i++) {
-				agent.addSource(allowSourceType);
-			}
+			added = agent.addSource(type);
 		},
 		{
 			async: false,
 			afterEach() {
+				added?.destroy();
+				added = undefined;
+			},
+		}
+	);
+}
+
+{
+	const type = createSourceType({
+		duplication: { policy: "reconcile", reconcile() {} },
+	});
+	const agent = new AgentState(undefined);
+	let added: Source<undefined> | undefined;
+
+	firstAdmission.add(
+		"reconcile",
+		() => {
+			added = agent.addSource(type);
+		},
+		{
+			async: false,
+			afterEach() {
+				added?.destroy();
+				added = undefined;
+			},
+		}
+	);
+}
+
+runBench(firstAdmission);
+
+const conflictingAdmission = createBench("Source duplication: conflicting admission");
+
+{
+	const type = createSourceType({ duplication: { policy: "allow" } });
+	const agent = new AgentState(undefined);
+	let added: Source<undefined> | undefined;
+
+	conflictingAdmission.add(
+		"allow",
+		() => {
+			added = agent.addSource(type);
+		},
+		{
+			async: false,
+			beforeAll() {
+				agent.addSource(type);
+			},
+			afterEach() {
+				added?.destroy();
+				added = undefined;
+			},
+			afterAll() {
 				agent.destroyAllSources();
 			},
 		}
 	);
 }
 
-const ignoreSourceType = createSourceType({
-	duplication: {
-		policy: "ignore",
-	},
-});
-
-for (const size of BENCH_SIZES) {
+for (const policy of ["ignore", "replace"] as const) {
+	const type = createSourceType({ duplication: { policy } });
 	const agent = new AgentState(undefined);
 
-	bench.add(
-		`ignore / ${size} sources`,
+	conflictingAdmission.add(
+		policy,
 		() => {
-			for (let i = 0; i < size; i++) {
-				agent.addSource(ignoreSourceType);
-			}
+			agent.addSource(type);
 		},
 		{
 			async: false,
-			afterEach() {
+			beforeAll() {
+				agent.addSource(type);
+			},
+			afterAll() {
 				agent.destroyAllSources();
 			},
 		}
 	);
 }
 
-const replaceSourceType = createSourceType({
-	duplication: {
-		policy: "replace",
-	},
-});
-
-for (const size of BENCH_SIZES) {
+{
+	const type = createSourceType({
+		duplication: { policy: "reconcile", reconcile() {} },
+	});
 	const agent = new AgentState(undefined);
 
-	bench.add(
-		`replace / ${size} sources`,
+	conflictingAdmission.add(
+		"reconcile",
 		() => {
-			for (let i = 0; i < size; i++) {
-				agent.addSource(replaceSourceType);
-			}
+			agent.addSource(type);
 		},
 		{
 			async: false,
-			afterEach() {
+			beforeAll() {
+				agent.addSource(type);
+			},
+			afterAll() {
 				agent.destroyAllSources();
 			},
 		}
 	);
 }
 
-const reconcileSourceType = createSourceType({
-	duplication: {
-		policy: "reconcile",
-		reconcile(existing, incoming) {},
-	},
-});
-
-for (const size of BENCH_SIZES) {
-	const agent = new AgentState(undefined);
-
-	bench.add(
-		`reconcile / ${size} sources`,
-		() => {
-			for (let i = 0; i < size; i++) {
-				agent.addSource(reconcileSourceType);
-			}
-		},
-		{
-			async: false,
-			afterEach() {
-				agent.destroyAllSources();
-			},
-		}
-	);
-}
-
-await runBench(bench);
+runBench(conflictingAdmission);
