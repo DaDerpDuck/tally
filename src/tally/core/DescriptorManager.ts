@@ -145,6 +145,7 @@ export class DescriptorManager<TEntity> {
 		const descriptor = new DescriptorInstance<TDescriptorData, TSourceData>(
 			descriptorId,
 			type,
+			options?.key,
 			provenance,
 			binding as DescriptorBinding<TDescriptorData, TSourceData>,
 			data
