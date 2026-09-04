@@ -20,3 +20,6 @@ for (const suiteName of suiteNames) {
 
 	await suites[suiteName as SuiteName]();
 }
+
+export { };
+
