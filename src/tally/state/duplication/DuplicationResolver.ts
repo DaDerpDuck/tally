@@ -7,7 +7,7 @@ import type {
 import { DuplicationIndex } from "./DuplicationIndex.js";
 
 export type DuplicationDecision<TInstance extends DuplicationCandidate<TData>, TData> =
-	| { readonly action: "add"; evict: readonly DuplicationCandidate[] }
+	| { readonly action: "add"; readonly evict: readonly DuplicationCandidate[] }
 	| { readonly action: "ignore" }
 	| {
 			readonly action: "reconcile";
@@ -16,6 +16,9 @@ export type DuplicationDecision<TInstance extends DuplicationCandidate<TData>, T
 	  };
 
 export class DuplicationResolver {
+	private static readonly DecideAddStructure = { action: "add", evict: [] } as const;
+	private static readonly DecideIgnoreStructure = { action: "ignore" } as const;
+
 	private order = 0;
 
 	constructor(private readonly index: DuplicationIndex) {}
@@ -26,47 +29,54 @@ export class DuplicationResolver {
 		key: string | undefined
 	): DuplicationDecision<TInstance, TData> {
 		const policy = type.duplication;
-		if (policy.kind === "allow") return { action: "add", evict: [] };
+		if (policy.kind === "allow") return DuplicationResolver.DecideAddStructure;
 
 		const domain = this.domainOf(type);
 		const conflicts = this.index.get(domain, key);
 		if (policy.kind === "ignore") {
-			if (conflicts.length > 0) return { action: "ignore" };
-			else return { action: "add", evict: [] };
+			if (conflicts.length > 0) return DuplicationResolver.DecideIgnoreStructure;
+			else return DuplicationResolver.DecideAddStructure;
 		}
 
 		if (policy.kind === "replace") {
 			if (conflicts.length > 0)
-				return { action: "add", evict: conflicts.map((entry) => entry.candidate) };
-			return { action: "add", evict: [] };
+				return {
+					action: "add",
+					evict: conflicts
+						.values()
+						.map((entry) => entry.candidate)
+						.toArray(),
+				};
+			return DuplicationResolver.DecideAddStructure;
 		}
 
 		if (policy.kind === "reconcile") {
 			if (conflicts.length > 0)
 				return {
 					action: "reconcile",
-					target: conflicts[0]!.candidate as TInstance,
+					target: conflicts.values().next().value!.candidate as TInstance,
 					reconcile: policy.reconcile,
 				};
-			else return { action: "add", evict: [] };
+			else return DuplicationResolver.DecideAddStructure;
 		}
 
 		if (policy.kind === "group") {
 			if (policy.group.policy === "ignore") {
-				if (conflicts.length >= policy.group.maxStack) return { action: "ignore" };
-				else return { action: "add", evict: [] };
+				if (conflicts.length >= policy.group.maxStack)
+					return DuplicationResolver.DecideIgnoreStructure;
+				else return DuplicationResolver.DecideAddStructure;
 			}
 			if (policy.group.policy === "replace") {
-				if (policy.group.maxStack <= 0) return { action: "ignore" };
-				if (conflicts.length < policy.group.maxStack) return { action: "add", evict: [] };
+				if (policy.group.maxStack <= 0) return DuplicationResolver.DecideIgnoreStructure;
+				if (conflicts.length < policy.group.maxStack)
+					return DuplicationResolver.DecideAddStructure;
 
 				const selector = policy.group.selector;
-				let selectedCandidate = conflicts[0]!;
+				let selectedCandidate = conflicts.values().next().value!;
 				let rank = selectedCandidate.score();
 				let order = selectedCandidate.order;
 
-				for (let i = 1; i < conflicts.length; i++) {
-					const conflict = conflicts[i]!;
+				for (const conflict of conflicts) {
 					const cRank = conflict.score();
 
 					if (
@@ -88,7 +98,7 @@ export class DuplicationResolver {
 					// buckets won't ever exceed max stack
 					return { action: "add", evict: [selectedCandidate!.candidate] };
 				} else {
-					return { action: "ignore" };
+					return DuplicationResolver.DecideIgnoreStructure;
 				}
 			}
 		}

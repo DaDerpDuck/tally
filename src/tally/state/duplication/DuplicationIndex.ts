@@ -1,8 +1,6 @@
 import type { Disconnect } from "../../util/Disconnect.js";
-import { getOrInsert } from "../../util/GetOrInsert.js";
+import { getOrInsertComputed } from "../../util/GetOrInsert.js";
 import type { DuplicationCandidate } from "./DuplicationCandidate.js";
-
-const UnspecifiedKey = Symbol("UnspecifiedKey");
 
 export interface DuplicationEntry {
 	readonly candidate: DuplicationCandidate;
@@ -12,34 +10,53 @@ export interface DuplicationEntry {
 }
 
 export class DuplicationIndex {
-	private readonly duplicationMap = new Map<
-		object,
-		Map<string | typeof UnspecifiedKey, Set<DuplicationEntry>>
-	>();
+	private static readonly EmptyArray = new Array<DuplicationEntry>(0);
+
+	private readonly duplicationStruct = {
+		unkeyed: new Map<object, DuplicationEntry[]>(),
+		keyed: new Map<object, Map<string, DuplicationEntry[]>>(),
+	} as const;
 
 	get(domain: object, key: string | undefined): readonly DuplicationEntry[] {
-		return (
-			this.duplicationMap
-				.get(domain)
-				?.get(key ?? UnspecifiedKey)
-				?.values()
-				.toArray() ?? []
-		);
+		if (key === undefined) {
+			return this.duplicationStruct.unkeyed.get(domain) ?? DuplicationIndex.EmptyArray;
+		} else {
+			return (
+				this.duplicationStruct.keyed.get(domain)?.get(key) ?? DuplicationIndex.EmptyArray
+			);
+		}
 	}
 
 	add(domain: object, key: string | undefined, entry: DuplicationEntry): Disconnect {
-		const keyBucket = getOrInsert(
-			this.duplicationMap,
-			domain,
-			new Map<unknown, Set<DuplicationEntry>>()
-		);
-		const entries = getOrInsert(keyBucket, key ?? UnspecifiedKey, new Set());
-		entries.add(entry);
+		if (key === undefined) {
+			const entries = getOrInsertComputed(this.duplicationStruct.unkeyed, domain, () => []);
+			entries.push(entry);
 
-		return () => {
-			entries.delete(entry);
-			if (entries.size === 0) keyBucket.delete(key ?? UnspecifiedKey);
-			if (keyBucket.size === 0) this.duplicationMap.delete(domain);
-		};
+			return () => {
+				const index = entries.findIndex((e) => e === entry);
+				if (index < 0) return;
+				if (entries.length === 1) return this.duplicationStruct.unkeyed.delete(domain);
+				entries[index] = entries[entries.length - 1]!;
+				entries.pop();
+				if (entries.length === 0) this.duplicationStruct.unkeyed.delete(domain);
+			};
+		} else {
+			const keyBucket = getOrInsertComputed(
+				this.duplicationStruct.keyed,
+				domain,
+				() => new Map<string, DuplicationEntry[]>()
+			);
+			const entries = getOrInsertComputed(keyBucket, key, () => []);
+			entries.push(entry);
+
+			return () => {
+				const index = entries.findIndex((e) => e === entry);
+				if (index < 0) return;
+				entries[index] = entries[entries.length - 1]!;
+				entries.pop();
+				if (entries.length === 0) keyBucket.delete(key);
+				if (keyBucket.size === 0) this.duplicationStruct.keyed.delete(domain);
+			};
+		}
 	}
 }

@@ -8,7 +8,7 @@ import { SourceInstance } from "../state/source/SourceInstance.js";
 import type { SourceOption } from "../state/source/SourceOption.js";
 import { SourceType, type AnySourceType } from "../state/source/SourceType.js";
 import type { Disconnect } from "../util/Disconnect.js";
-import { getOrInsert } from "../util/GetOrInsert.js";
+import { getOrInsertComputed } from "../util/GetOrInsert.js";
 import type { IdCounter } from "../util/IdCounter.js";
 
 export type PropertyCallback<T = unknown> = (newValue: T, oldValue: T) => void;
@@ -144,7 +144,7 @@ export class SourceManager {
 		for (const handle of handles) this.dirtyProperties.add(handle.property);
 		this.requestResolve();
 
-		getOrInsert(this.sourceMap, type, new Set()).add(source);
+		getOrInsertComputed(this.sourceMap, type, () => new Set()).add(source);
 		const duplicateUnregister = this.duplicationResolver.track(
 			source.type,
 			options?.key,

@@ -10,7 +10,7 @@ import type { AnyDescriptorType, DescriptorType } from "../state/descriptor/Desc
 import type { DuplicationResolver } from "../state/duplication/DuplicationResolver.js";
 import type { SourceOption } from "../state/source/SourceOption.js";
 import type { Disconnect } from "../util/Disconnect.js";
-import { getOrInsert } from "../util/GetOrInsert.js";
+import { getOrInsertComputed } from "../util/GetOrInsert.js";
 import type { IdCounter } from "../util/IdCounter.js";
 import type { AgentState } from "./AgentState.js";
 import type { SourceManager } from "./SourceManager.js";
@@ -150,7 +150,7 @@ export class DescriptorManager<TEntity> {
 			binding as DescriptorBinding<TDescriptorData, TSourceData>,
 			data
 		);
-		getOrInsert(this.descriptorMap, type, new Set()).add(descriptor);
+		getOrInsertComputed(this.descriptorMap, type, () => new Set()).add(descriptor);
 		const duplicateUnregister = this.duplicationResolver.track(
 			descriptor.type,
 			options?.key,
