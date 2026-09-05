@@ -7,13 +7,24 @@ import {
 	type TimerSaturationReason,
 } from "tinybench";
 
-const DEFAULT_OPTIONS = {
-	// The time window supplies useful sampling; the iteration counts also guarantee
-	// enough observations for slower tasks.
+const QUICK_BENCH_OPTIONS = {
 	time: 50,
-	iterations: 1000,
+	iterations: 500,
 	warmup: true,
 	warmupTime: 50,
+	warmupIterations: 50,
+	retainSamples: false,
+	timestampProvider: "auto",
+	throws: true,
+} as const satisfies BenchOptions;
+
+const COMPARISON_BENCH_OPTIONS = {
+	// The time window supplies useful sampling; the iteration counts also guarantee
+	// enough observations for slower tasks.
+	time: 250,
+	iterations: 1000,
+	warmup: true,
+	warmupTime: 250,
 	warmupIterations: 100,
 	retainSamples: false,
 	timestampProvider: "auto",
@@ -31,6 +42,8 @@ export const BENCH_SIZES = [1, 10, 100, 1_000, 10_000] as const;
 
 export type BenchmarkLogLevel = "silent" | "warn" | "info";
 
+export type BenchmarkProfile = "default" | "quick" | "comparison";
+
 const WARNING_GUIDANCE = {
 	"low-distinct": "Increase the work per sample so the timer sees more distinct values.",
 	"zero-dominated": "Batch more work into each sample; most measurements hit zero.",
@@ -38,11 +51,16 @@ const WARNING_GUIDANCE = {
 } as const satisfies Record<TimerSaturationReason, string>;
 
 let logLevel: BenchmarkLogLevel = "info";
+let profile: BenchmarkProfile = "default";
 const warningsByBench = new WeakMap<Bench, Map<string, Set<TimerSaturationReason>>>();
 const operationsPerSampleByBench = new WeakMap<Bench, Map<string, number>>();
 
 export function setBenchmarkLogLevel(nextLevel: BenchmarkLogLevel) {
 	logLevel = nextLevel;
+}
+
+export function setBenchmarkProfile(nextProfile: BenchmarkProfile) {
+	profile = nextProfile;
 }
 
 function shouldLog(level: Exclude<BenchmarkLogLevel, "silent">) {
@@ -56,9 +74,18 @@ function shouldLog(level: Exclude<BenchmarkLogLevel, "silent">) {
 }
 
 export function createBench(name: string, options?: BenchOptions): Bench {
+	let defaultOptions: BenchOptions;
+	if (profile === "default" || profile === "comparison") {
+		defaultOptions = COMPARISON_BENCH_OPTIONS;
+	} else if (profile === "quick") {
+		defaultOptions = QUICK_BENCH_OPTIONS;
+	} else {
+		throw new Error(`Unknown benchmark profile: ${profile}`);
+	}
+
 	const bench = new Bench({
 		name,
-		...DEFAULT_OPTIONS,
+		...defaultOptions,
 		...options,
 	});
 	const warnings = new Map<string, Set<TimerSaturationReason>>();

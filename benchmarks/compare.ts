@@ -7,7 +7,7 @@ interface Report {
 		tasks: Array<{
 			name: string;
 			medianOfMedianNs: number;
-			spreadPercent: number | null;
+			relativeMad: number | null;
 			warnings: string[];
 		}>;
 	}>;
@@ -41,10 +41,10 @@ const rows = candidate.suites.flatMap((suite) =>
 
 		const remarks = [
 			...(task.warnings ?? []),
-			task.spreadPercent === null
-				? "spread unavailable"
-				: task.spreadPercent >= 20
-					? `spread ${task.spreadPercent.toFixed(1)}%`
+			task.relativeMad === null
+				? "MAD unavailable"
+				: task.relativeMad > 1
+					? `relative MAD ${task.relativeMad.toFixed(1)}%`
 					: "",
 			change === null ? "baseline median is zero" : "",
 		]

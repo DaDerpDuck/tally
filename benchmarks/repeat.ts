@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import type { BenchmarkLogLevel } from "./shared/bench.js";
+import { type BenchmarkLogLevel, type BenchmarkProfile } from "./shared/bench.js";
 
 interface TaskReport {
 	name: string;
@@ -35,7 +35,7 @@ interface AggregatedTaskReport {
 	minMedianNs: number;
 	maxMedianNs: number;
 	runMedianNs: number[];
-	spreadPercent: number | null;
+	relativeMad: number | null;
 	operationsPerSample: number;
 	warnings: string[];
 }
@@ -54,10 +54,12 @@ function median(values: readonly number[]): number {
 }
 
 const validLogLevels = new Set<BenchmarkLogLevel>(["silent", "warn", "info"]);
+const validProfiles = new Set<BenchmarkProfile>(["default", "quick", "comparison"]);
 const { values } = parseArgs({
 	options: {
 		runs: { type: "string", default: "5" },
 		output: { type: "string", default: "benchmark-results.json" },
+		profile: { type: "string", default: "default" },
 		"log-level": { type: "string", default: "warn" },
 	},
 });
@@ -65,10 +67,16 @@ const { values } = parseArgs({
 const runs = Number(values.runs);
 const outputPath = resolve(values.output);
 const logLevel = values["log-level"] as BenchmarkLogLevel;
+const profile = values.profile as BenchmarkProfile;
 
 if (!Number.isInteger(runs) || runs < 1) throw new Error("--runs must be a positive integer");
 if (!validLogLevels.has(logLevel)) {
 	throw new Error(`Invalid log level "${logLevel}". Expected silent, warn, or info.`);
+}
+if (!validProfiles.has(profile)) {
+	throw new Error(
+		`Invalid benchmark profile "${profile}". Expected default, quick, or comparison.`
+	);
 }
 
 if (runs % 2 === 0 && logLevel !== "silent") {
@@ -97,6 +105,8 @@ try {
 				runOutput,
 				"--log-level",
 				logLevel,
+				"--profile",
+				profile,
 			],
 			{ stdio: "inherit" }
 		);
@@ -129,10 +139,12 @@ try {
 				minMedianNs,
 				maxMedianNs,
 				runMedianNs,
-				spreadPercent:
+				relativeMad:
 					medianOfMedianNs === 0
 						? null
-						: ((maxMedianNs - minMedianNs) / medianOfMedianNs) * 100,
+						: (median(runMedianNs.map((x) => Math.abs(x - medianOfMedianNs))) /
+								medianOfMedianNs) *
+							100,
 				operationsPerSample: task.operationsPerSample,
 				warnings: [
 					...new Set(

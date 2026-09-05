@@ -5,15 +5,22 @@ import { parseArgs } from "node:util";
 import {
 	createBenchmarkReport,
 	setBenchmarkLogLevel,
+	setBenchmarkProfile,
 	type BenchmarkLogLevel,
+	type BenchmarkProfile,
 } from "./shared/bench.js";
 
 const validLogLevels = new Set<BenchmarkLogLevel>(["silent", "warn", "info"]);
+const validProfileLevels = new Set<BenchmarkProfile>(["default", "quick", "comparison"]);
 
 const { values, positionals } = parseArgs({
 	options: {
 		output: {
 			type: "string",
+		},
+		profile: {
+			type: "string",
+			default: "default",
 		},
 		"log-level": {
 			type: "string",
@@ -24,7 +31,6 @@ const { values, positionals } = parseArgs({
 });
 
 const requestedLogLevel = values["log-level"];
-
 if (
 	typeof requestedLogLevel !== "string" ||
 	!validLogLevels.has(requestedLogLevel as BenchmarkLogLevel)
@@ -32,7 +38,18 @@ if (
 	throw new Error(`Invalid log level "${requestedLogLevel}". Expected silent, warn, or info.`);
 }
 
+const requestedProfile = values.profile;
+if (
+	typeof requestedProfile !== "string" ||
+	!validProfileLevels.has(requestedProfile as BenchmarkProfile)
+) {
+	throw new Error(
+		`Invalid benchmark profile "${requestedProfile}". Expected default, quick, or comparison.`
+	);
+}
+
 setBenchmarkLogLevel(requestedLogLevel as BenchmarkLogLevel);
+setBenchmarkProfile(requestedProfile as BenchmarkProfile);
 
 const suites = {
 	duplication: () => import("./micro/duplication.bench.js"),
