@@ -50,7 +50,7 @@ export function createBench(name: string, options?: BenchOptions): Bench {
 
 	bench.addEventListener("warning", (event) => {
 		if (!shouldLog("warn")) return;
-		console.warn(`[benchmark warning] ${event.task.name}: ${event.reason}`);
+		console.warn(`[benchmark warning] ${name}: ${event.task.name}: ${event.reason}`);
 	});
 
 	return bench;

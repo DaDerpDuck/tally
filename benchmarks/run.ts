@@ -60,5 +60,4 @@ if (output) {
 	await writeFile(outputPath, `${JSON.stringify(createBenchmarkReport(commit), null, 2)}\n`);
 }
 
-export { };
-
+export {};
