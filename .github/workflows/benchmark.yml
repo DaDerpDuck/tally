@@ -20,7 +20,7 @@ jobs:
       - name: Checkout candidate
         uses: actions/checkout@v6
         with:
-          ref: github.sha
+          ref: ${{ github.sha }}
           path: candidate
 
       - name: Setup Node
@@ -57,7 +57,7 @@ jobs:
         run: >
           node --import tsx benchmarks/compare.ts
           "${{ github.workspace }}/results/baseline.json"
-          "${{ github.workspace }}/results/canidate.json"
+          "${{ github.workspace }}/results/candidate.json"
           "${{ github.workspace }}/results/comparison.md"
 
       - name: Add workflow summary

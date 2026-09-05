@@ -7,6 +7,8 @@ interface Report {
 		tasks: Array<{
 			name: string;
 			medianOfMedianNs: number;
+			spreadPercent: number | null;
+			warnings: string[];
 		}>;
 	}>;
 }
@@ -32,12 +34,28 @@ const rows = candidate.suites.flatMap((suite) =>
 
 		if (!previous) return [];
 
-		const change = (task.medianOfMedianNs / previous.medianOfMedianNs - 1) * 100;
+		const change =
+			previous.medianOfMedianNs === 0
+				? null
+				: (task.medianOfMedianNs / previous.medianOfMedianNs - 1) * 100;
+
+		const remarks = [
+			...(task.warnings ?? []),
+			task.spreadPercent === null
+				? "spread unavailable"
+				: task.spreadPercent >= 20
+					? `spread ${task.spreadPercent.toFixed(1)}%`
+					: "",
+			change === null ? "baseline median is zero" : "",
+		]
+			.filter(Boolean)
+			.join(", ");
 
 		return [
 			`| ${key} | ${previous.medianOfMedianNs.toFixed(0)} | ` +
 				`${task.medianOfMedianNs.toFixed(0)} | ` +
-				`${change >= 0 ? "+" : ""}${change.toFixed(1)} |`,
+				`${change === null ? "n/a" : `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`} | ` +
+				`${remarks} |`,
 		];
 	})
 );
@@ -49,8 +67,8 @@ const markdown = [
 	"",
 	`Candidate: \`${candidate.commit.slice(0, 8)}\``,
 	"",
-	"| Benchmark | Baseline median (ns) | Candidate median (ns) | Change |",
-	"|---|---:|---:|---:|",
+	"| Benchmark | Baseline median (ns) | Candidate median (ns) | Change | Remarks |",
+	"|---|---:|---:|---:|---|",
 	...rows,
 	"",
 ].join("\n");

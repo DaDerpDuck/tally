@@ -1,8 +1,12 @@
-import { execFileSync } from "child_process";
-import { mkdir, writeFile } from "fs/promises";
-import { dirname, resolve } from "path";
-import { parseArgs } from "util";
-import { BenchmarkLogLevel, createBenchmarkReport, setBenchmarkLogLevel } from "./shared/bench.js";
+import { execFileSync } from "node:child_process";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { parseArgs } from "node:util";
+import {
+	createBenchmarkReport,
+	setBenchmarkLogLevel,
+	type BenchmarkLogLevel,
+} from "./shared/bench.js";
 
 const validLogLevels = new Set<BenchmarkLogLevel>(["silent", "warn", "info"]);
 

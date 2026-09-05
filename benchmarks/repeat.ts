@@ -1,7 +1,9 @@
-import { execFileSync } from "child_process";
-import { mkdtemp, readFile, rm, writeFile } from "fs/promises";
-import { tmpdir } from "os";
-import { join, resolve } from "path";
+import { execFileSync } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { parseArgs } from "node:util";
+import type { BenchmarkLogLevel } from "./shared/bench.js";
 
 interface TaskReport {
 	name: string;
@@ -10,6 +12,8 @@ interface TaskReport {
 	latencyP99Ns: number;
 	rme: number;
 	samples: number;
+	operationsPerSample: number;
+	warnings: string[];
 }
 
 interface SuiteReport {
@@ -31,11 +35,9 @@ interface AggregatedTaskReport {
 	minMedianNs: number;
 	maxMedianNs: number;
 	runMedianNs: number[];
-}
-
-function getArgument(name: string): string | undefined {
-	const index = process.argv.indexOf(name);
-	return index === -1 ? undefined : process.argv[index + 1];
+	spreadPercent: number | null;
+	operationsPerSample: number;
+	warnings: string[];
 }
 
 function median(values: readonly number[]): number {
@@ -51,12 +53,27 @@ function median(values: readonly number[]): number {
 	return (sorted[middle - 1]! + sorted[middle]!) / 2;
 }
 
-const runs = Number(getArgument("--runs") ?? "5");
-const outputPath = resolve(getArgument("--output") ?? "benchmark-results.json");
+const validLogLevels = new Set<BenchmarkLogLevel>(["silent", "warn", "info"]);
+const { values } = parseArgs({
+	options: {
+		runs: { type: "string", default: "5" },
+		output: { type: "string", default: "benchmark-results.json" },
+		"log-level": { type: "string", default: "warn" },
+	},
+});
+
+const runs = Number(values.runs);
+const outputPath = resolve(values.output);
+const logLevel = values["log-level"] as BenchmarkLogLevel;
 
 if (!Number.isInteger(runs) || runs < 1) throw new Error("--runs must be a positive integer");
+if (!validLogLevels.has(logLevel)) {
+	throw new Error(`Invalid log level "${logLevel}". Expected silent, warn, or info.`);
+}
 
-if (runs % 2 === 0) console.warn("An odd run count such as 5 or 7 gives a natural median run");
+if (runs % 2 === 0 && logLevel !== "silent") {
+	console.warn("An odd run count such as 5 or 7 gives a natural median run");
+}
 
 const temporaryDirectory = await mkdtemp(join(tmpdir(), "tally-benchmarks-"));
 
@@ -66,11 +83,21 @@ try {
 	for (let run = 1; run <= runs; run++) {
 		const runOutput = join(temporaryDirectory, `run-${run}.json`);
 
-		console.log(`\nRunning benchmark suite (run ${run}/${runs})...`);
+		if (logLevel === "info") {
+			console.log(`\nRunning benchmark suite (run ${run}/${runs})...`);
+		}
 
 		execFileSync(
 			process.execPath,
-			["--import", "tsx", "benchmarks/run.ts", "--output", runOutput],
+			[
+				"--import",
+				"tsx",
+				"benchmarks/run.ts",
+				"--output",
+				runOutput,
+				"--log-level",
+				logLevel,
+			],
 			{ stdio: "inherit" }
 		);
 
@@ -90,15 +117,34 @@ try {
 					);
 				}
 
-				return matchingTask.latencyMeanNs;
+				return matchingTask.latencyMedianNs;
 			});
+			const medianOfMedianNs = median(runMedianNs);
+			const minMedianNs = Math.min(...runMedianNs);
+			const maxMedianNs = Math.max(...runMedianNs);
 
 			return {
 				name: task.name,
-				medianOfMedianNs: median(runMedianNs),
-				minMedianNs: Math.min(...runMedianNs),
-				maxMedianNs: Math.max(...runMedianNs),
+				medianOfMedianNs,
+				minMedianNs,
+				maxMedianNs,
 				runMedianNs,
+				spreadPercent:
+					medianOfMedianNs === 0
+						? null
+						: ((maxMedianNs - minMedianNs) / medianOfMedianNs) * 100,
+				operationsPerSample: task.operationsPerSample,
+				warnings: [
+					...new Set(
+						reports.flatMap(
+							(report) =>
+								report.suites
+									.find((candidate) => candidate.name === suite.name)
+									?.tasks.find((candidate) => candidate.name === task.name)
+									?.warnings ?? []
+						)
+					),
+				],
 			};
 		});
 
@@ -119,7 +165,9 @@ try {
 
 	await writeFile(outputPath, `${JSON.stringify(aggregatedReport, null, 2)}\n`);
 
-	console.log(`\nWrote aggregated results to ${outputPath}`);
+	if (logLevel === "info") {
+		console.log(`\nWrote aggregated results to ${outputPath}`);
+	}
 } finally {
 	await rm(temporaryDirectory, {
 		recursive: true,

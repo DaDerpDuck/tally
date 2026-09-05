@@ -1,9 +1,15 @@
-import { arch, cpus, platform } from "os";
-import { Bench, FnOptions, mToNs, type BenchOptions } from "tinybench";
+import { arch, cpus, platform } from "node:os";
+import {
+	Bench,
+	mToNs,
+	type BenchOptions,
+	type FnOptions,
+	type TimerSaturationReason,
+} from "tinybench";
 
 const DEFAULT_OPTIONS = {
-	// Tinybench stores samples while calculating statistics. Fixed counts prevent
-	// very fast tasks from collecting millions of samples in a timed run.
+	// The time window supplies useful sampling; the iteration counts also guarantee
+	// enough observations for slower tasks.
 	time: 50,
 	iterations: 1000,
 	warmup: true,
@@ -25,7 +31,15 @@ export const BENCH_SIZES = [1, 10, 100, 1_000, 10_000] as const;
 
 export type BenchmarkLogLevel = "silent" | "warn" | "info";
 
+const WARNING_GUIDANCE = {
+	"low-distinct": "Increase the work per sample so the timer sees more distinct values.",
+	"zero-dominated": "Batch more work into each sample; most measurements hit zero.",
+	"zero-mad": "Batch more work into each sample; the task is timer-quantized.",
+} as const satisfies Record<TimerSaturationReason, string>;
+
 let logLevel: BenchmarkLogLevel = "info";
+const warningsByBench = new WeakMap<Bench, Map<string, Set<TimerSaturationReason>>>();
+const operationsPerSampleByBench = new WeakMap<Bench, Map<string, number>>();
 
 export function setBenchmarkLogLevel(nextLevel: BenchmarkLogLevel) {
 	logLevel = nextLevel;
@@ -47,10 +61,22 @@ export function createBench(name: string, options?: BenchOptions): Bench {
 		...DEFAULT_OPTIONS,
 		...options,
 	});
+	const warnings = new Map<string, Set<TimerSaturationReason>>();
+	warningsByBench.set(bench, warnings);
+	operationsPerSampleByBench.set(bench, new Map());
 
 	bench.addEventListener("warning", (event) => {
+		if (event.reason) {
+			const taskWarnings = warnings.get(event.task.name) ?? new Set();
+			taskWarnings.add(event.reason);
+			warnings.set(event.task.name, taskWarnings);
+		}
+
 		if (!shouldLog("warn")) return;
-		console.warn(`[benchmark warning] ${name}: ${event.task.name}: ${event.reason}`);
+		console.warn(
+			`[benchmark warning] ${name}: ${event.task.name}: ${event.reason}. ` +
+				(event.reason ? WARNING_GUIDANCE[event.reason] : "Inspect this task's timing.")
+		);
 	});
 
 	return bench;
@@ -63,21 +89,25 @@ export function addBatchedTask(
 	operation: () => void,
 	options?: FnOptions
 ) {
-	return bench.add(
+	if (!Number.isSafeInteger(operationsPerSample) || operationsPerSample < 1) {
+		throw new Error("operationsPerSample must be a positive safe integer");
+	}
+
+	const task = bench.add(
 		name,
 		() => {
-			const startedAt = bench.now();
-
 			for (let i = 0; i < operationsPerSample; i++) {
 				operation();
 			}
-
-			return {
-				overriddenDuration: (bench.now() - startedAt) / operationsPerSample,
-			};
 		},
 		{ async: false, ...options }
 	);
+
+	const batchSizes = operationsPerSampleByBench.get(bench) ?? new Map();
+	batchSizes.set(name, operationsPerSample);
+	operationsPerSampleByBench.set(bench, batchSizes);
+
+	return task;
 }
 
 export interface BenchmarkTaskReport {
@@ -87,6 +117,8 @@ export interface BenchmarkTaskReport {
 	latencyMeanNs: number;
 	latencyP99Ns: number;
 	rme: number;
+	operationsPerSample: number;
+	warnings: TimerSaturationReason[];
 }
 
 export interface BenchmarkSuiteReport {
@@ -100,9 +132,12 @@ const reports: BenchmarkSuiteReport[] = [];
 
 export function runBench(bench: Bench): void {
 	bench.runSync();
+	const warnings = warningsByBench.get(bench);
+	const batchSizes = operationsPerSampleByBench.get(bench);
 
 	const tasks = bench.tasks.map((task): BenchmarkTaskReport => {
-		const result = bench.tasks[0]?.result;
+		const result = task.result;
+		const operationsPerSample = batchSizes?.get(task.name) ?? 1;
 
 		if (result.state !== "completed") {
 			throw new Error(`Benchmark "${task.name}" did not complete`);
@@ -111,10 +146,12 @@ export function runBench(bench: Bench): void {
 		return {
 			name: task.name,
 			samples: result.latency.samplesCount,
-			latencyMedianNs: mToNs(result.latency.p50),
-			latencyMeanNs: mToNs(result.latency.mean),
-			latencyP99Ns: mToNs(result.latency.p99),
+			latencyMedianNs: mToNs(result.latency.p50) / operationsPerSample,
+			latencyMeanNs: mToNs(result.latency.mean) / operationsPerSample,
+			latencyP99Ns: mToNs(result.latency.p99) / operationsPerSample,
 			rme: result.latency.rme,
+			operationsPerSample,
+			warnings: [...(warnings?.get(task.name) ?? [])],
 		};
 	});
 
@@ -128,7 +165,16 @@ export function runBench(bench: Bench): void {
 	if (!shouldLog("info")) return;
 
 	console.log(`\n${bench.name}`);
-	console.table(bench.table());
+	console.table(
+		tasks.map((task) => ({
+			"Task name": task.name,
+			"Latency avg (ns/op)": `${task.latencyMeanNs.toFixed(2)} ± ${task.rme.toFixed(2)}%`,
+			"Latency med (ns/op)": task.latencyMedianNs.toFixed(2),
+			"Latency p99 (ns/op)": task.latencyP99Ns.toFixed(2),
+			Samples: task.samples,
+			"Ops/sample": task.operationsPerSample,
+		}))
+	);
 }
 
 export function createBenchmarkReport(commit: string) {

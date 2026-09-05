@@ -1,5 +1,5 @@
 import { AgentState, type Source } from "../../src/index.js";
-import { createBench, runBench } from "../shared/bench.js";
+import { addBatchedTask, createBench, runBench } from "../shared/bench.js";
 import { createSourceType } from "../shared/fixtures.js";
 
 const firstAdmission = createBench("Source duplication: first admission");
@@ -76,12 +76,35 @@ const conflictingAdmission = createBench("Source duplication: conflicting admiss
 	);
 }
 
-for (const policy of ["ignore", "replace"] as const) {
-	const type = createSourceType({ duplication: { policy } });
+{
+	const type = createSourceType({ duplication: { policy: "ignore" } });
+	const agent = new AgentState(undefined);
+
+	addBatchedTask(
+		conflictingAdmission,
+		"ignore",
+		1_000,
+		() => {
+			agent.addSource(type);
+		},
+		{
+			async: false,
+			beforeAll() {
+				agent.addSource(type);
+			},
+			afterAll() {
+				agent.destroyAllSources();
+			},
+		}
+	);
+}
+
+{
+	const type = createSourceType({ duplication: { policy: "replace" } });
 	const agent = new AgentState(undefined);
 
 	conflictingAdmission.add(
-		policy,
+		"replace",
 		() => {
 			agent.addSource(type);
 		},
@@ -103,8 +126,10 @@ for (const policy of ["ignore", "replace"] as const) {
 	});
 	const agent = new AgentState(undefined);
 
-	conflictingAdmission.add(
+	addBatchedTask(
+		conflictingAdmission,
 		"reconcile",
+		1_000,
 		() => {
 			agent.addSource(type);
 		},
