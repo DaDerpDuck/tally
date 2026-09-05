@@ -44,13 +44,13 @@ jobs:
         working-directory: baseline
         run: >
           npm run bench:repeat --
-          --runs 5 --output "${{ github.workspace }}/results/baseline.json"
+          --runs 7 --output "${{ github.workspace }}/results/baseline.json"
 
       - name: Run candidate
         working-directory: candidate
         run: >
           npm run bench:repeat --
-          --runs 5 --output "${{ github.workspace }}/results/candidate.json"
+          --runs 7 --output "${{ github.workspace }}/results/candidate.json"
 
       - name: Compare
         working-directory: candidate
