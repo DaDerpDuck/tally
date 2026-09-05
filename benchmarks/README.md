@@ -24,6 +24,20 @@ odd number of complete runs:
 npm run bench:repeat -- --runs 5 --log-level warn --output benchmark-results.json
 ```
 
+Without `--output`, repeated results are written to
+`benchmarks/results/benchmark-<commit>.json`. The ignored results directory is
+created automatically. An explicit output path still overrides the default.
+
+Compare two result files with:
+
+```sh
+node --import tsx benchmarks/compare.ts baseline.json candidate.json
+```
+
+The default comparison path is
+`benchmarks/results/comparison-<baseline>-vs-<candidate>.md`. Pass a third path to
+override it.
+
 The harness combines short time-based runs with minimum iteration counts. Extremely
 fast, stable operations are batched and reported as normalized per-operation
 latencies so that timer quantization does not produce `zero-mad` warnings. Setup and

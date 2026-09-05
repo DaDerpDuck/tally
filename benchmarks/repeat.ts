@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { type BenchmarkLogLevel, type BenchmarkProfile } from "./shared/bench.js";
 
@@ -58,14 +58,13 @@ const validProfiles = new Set<BenchmarkProfile>(["default", "quick", "comparison
 const { values } = parseArgs({
 	options: {
 		runs: { type: "string", default: "5" },
-		output: { type: "string", default: "benchmark-results.json" },
+		output: { type: "string" },
 		profile: { type: "string", default: "default" },
 		"log-level": { type: "string", default: "warn" },
 	},
 });
 
 const runs = Number(values.runs);
-const outputPath = resolve(values.output);
 const logLevel = values["log-level"] as BenchmarkLogLevel;
 const profile = values.profile as BenchmarkProfile;
 
@@ -174,7 +173,12 @@ try {
 		runs,
 		suites,
 	};
+	const outputPath = resolve(
+		values.output ??
+			join("benchmarks", "results", `benchmark-${firstReport.commit.slice(0, 8)}.json`)
+	);
 
+	await mkdir(dirname(outputPath), { recursive: true });
 	await writeFile(outputPath, `${JSON.stringify(aggregatedReport, null, 2)}\n`);
 
 	if (logLevel === "info") {

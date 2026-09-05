@@ -1,4 +1,5 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 
 interface Report {
 	commit: string;
@@ -13,13 +14,22 @@ interface Report {
 	}>;
 }
 
-const [, , baselinePath, candidatePath, outputPath] = process.argv;
+const [, , baselinePath, candidatePath, requestedOutputPath] = process.argv;
 
-if (!baselinePath || !candidatePath || !outputPath)
-	throw new Error("Usage: compare.ts <baseline.json> <candidate.json> <output.md>");
+if (!baselinePath || !candidatePath) {
+	throw new Error("Usage: compare.ts <baseline.json> <candidate.json> [output.md]");
+}
 
 const baseline = JSON.parse(await readFile(baselinePath, "utf8")) as Report;
 const candidate = JSON.parse(await readFile(candidatePath, "utf8")) as Report;
+const outputPath = resolve(
+	requestedOutputPath ??
+		join(
+			"benchmarks",
+			"results",
+			`comparison-${baseline.commit.slice(0, 8)}-vs-${candidate.commit.slice(0, 8)}.md`
+		)
+);
 
 const baselineTasks = new Map(
 	baseline.suites.flatMap((suite) =>
@@ -73,4 +83,5 @@ const markdown = [
 	"",
 ].join("\n");
 
+await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, markdown);
