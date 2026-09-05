@@ -1,0 +1,71 @@
+name: Benchmarks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout baseline
+        uses: actions/checkout@v6
+        with:
+          ref: "main"
+          path: baseline
+
+      - name: Checkout candidate
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: candidate
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            baseline/package-lock.json
+            candidate/package-lock.json
+
+      - name: Install baseline
+        working-directory: baseline
+        run: npm ci
+
+      - name: Install candidate
+        working-directory: candidate
+        run: npm ci
+
+      - name: Run baseline
+        working-directory: baseline
+        run: >
+          npm run bench:repeat --
+          --runs 7 --output "${{ github.workspace }}/results/baseline.json"
+
+      - name: Run candidate
+        working-directory: candidate
+        run: >
+          npm run bench:repeat --
+          --runs 7 --output "${{ github.workspace }}/results/candidate.json"
+
+      - name: Compare
+        working-directory: candidate
+        run: >
+          node --import tsx benchmarks/compare.ts
+          "${{ github.workspace }}/results/baseline.json"
+          "${{ github.workspace }}/results/candidate.json"
+          "${{ github.workspace }}/results/comparison.md"
+
+      - name: Add workflow summary
+        run: cat results/comparison.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-results
+          path: results
+          retention-days: 90
