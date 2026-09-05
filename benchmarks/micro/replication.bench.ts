@@ -35,6 +35,7 @@ function createSnapshot(size: number, value: number): ReplicationSnapshot {
 			id: index + 1,
 			type: "ReplicatedBenchmarkSource",
 			priority: 0,
+			key: undefined,
 			data: value,
 		})),
 		descriptors: [],
